@@ -1,0 +1,120 @@
+---
+layout: post
+title:  "使用Jekyll远程制作个人Github Pages"
+date:   2020-03-21 13:15:38 +0800
+categories: Github 
+---
+
+# Requirements
+
+- [github](http://github.com) 账号
+- ubuntu
+- ruby
+    - 自带bundle
+    - Jekyll
+
+# Steps
+
+## Install requirements
+
+SSH登录到服务器，执行以下命令安装 ruby：
+
+```shell
+sudo apt-get install ruby
+# 检查 ruby 版本
+ruby -v
+```
+
+考虑到国内使用默认gems源的速度可能较慢，因此使用[清华大学](https://mirrors.tuna.tsinghua.edu.cn/help/rubygems/)的镜像源：
+```
+# 添加 TUNA 源并移除默认源
+gem sources --add https://mirrors.tuna.tsinghua.edu.cn/rubygems/ --remove https://rubygems.org/
+# 列出已有源
+gem sources -l
+# 应该只有 TUNA 一个
+```
+需要提供 root 权限安装 Jekyll 和 bundler：
+```shell
+sudo gem install jekyll bundler
+```
+
+如果在上述过程中遇到提示 `can't find header files for ruby at /usr/lib/ruby/ruby.h` 的问题，则需要安装对应的开发者工具。当前版本是 `ruby 2.5.1p57`，开发者工具的版本(`ruby2.5-dev`)要与之对应：
+```
+sudo apt-get install ruby2.5-dev
+```
+
+## Create a project
+
+依赖都安装完成之后就可以开始使用 Jekyll 制作个人页了。通过以下命令创建一个 Jekyll 模板：
+
+```shell
+jekyll new kayoch1n.github.io
+```
+`jekyll new` 后面的参数是一个文件夹，该文件夹必须是空的，否则报错并且创建失败。创建之后进入到这个文件夹，初始化git仓库：
+```shell
+cd kayoch1n.github.io
+git init
+```
+这个时候的目录结构应该长这样：
+
+![project structure]({{ site.url }}/assets/2020-03-21-gh-pages.png)
+
+简单地解释一下这个目录：
+
+- `_posts` 存放文章。用户使用markdown编写的文档需要存放在这个目录才能被Jekyll检测得到；
+- `_site` 在调试的时候存放着bundle命令打包构建的静态html资源，忽略即可
+- `_config.yml` 包含Jekyll项目的配置信息，比如url前缀(baseurl)和主题(theme)等等。。
+
+## Add your first post
+
+在 `_post` 目录下创建文件并遵循命名格式：`YYYY-MM-DD-YOUR-FANCY-POST.markdown`
+
+使用 Jekyll 创建的项目会自带一个介绍性的markdown文档，用户可以在这个文档的基础上照葫芦画瓢。这个markdown的开头有一段形式如下的yaml：
+```yaml
+---
+layout: post
+title:  "使用Jekyll制作个人Github Pages"
+date:   2020-03-21 13:15:38 +0800
+categories: Github 
+---
+```
+接下来就可以按照markdown的语法写自己的文章了。关于markdown的语法，gayhub有一篇简单易懂的介绍在[这里](https://guides.github.com/pdfs/markdown-cheatsheet-online.pdf)。
+
+## Debug (optional)
+
+假如用户对自己写的文章充满信心，那么这一个步骤不是必须的。但是对于像我这种偷偷写bug的coder来说，不简单调试一下是不能放心push的。通过`bundle`命令打包构建并在本地拉起一个HTTP服务：
+
+```shell
+bundle exec jekyll serve
+```
+
+用户可以观察构建的标准输出观察是否有错误信息，没有错误信息就可以放心提交了。这个HTTP服务默认监听 `http://127.0.0.1:4000/`，按下 ctrl+c 停止服务。值得一提的是，Jekyll是可以实时构建的：只要用户不停止这个服务，任何即时的修改都会出发打包构建。与此同时，用户可以在另一个窗口使用万能的 `curl` 验证一下。
+
+## Publish
+
+文章写好了，接下来就要把文章发布到github上了？对于第一次使用git的用户而言，需要先配置git的用户名和邮件，这个步骤是一次性的：
+
+```
+git config --global user.name kayoch1n
+git config --global user.email koizumihanayo@protonmail.com
+```
+
+每次写好文章了，都需要先把更改提交到本地git仓库（默认是master分支）：
+
+```shell
+# 暂存所有更改(STAGED)
+git add .
+# 提交已暂存的更改
+git commit -m "Add my first posts."
+```
+
+在[github]()上创建一个远程仓库。如果没有自己域名，则需要将仓库命名为`YOUR_USERNAME.github.io`。创建成功之后，将远程仓库的HTTPS URL添加作为本地仓库的origin，然后推送更改：
+
+```
+# 跟踪仓库（一次性）
+git remote add origin https://github.com/kayoch1n/kayoch1n.github.io.git
+# 推送更改
+git push origin master
+```
+
+推送完成之后，就可以到 https://kayoch1n.github.io 看到个人主页了。
