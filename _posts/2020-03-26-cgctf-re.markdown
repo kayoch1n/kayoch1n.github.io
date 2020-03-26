@@ -1,0 +1,69 @@
+---
+layout: post
+title:  "信息安全学习笔记 - CG CTF Re"
+date:   2020-03-25 23:19:38 +0800
+---
+# Problems
+
+逆向工程。想起在学校图书馆电阅的破电脑上看汇编的日子，还是xp。。。
+
+## [Hello,RE!](https://cgctf.nuptsast.com/files/1.exe)
+
+```
+.text:00401500                 push    ebp
+.text:00401501                 mov     ebp, esp
+.text:00401503                 and     esp, 0FFFFFFF0h
+.text:00401506                 sub     esp, 90h
+.text:0040150C                 call    ___main
+.text:00401511                 mov     dword ptr [esp], offset fmt ; fmt
+.text:00401518                 call    __Z6printfPKcz  ; printf(char const*,...)
+.text:0040151D                 mov     dword ptr [esp+75h], 67616C66h
+.text:00401525                 mov     dword ptr [esp+79h], 6C65577Bh
+.text:0040152D                 mov     dword ptr [esp+7Dh], 656D6F63h
+.text:00401535                 mov     dword ptr [esp+81h], 5F6F545Fh
+.text:00401540                 mov     dword ptr [esp+85h], 575F4552h
+.text:0040154B                 mov     dword ptr [esp+89h], 646C726Fh
+.text:00401556                 mov     word ptr [esp+8Dh], 7D21h
+.text:00401560                 mov     byte ptr [esp+8Fh], 0
+.text:00401568                 jmp     short loc_401592
+```
+
+main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“入栈”（准确的来说是直接对栈上的内存赋值），然后调用标准c的printf输出一个字符串。完事了将字符串的flag用4字节int的形式“入栈”，注意windows上的字节序是小端，先存储LSB(Least significant byte)。然后跳转。
+
+```
+.text:00401592                 lea     eax, [esp+11h]
+.text:00401596                 mov     [esp+4], eax
+.text:0040159A                 mov     dword ptr [esp], offset format ; "%s"
+.text:004015A1                 call    __Z5scanfPKcz   ; scanf(char const*,...)
+.text:004015A6                 cmp     eax, 0FFFFFFFFh
+.text:004015A9                 setnz   al
+.text:004015AC                 test    al, al
+.text:004015AE                 jnz     short loc_40156A
+```
+
+将栈上的一个地址“入栈”，根据后文可以看出来这是一个指向局部变量char数组的指针；“压入”格式字符串，调用c的scanf，表示要读入一段字符串。跟-1(`0xFFFFFFFF`)比较，留意scanf的调用是否出错。比较的汇编看着比较捉急。
+
+
+```
+.text:004015B0 loc_4015B0:                             ; CODE XREF: _main:loc_401590↑j
+.text:004015B0                 mov     dword ptr [esp], offset aFlag_0 ; "flag"
+.text:004015B7                 call    __Z6printfPKcz  ; printf(char const*,...)
+.text:004015BC                 mov     dword ptr [esp], offset byte_410030 ; fmt
+.text:004015C3                 call    __Z6printfPKcz  ; printf(char const*,...)
+.text:004015C8                 mov     dword ptr [esp], offset byte_410064 ; fmt
+.text:004015CF                 call    __Z6printfPKcz  ; printf(char const*,...)
+.text:004015D4                 mov     dword ptr [esp], offset byte_41008F ; fmt
+.text:004015DB                 call    __Z6printfPKcz  ; printf(char const*,...)
+.text:004015E0                 call    _getchar
+.text:004015E5                 call    _getchar
+.text:004015EA                 mov     eax, 0
+.text:004015EF                 leave
+.text:004015F0                 retn
+```
+
+
+### Notes
+- `cmp a, b`if a==b is true -> zero flag is [set](https://reverseengineering.stackexchange.com/a/20897/26380)
+- `setnz` set if not zero
+  - what if ZF is 1?
+- `test al, al` set ZF to 1 if al == 0 is true. [wiki](https://en.wikipedia.org/wiki/TEST_(x86_instruction))
