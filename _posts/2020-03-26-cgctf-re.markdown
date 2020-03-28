@@ -28,7 +28,7 @@ date:   2020-03-25 23:19:38 +0800
 .text:00401568                 jmp     short loc_401592
 ```
 
-main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“入栈”（准确的来说是直接对栈上的内存赋值），然后调用标准c的printf输出一个字符串。完事了将字符串的flag用4字节int的形式“入栈”，注意windows上的字节序是小端，先存储LSB(Least significant byte)。然后跳转。
+main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“入栈”（准确的来说是直接对栈上的内存赋值），然后调用标准c的printf输出一个字符串。完事了将字符串的flag用4字节int的形式“入栈”，注意windows上的字节序是**小端**，先存储LSB(Least significant byte)。然后跳转。
 
 ```
 .text:00401592                 lea     eax, [esp+11h]
@@ -63,7 +63,116 @@ main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“
 
 
 ### Notes
-- `cmp a, b`if a==b is true -> zero flag is [set](https://reverseengineering.stackexchange.com/a/20897/26380)
-- `setnz` set if not zero
-  - what if ZF is 1?
-- `test al, al` set ZF to 1 if al == 0 is true. [wiki](https://en.wikipedia.org/wiki/TEST_(x86_instruction))
+
+
+## [ReadAsm2](https://cgctf.nuptsast.com/files/2.asm)
+```C
+int main(int argc, char const *argv[])
+{
+  char input[] = {0x0,  0x67, 0x6e, 0x62, 0x63, 0x7e, 0x74, 0x62, 0x69, 0x6d,
+                  0x55, 0x6a, 0x7f, 0x60, 0x51, 0x66, 0x63, 0x4e, 0x66, 0x7b,
+                  0x71, 0x4a, 0x74, 0x76, 0x6b, 0x70, 0x79, 0x66 , 0x1c};
+  func(input, 28);
+  printf("%s\n",input+1);
+  return 0;
+}
+```
+结合上边的C源码，下边的汇编的作用是对字符数组里面的每个字节和对应的索引进行异或然后写入原来的位置
+```
+00000000004004e6 <func>:
+  4004e6: 55                    push   rbp
+  4004e7: 48 89 e5              mov    rbp,rsp
+  4004ea: 48 89 7d e8           mov    QWORD PTR [rbp-0x18],rdi
+  4004ee: 89 75 e4              mov    DWORD PTR [rbp-0x1c],esi
+  4004f1: c7 45 fc 01 00 00 00  mov    DWORD PTR [rbp-0x4],0x1
+  4004f8: eb 28                 jmp    400522 <func+0x3c>
+  4004fa: 8b 45 fc              mov    eax,DWORD PTR [rbp-0x4]
+  4004fd: 48 63 d0              movsxd rdx,eax
+  400500: 48 8b 45 e8           mov    rax,QWORD PTR [rbp-0x18]
+  400504: 48 01 d0              add    rax,rdx
+  400507: 8b 55 fc              mov    edx,DWORD PTR [rbp-0x4]
+  40050a: 48 63 ca              movsxd rcx,edx
+  40050d: 48 8b 55 e8           mov    rdx,QWORD PTR [rbp-0x18]
+  400511: 48 01 ca              add    rdx,rcx
+  400514: 0f b6 0a              movzx  ecx,BYTE PTR [rdx]
+  400517: 8b 55 fc              mov    edx,DWORD PTR [rbp-0x4]
+  40051a: 31 ca                 xor    edx,ecx
+  40051c: 88 10                 mov    BYTE PTR [rax],dl
+  40051e: 83 45 fc 01           add    DWORD PTR [rbp-0x4],0x1
+  400522: 8b 45 fc              mov    eax,DWORD PTR [rbp-0x4]
+  400525: 3b 45 e4              cmp    eax,DWORD PTR [rbp-0x1c]
+  400528: 7e d0                 jle    4004fa <func+0x14>
+  40052a: 90                    nop
+  40052b: 5d                    pop    rbp
+  40052c: c3                    ret
+```
+
+所以答案是
+```python
+data = [
+    0x0, 0x67, 0x6e, 0x62, 0x63, 0x7e, 0x74, 0x62, 0x69, 0x6d,
+    0x55, 0x6a, 0x7f, 0x60, 0x51, 0x66, 0x63, 0x4e, 0x66, 0x7b,
+    0x71, 0x4a, 0x74, 0x76, 0x6b, 0x70, 0x79, 0x66, 0x1c
+]
+new = []
+for i, b in enumerate(data):
+    new.append(chr((i^b)&(0xFF)))
+print(''.join(new[1:]))
+```
+
+## [Py交易](https://pan.baidu.com/s/1o8fVxkI)
+
+先安装 [uncompyle6](https://github.com/rocky/python-uncompyle6/) py包。如果pip安装之后输入`uncompyle6 -h`提示找不到命令，可以先把py包卸载了，然后从源代码安装。
+
+现在下来之后用`uncompyle6 Py.pyc > Py.py`反编译
+
+```python
+# Python27
+# uncompyle6 version 3.6.4
+# Python bytecode 2.7 (62211)
+# Decompiled from: Python 2.7.17 (default, Nov  7 2019, 10:07:09) 
+# [GCC 7.4.0]
+# Embedded file name: 1.py
+# Compiled at: 2017-06-03 10:20:43
+import base64
+
+def encode(message):
+    s = ''
+    for i in message:
+        x = ord(i) ^ 32
+        x = x + 16
+        s += chr(x)
+
+    return base64.b64encode(s)
+
+correct = 'XlNkVmtUI1MgXWBZXCFeKY+AaXNt'
+flag = ''
+print 'Input flag:'
+flag = raw_input()
+if encode(flag) == correct:
+    print 'correct'
+else:
+    print 'wrong'
+# okay decompiling Py.pyc
+```
+
+所以答案是:
+```python
+# Python37
+''.join([chr(((c-16)^32)&0xFF) for c in base64.b64decode('XlNkVmtUI1MgXWBZXCFeKY+AaXNt')])
+```
+
+### Notes
+- x86 uses a full descending stack
+  - `push` firstly decrement `esp` by 4, and then stores its operand
+- x86 instructions
+  - Intel syntax: dst<-src
+  - `cmp a, b`if a==b is true -> zero flag is [set](https://reverseengineering.stackexchange.com/a/20897/26380)
+  - `setnz` Set if not zero
+    - what if ZF is 1?
+  - `test al, al` Set ZF to 1 if al == 0 is true. [wiki](https://en.wikipedia.org/wiki/TEST_(x86_instruction))
+  - `movsx` sign-extended
+  - `movzx` zero
+  - `cdqe` sign-extends a double word in eax to quad word
+- [System V AMD64 ABI](https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI) 
+  - The first 6 integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8 and R9
