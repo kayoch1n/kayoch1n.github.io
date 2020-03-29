@@ -1,13 +1,15 @@
 ---
 layout: post
 title:  "信息安全学习笔记 - CG CTF Re"
-date:   2020-03-25 23:19:38 +0800
+date:   2020-03-29 19:19:38 +0800
 ---
 # Problems
 
 逆向工程。想起在学校图书馆电阅的破电脑上看汇编的日子，还是xp。。。
 
 ## [Hello,RE!](https://cgctf.nuptsast.com/files/1.exe)
+
+先通过看汇编复习一下以前的知识，推荐英特尔的[64ia32指令集手册](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf)
 
 ```
 .text:00401500                 push    ebp
@@ -28,7 +30,7 @@ date:   2020-03-25 23:19:38 +0800
 .text:00401568                 jmp     short loc_401592
 ```
 
-main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“入栈”（准确的来说是直接对栈上的内存赋值），然后调用标准c的printf输出一个字符串。完事了将字符串的flag用4字节int的形式“入栈”，注意windows上的字节序是**小端**，先存储LSB(Least significant byte)。然后跳转。
+main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“入栈”（准确的来说是直接对栈上的内存赋值），然后调用标准c的printf输出一个字符串。完事了将字符串的flag用4字节int的形式“入栈”；另外，windows上的字节序是**小端**，先存储LSB(Least significant byte)。然后跳转。
 
 ```
 .text:00401592                 lea     eax, [esp+11h]
@@ -120,7 +122,7 @@ for i, b in enumerate(data):
 print(''.join(new[1:]))
 ```
 
-## [Py交易](https://pan.baidu.com/s/1o8fVxkI)
+## Py交易
 
 先安装 [uncompyle6](https://github.com/rocky/python-uncompyle6/) py包。如果pip安装之后输入`uncompyle6 -h`提示找不到命令，可以先把py包卸载了，然后从源代码安装。
 
@@ -162,17 +164,82 @@ else:
 ''.join([chr(((c-16)^32)&0xFF) for c in base64.b64decode('XlNkVmtUI1MgXWBZXCFeKY+AaXNt')])
 ```
 
+## maze
+
+程序下载下来，用ida分析汇编，可以得出以下主要的程序逻辑（用python表示）：
+```python
+# encoding=utf8
+# python37
+R = "  *******   *  **** * ****  * ***  *#  *** *** ***     *********"
+
+def func(s):
+    b, v24, v28, r = 5, 0, 0, 0
+    while b < len(s):
+        if s[b] == chr(0x4f):   # O
+            r = v24 == 0
+            v24 -= 1
+        elif s[b] == chr(0x6f): # o
+            v24 += 1
+            r = v24 < 8
+        elif s[b] == chr(0x2e): # .
+            r = v28 == 0
+            v28 -= 1
+        elif s[b] == chr(0x30): # 0
+            v28 += 1
+            r = v28 < 8
+        
+        c = R[v24 + v28 * 8]
+        if c != chr(0x20) and c != chr(0x23):
+            break
+        b += 1
+
+    if r and R[v24+v28*8] == chr(0x23):
+        print("Congratulation!")
+    else:
+        print("Wrong flag!")
+```
+
+注意到形如`R[v24 + v28 * 8]`的数组访问方式，容易让人想起和图遍历有关的算法课上机作业:laughing: 。正如题目的名字所暗示的那样，R数组其实是一个迷宫；输入的flag其实一条路径，程序根据这条路径去遍历迷宫，如果到达了`#`就说明这条路径是答案了。
+
+可以用DFS找到这条路径：
+
+```python
+# encoding=utf8
+# python37
+R = "  *******   *  **** * ****  * ***  *#  *** *** ***     *********"
+direction = [[-1, 0, 'O'], [1, 0, 'o'], [0, -1, '.'], [0, 1, '0']]
+
+seen = set()
+stack = []
+found = []
+
+def dfs(x, y):
+    if 0 <= x+y*8 < len(R):
+        if R[x+y*8] == '#':
+            print(''.join(stack), len(stack))  # 输出答案
+            found.append(True)
+        if R[x+y*8] == '*' or found or (x, y) in seen:
+            return
+
+        seen.add((x, y))
+        for a, b, c in direction:
+            stack.append(c)
+            dfs(x+a, y+b)
+            stack.pop()
+dfs(0, 0, '')
+```
+
+小插曲：一开始看汇编的时候看到程序有个判断检查flag长度的逻辑：`cmp rbx, 18h`，下意识的认为输入的长度是18；dfs解出答案后看到路径的长度是18还有点怀疑。但其实那是16进制的`18h`，也就是24=18+6，6是`nctf{`和`}`的长度。
+
 ### Notes
 - x86 uses a full descending stack
   - `push` firstly decrement `esp` by 4, and then stores its operand
-- x86 instructions
+- [x86 instructions](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf)
   - Intel syntax: dst<-src
-  - `cmp a, b`if a==b is true -> zero flag is [set](https://reverseengineering.stackexchange.com/a/20897/26380)
-  - `setnz` Set if not zero
-    - what if ZF is 1?
-  - `test al, al` Set ZF to 1 if al == 0 is true. [wiki](https://en.wikipedia.org/wiki/TEST_(x86_instruction))
+  - `cmp s1, s2` subtract s2 from s1
+  - `test s1, s2` bitwise AND
   - `movsx` sign-extended
-  - `movzx` zero
+  - `movzx` zero-extended
   - `cdqe` sign-extends a double word in eax to quad word
 - [System V AMD64 ABI](https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI) 
   - The first 6 integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8 and R9
