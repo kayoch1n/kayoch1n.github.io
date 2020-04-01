@@ -63,10 +63,6 @@ main 函数先对齐栈顶，分配栈空间，将一个字符串的指针先“
 .text:004015F0                 retn
 ```
 
-
-### Notes
-
-
 ## [ReadAsm2](https://cgctf.nuptsast.com/files/2.asm)
 ```C
 int main(int argc, char const *argv[])
@@ -231,15 +227,42 @@ dfs(0, 0, '')
 
 小插曲：一开始看汇编的时候看到程序有个判断检查flag长度的逻辑：`cmp rbx, 18h`，下意识的认为输入的长度是18；dfs解出答案后看到路径的长度是18还有点怀疑。但其实那是16进制的`18h`，也就是24=18+6，6是`nctf{`和`}`的长度。
 
-### Notes
+## [480小时精通C++](https://cgctf.nuptsast.com/files/re480.rar)
+
+IDA打开找main函数，发现main函数的作用只是输出一段加密之后的字符串而已；要将关注点放到`StringEncryptFunction`函数。这个函数又调用了480个类似的函数；幸运的是这480个函数几乎完全相同，区别仅仅在于各自使用了一个不同的字符串(`001001001` ~ `480480480`)。整个加密逻辑可以用 python 转写成以下代码
+
+```python
+def bar(array):
+    for i in range(1, 481):
+        a = '{:03}'.format(i) * 3
+        for j in range(len(array)):
+            array[j] = j^array[j]^ord(a[j % len(a)])
+```
+
+因为用到了异或，所以加密算法同时也是解密算法。答案如下：
+```python
+import re
+
+a = list(int(f'0x{b}', base=16) for b in re.findall(r'..', '62646163734e346a6f60715f673c6e5b4561777c337657635b7831717b5f74447577297d'))
+bar(a)
+print(''.join(map(chr, a)))
+```
+
+之前没了解过x64 C++类方法的调用约定，这次算是学习了。`this`指针被当成第一个参数，x64 gcc 会把`this`指针通过`rdi`传递。
+
+# Notes
 - x86 uses a full descending stack
   - `push` firstly decrement `esp` by 4, and then stores its operand
 - [x86 instructions](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf)
   - Intel syntax: dst<-src
-  - `cmp s1, s2` subtract s2 from s1
-  - `test s1, s2` bitwise AND
-  - `movsx` sign-extended
-  - `movzx` zero-extended
-  - `cdqe` sign-extends a double word in eax to quad word
+  - `cmp s1, s2` Subtract s2 from s1
+  - `test s1, s2` Bitwise AND
+  - `movsx`/`movzx` Sign-extended/zero-extended
+  - `cdqe` Sign-extends a double word in eax to quad word
+  - `idiv` Signed divide AX/DX:AX/EDX:EAX/RDX:RAX, with result stored in: AL/AX/EAX/RAX <-- quotient, AH/DX/EDX/RDX <-- remainder
+AL← Quotient, AH ←Remainder.
 - [System V AMD64 ABI](https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI) 
   - The first 6 integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8 and R9
+  - gcc passes `this` pointer as the first argument
+- `fs` and `gs`: base-pointer addresses
+    - `fs:0x28` on linux stores a [sentinel stack-guard value](https://stackoverflow.com/a/10325915/8706476)
