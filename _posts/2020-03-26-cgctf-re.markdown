@@ -349,6 +349,53 @@ def main():
 echo -n 401095728057800001802040305000321589500479002923586000105060203300008950269750804 | ./single
 ```
 
+## bt
+
+IDA找到main函数。程序读取一个字符串byte_601100，先后用两个函数sub_400666和sub_4006BE生成字符串分别与s2和a7d8dcdcaed592e比较，如果一致，那么字符串byte_601100就是答案。两个函数用python转写如下：
+
+```python
+def sub_400666(n):
+    if n>0x3f:
+        return
+
+    Global.s1[Global.dw1064] = Global.bt1100[n]
+    Global.dw1064 += 1
+    sub_400666(2*n+1)
+    sub_400666(2*n+2)
+
+def sub_4006BE(n):
+    if n>0x3f:
+        return
+
+    sub_4006BE(2*n+1)
+    Global.s1[Global.dw1064] = Global.bt1100[n]
+    Global.dw1064 += 1
+    sub_4006BE(2*n+2)
+```
+
+不难看出来这其实是二叉树的两种遍历方式：前序遍历和中序遍历。题目名字为'bt'，应该就是 backtrace 的缩写。收集前序遍历的索引、对结果字符串s2进行排序就可以得到答案：
+
+```python
+def func(length):
+    indices = []
+    def bar(n):
+        if n>length:
+            return
+        indices.append(n)
+        bar(2*n+1)
+        bar(2*n+2)
+
+    bar(0)
+    return indices   
+
+indices = func(0x3f)    
+s2 = 'bcec8d7dcda25d91ed3e0b720cbb6cf202b09fedbc3e017774273ef5d5581794'
+
+print('nctf{%s}' % ''.join([c for _, c in sorted(enumerate(s2), key=lambda t: indices[t[0]])]))
+```
+
+不过有一点存在疑惑：只用前序遍历的结果s2就可以得到答案了，为什么题目还要再使用中序遍历再检查一次？
+
 # Notes
 - x86 uses a full descending stack
   - `push` firstly decrement `esp` by 4, and then stores its operand
