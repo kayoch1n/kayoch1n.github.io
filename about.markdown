@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 一半是码农
+title: 半个码农
 permalink: /about/
 ---
 
