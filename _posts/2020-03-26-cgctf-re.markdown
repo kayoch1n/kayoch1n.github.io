@@ -375,6 +375,7 @@ def sub_4006BE(n):
 
 不难看出来这其实是二叉树的两种遍历方式：前序遍历和中序遍历。题目名字为'bt'，应该就是 backtrace 的缩写。收集前序遍历的索引、对结果字符串s2进行排序就可以得到答案：
 
+{% raw %}
 ```python
 def func(length):
     indices = []
@@ -393,6 +394,7 @@ s2 = 'bcec8d7dcda25d91ed3e0b720cbb6cf202b09fedbc3e017774273ef5d5581794'
 
 print('nctf{%s}' % ''.join([c for _, c in sorted(enumerate(s2), key=lambda t: indices[t[0]])]))
 ```
+{% endraw %}
 
 不过有一点存在疑惑：只用前序遍历的结果s2就可以得到答案了，为什么题目还要再使用中序遍历再检查一次？
 
