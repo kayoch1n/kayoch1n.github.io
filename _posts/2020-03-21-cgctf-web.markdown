@@ -60,6 +60,9 @@ javascript里也存在类似的问题，区别在于如果两个都是字符串�
 
 原来图片可以藏信息，图片的展示也不会受到影响。
 
+## [层层递进](http://chinalover.sinaapp.com/web3/)
+
+网页里面有两个iframe，一脸懵b。看了网上的文章发现iframe里面有个SO.html，这里面又有个iframe，里面又是 SO.html。。。最里面有个404.html，答案在注释里。不是很懂这个题目的意思，可能是暗链一类的？因为除了第一个SO.html以外，即使把下面那个网页都删掉之后，都不可见。
 
 ## [单身二十年](http://chinalover.sinaapp.com/web8/)
 
