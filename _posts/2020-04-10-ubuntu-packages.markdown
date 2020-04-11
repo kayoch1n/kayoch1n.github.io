@@ -7,7 +7,7 @@ date:   2020-04-10 21:15:38 +0800
 
 ## Perl Modules
 
-Follow the steps [here](http://www.cpan.org/modules/INSTALL.html) to install perl modules.
+Follow the steps [here](http://www.cpan.org/modules/INSTALL.html) to install perl modules. Type `cpan`:
 
 ```shell
 # Optional. 
