@@ -630,6 +630,9 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
       - `resource`: file
   - [variable variable](https://www.php.net/manual/en/language.variables.variable.php) allows user to have variable variable names. 
   - [`mysql_fetch_array`](https://www.php.net/manual/en/function.mysql-fetch-array.php): Fetch **a** result row 
+  - [`get_magic_quotes_gpc`](https://www.php.net/manual/en/function.get-magic-quotes-gpc.php)
+  - [`htmlentities`](https://www.php.net/manual/en/function.htmlentities.php) converts all applicable characters into HTML entities.
+    - not always safe enough to protect from SQLi
 - sqli
   - single quotes
   - comments `--` followed by **spaces**
@@ -657,5 +660,6 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
   - hints in `robots.txt`
   - forge cookie
   - [`window.location`](https://developer.mozilla.org/en-US/docs/Web/API/Window/location) loads another document
+  - [jsfuck](https://zh.wikipedia.org/wiki/JSFuck)
 - md5
   - collision
