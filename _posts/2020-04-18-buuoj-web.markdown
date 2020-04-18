@@ -1,12 +1,12 @@
 ---
 layout: post
 title:  "信息安全学习笔记 - BUUCTF Web"
-date:   2020-04-12 23:00:38 +0800
+date:   2020-04-18 20:00:38 +0800
 ---
 
 # Problems
 
-最近[南邮CTF平台](https://cgctf.nuptsast.com/)登不上去，chrome总提示连接超时.
+最近(2020-04-18)[南邮CTF平台](https://cgctf.nuptsast.com/)登不上去，chrome总提示连接超时.
 
 ## [HCTF 2018] WarmUp 1
 
