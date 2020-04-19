@@ -248,7 +248,7 @@ bar(a)
 print(''.join(map(chr, a)))
 ```
 
-之前没了解过x64 C++类方法的调用约定，这次算是学习了。`this`指针被当成第一个参数，x64 gcc 会把`this`指针通过`rdi`传递。
+之前没了解过x64 C++类方法的调用约定，这次算是学习了。`this`指针被当成第一个参数，x64 gcc 会把`this`指针通过`rdi`传递，也就是相当于函数的第一个参数。
 
 ## Single
 
@@ -399,7 +399,7 @@ print('nctf{%s}' % ''.join([c for _, c in sorted(enumerate(s2), key=lambda t: in
 不过有一点存在疑惑：只用前序遍历的结果s2就可以得到答案了，为什么题目还要再使用中序遍历再检查一次？
 
 # Notes
-- x86 uses a full descending stack
+- x86 uses a **full descending** stack
   - `push` firstly decrement `esp` by 4, and then stores its operand
 - [x86 instructions](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf)
   - Intel syntax: dst<-src
@@ -408,7 +408,7 @@ print('nctf{%s}' % ''.join([c for _, c in sorted(enumerate(s2), key=lambda t: in
   - `movsx`/`movzx` Sign-extended/zero-extended
   - `cdqe` Sign-extends a double word in eax to quad word
   - `idiv` Signed divide AX/DX:AX/EDX:EAX/RDX:RAX, with result stored in: AL/AX/EAX/RAX <-- quotient, AH/DX/EDX/RDX <-- remainder
-AL← Quotient, AH ←Remainder.
+    - AL← Quotient, AH ←Remainder.
 - [System V AMD64 ABI](https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI) 
   - The first 6 integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8 and R9
   - gcc passes `this` pointer as the first argument
