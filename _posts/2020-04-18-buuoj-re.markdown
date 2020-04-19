@@ -13,25 +13,69 @@ date:   2020-04-18 20:00:38 +0800
 
 ## [SUCTF2019]SignIn
 
-用IDA分析程序逻辑得出，题目要求输入一个长度99的、16进制整数 s，计算高次幂剩余:
+IDA分析程序逻辑。题目用到了一个叫做gmplib（多精度运算库），其中一个函数 [mpz_powm](https://gmplib.org/manual/Integer-Exponentiation.html) 用来计算高次幂剩余。题目要求输入一个长度99的、16进制整数 s，经过 sub_96A 处理后，计算高次幂剩余，和另一个大整数进行比较，假如相等那么s就是答案:
 
 ```python
+# encoding=utf-8
 unk_202010 = '0123456789abcdef'
-def sub96A(s):
+def sub_96A(s):
   r = ''
-  for c in s:
+  for c in map(ord, s):
     r += unk_202010[c >> 4]
     r += unk_202010[c & 0x0F]
 
-s = sub96A(input())
-r = s**65537 % 10346103590081691412139010129904904441395040517371217043416168653
+s = sub_96A(input())
+# IDA有个坑爹的问题在于它在显示的时候会把过长的字符串换行显示
+# 模数有78个10进制数字，但是IDA在第一行只显示前面65个，剩下13个换行了
+# 导致我第一次算的时候用了错误的模数额
+r = s**65537 % 103461035900816914121390101299049044413950405173712170434161686539878160984549
 if r == 0xad939ff59f6e70bcbfad406f2494993757eee98b91bc244184a377520d06fc35:
   print("OK")
 ```
 
-这个有点难算Orz。
+换言之，这个题目是求解高次幂同余方程 `X^65537=n (mod m)`。首先看下能不能计算 `phi(m)` ，这里要克服的困难是对大整数进行质因数分解。谷歌一下发现一个计算质因数分解的[站点](https://www.alpertron.com.ar/ECM.HTM)。该站点使用JS在浏览器上进行计算，过了不到5分钟得到了所有的两个质因数，这个算法厉害（把我吓一跳了，有时间一定要研究一下）：
 
+```python
+ps = [282164587459512124844245113950593348271, 366669102002966856876605669837014229419]
+reduce(lambda x,y: x*y, ps) == 10346103590081691412139010129904904441395040517371217043416168653 # True
+```
+
+所以根据欧拉phi函数的定义，`phi(m)` 的值计算`reduce(lambda x,y:x*(y-1), ps, 1)`就是`103461035900816914121390101299049044413301571484249691452440835756090553406860`
+
+接着求线性方程 `65537u+phi(m)v=1`的整数解（应该是有整数解的，也先用python `math.gcd`验证一下）。这里使用github上一个扩展欧几里得算法的[实现](https://github.com/lapets/egcd/blob/master/egcd/egcd.py)计算x和y：
+```python
+egcd(65537, 103461035900816914121390101299049044413301571484249691452440835756090553406860)
+# 返回： (gcd, u, v)
+# (1, -11814736601945676263553161086440988272108106275662979550941715592696975780047, 7484)
+
+# 算出来 u 是一个负数，再处理一下
+# au+bv=1 <=> a(u+b)+b(v-a)=1
+(1, 91646299298871237857836940212608056141193465208586711901499120163393577626813, -58053)
+```
+因为欧拉公式`X^phi(m)=1 (mod m)`，`n^u = X^(65537u) = X^(1-phi(m)v) = X (mod m) `。接下来计算高次幂剩余 `n^u (mod m)`:
+
+```
+0xad939ff59f6e70bcbfad406f2494993757eee98b91bc244184a377520d06fc35 ** 91646299298871237857836940212608056141193465208586711901499120163393577626813 (mod 103461035900816914121390101299049044413950405173712170434161686539878160984549)
+```
+
+使用github上一个模幂(Modular exponentiation)[实现](https://github.com/csknk/fast-modular-exponentiation/blob/master/python/main.py)，计算出这个整数解是 `185534734614696481020381637136165435809958101675798337848243069`。最后逆运算 sub_96A 得到答案:
+```python
+import re
+
+r = 185534734614696481020381637136165435809958101675798337848243069
+
+print(''.join([chr(int(f'0x{c}', 16)) for c in re.findall('..', hex(r)[2:])]))
+```
 
 # Notes
 
+- Number theory:
+  - BOOK: [A Friendly introduction to Number Theory](https://www.amazon.com/Friendly-Introduction-Number-Theory-4th/dp/0321816196)
+  - Extended Euclidean's Algorithm
+    - Linear equations
+  - Fermat's Little Theorem
+  - Euler's totient function
+    - Prime factorization
+  - Modular exponentiation
+    - Successive squaring
 
