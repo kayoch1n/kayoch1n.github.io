@@ -215,6 +215,25 @@ print(bd('ZmxhZ3sxODE3Zjk5MC05NjY1LTQzNmItYWVmZi03NzUyZmU0ZGM5YzB9Cg==').decode(
 
 
 
+## [SUCTF 2019]EasySQL
+
+目前做了两个和SQLi有关的题目，发现自己在寻找注入方向上存在困难，也不知道如何从错误信息看出哪些关键字被过滤了。。。看来需要总结一下SQL手工注入的方法论！
+
+真的，真的，源代码在手真的事半功倍。
+
+这道题依旧是和执行多条SQL语句的PHP函数 multi_query 有关，而考点是 sql_mode `PIPES_AS_CONCAT`。使用语句`SET sql_mode=PIPES_AS_CONCAT`设置模式之后，源SQL的含义会发生变化：
+
+```SQL
+-- Source
+select ".$post['query']."||flag from Flag;
+
+-- Original
+select 1 || /* OR */ flag from Flag;
+
+-- Attacker's attempt
+set sql_mode=PIPES_AS_CONCAT;
+select concat(1, flag) from Flag;
+```
 
 # Notes
 
@@ -228,7 +247,11 @@ print(bd('ZmxhZ3sxODE3Zjk5MC05NjY1LTQzNmItYWVmZi03NzUyZmU0ZGM5YzB9Cg==').decode(
     - `extractvalue(frag, xpath)` xpath
   - [Prepared statement](https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html)
     - prepare; set; execute
-  - `show databases/tables` and `desc`
+  - `show databases/tables`, `desc` and `show columns from XXX`
+  - `SET sql_mode=PIPES_AS_CONCAT`
 - http
   - JSON
     - escaped sequences
+- shell
+  - curl
+    - `--data-urlencode` with `-G` encodes data and appends to the URL with a '?'
