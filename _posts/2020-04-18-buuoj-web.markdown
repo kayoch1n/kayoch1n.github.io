@@ -221,7 +221,7 @@ print(bd('ZmxhZ3sxODE3Zjk5MC05NjY1LTQzNmItYWVmZi03NzUyZmU0ZGM5YzB9Cg==').decode(
 
 真的，真的，源代码在手真的事半功倍。
 
-这道题依旧是和执行多条SQL语句的PHP函数 multi_query 有关，而考点是 sql_mode `PIPES_AS_CONCAT`。使用语句`SET sql_mode=PIPES_AS_CONCAT`设置模式之后，源SQL的含义会发生变化：
+[这道题](https://www.guildhab.top/?p=703)依旧是和执行多条SQL语句的PHP函数 multi_query 有关，而考点是 sql_mode `PIPES_AS_CONCAT`。使用语句`SET sql_mode=PIPES_AS_CONCAT`设置模式之后，源SQL的含义会发生变化：
 
 ```SQL
 -- Source
