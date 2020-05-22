@@ -85,6 +85,22 @@ systemctl daemon-reload
 systemctl restart docker  # It will stop all running containers and not restart any containers.
 ```
 
+### Permissons on /var/run/docker.sock
+
+One may run `docker` commands without `sudo` and have the following problem
+
+```
+docker: Got permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Post http://%2Fvar%2Frun%2Fdocker.sock/v1.40/containers/create: dial unix /var/run/docker.sock: connect: permission denied.
+```
+
+Here gives the [solution](https://stackoverflow.com/a/48957722/8706476).
+
+If it displays `groupadd: group 'docker' already exists`, simply adding access rights will solve.
+
+```shell
+sudo chmod 666 /var/run/docker.sock
+```
+
 ### Usages
 
 - pull images from repository `docker pull <name:tag>`
