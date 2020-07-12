@@ -1,11 +1,17 @@
 ---
 layout: post
-title:  "信息安全学习笔记 - BUUOJ Pwn"
+title:  "信息安全学习笔记 - BUUOJ Pwn 入门"
 date:   2020-07-11 12:15:38 +0800
 ---
 
 
 # BUUOJ PWN
+
+## Requirements
+1. python
+   1. ropgadget, capstone, 
+   2. pwntools
+2. nasm
 
 ## Prologue
 1. file xxx
@@ -16,7 +22,7 @@ date:   2020-07-11 12:15:38 +0800
 
 1. test_your_nc 
    1. ida system("/bin/sh");
-   2. perl -e 'print "ls\ncat flag\n"' | nc node3.buuoj.cn 26334
+   2. `perl -e 'print "ls\ncat flag\n"' | test_your_nc`
 2. rip
    1. `system("/bin/sh")` found
    2. segfault???
