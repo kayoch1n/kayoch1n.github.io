@@ -43,3 +43,8 @@ date:   2020-07-11 12:15:38 +0800
          1. [saturation arithmetic](https://en.wikipedia.org/wiki/Saturation_arithmetic) and [clamping](https://en.wikipedia.org/wiki/Clamping_(graphics))
          2. SIMD instructions
    4. `perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1`
+6. ciscn_2019_c_1 [传送门]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html)
+7. [OGeek2019]babyrop
+   1. x86, C `read`
+   2. bypass `strncmp` using `\x00` to truncate string
+   3. [传送门]({{ site.url }}/assets/OGeek2019_babyrop.py)
