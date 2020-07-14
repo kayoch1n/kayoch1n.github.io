@@ -101,7 +101,7 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
 
 在 x86 和 x86_64 两种架构下、ROP 方法的 payload 组织方式有所不同：
 - x86 非syscall: 
-  - 参数通过栈传递，因此一般无需pop|ret指令；
+  - 参数通过栈传递，因此一般无需pop和ret指令；
   - 函数能直接访问在payload中预先防止放置的数据，是因为这数据作为些参数通过ebp被访问，而ebp会在函数prologue中设置
     - prologue: `push ebp;mov ebp, esp`
     - epilogue: `leave;ret`
