@@ -48,3 +48,4 @@ date:   2020-07-11 12:15:38 +0800
    1. x86, C `read`
    2. bypass `strncmp` using `\x00` to truncate string
    3. [传送门]({{ site.url }}/assets/OGeek2019_babyrop.py)
+8. ciscn_2019_en_2: 几乎和 [ciscn_2019_c_1]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html)完全一致，区别仅仅在于异或的操作数有区别，但是可以照搬脚本不影响过程。
