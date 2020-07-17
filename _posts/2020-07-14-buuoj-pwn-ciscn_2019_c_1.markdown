@@ -180,3 +180,8 @@ proc.interactive()
 ```
 
 上述代码在本地CentOS7.7可以成功拉起shell，然而拉到线上就 segfault. 查阅网上资料发现这是因为Ubuntu18调用system之前会检查栈顶是否对齐16字节，要加上一个ret(相当于加8字节)去尝试。完整的代码在[这里]({{ site.url }}/assets/ciscn_2019_c_1.py)
+
+## Reference
+
+1. [ciscn_2019_c_1](https://darkwing.moe/2019/11/26/ciscn-2019-c-1/)
+2. [ciscn_2019_c_1](http://liul14n.top/2020/01/29/ciscn-2019-c-1/)
