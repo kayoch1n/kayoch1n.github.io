@@ -4,7 +4,7 @@ title:  "Pwn 入门笔记 ciscn_2019_c_1"
 date:   2020-07-14 12:15:38 +0800
 ---
 
-# ciscn_2019_c_1
+# Pwn 入门笔记 ciscn_2019_c_1
 
 ## Overview
 先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有堆栈保护。
@@ -106,6 +106,7 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
     - prologue: `push ebp;mov ebp, esp`
     - epilogue: `leave;ret`
   - 组织形式：`FUNCTION ADDR` + `RETURN ADDR` + `ARGUMENT_0...N`
+    - 如果要实现执行多个函数，`RETURN ADDR`需要使用ROP gadget
 - x86_64:
   - 前6个参数依次[通过寄存器传递](https://stackoverflow.com/a/2538212/8706476)： RDI, RSI, RDX, RCX, R8, R9
   - gadget 均包含ret指令；
