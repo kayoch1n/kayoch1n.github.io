@@ -25,7 +25,7 @@ date:   2020-07-18 12:15:38 +0800
    2. `perl -e 'print "ls\ncat flag\n"' | test_your_nc`
 2. rip
    1. `system("/bin/sh")` found
-   2. segfault???
+   2. segfault??? _TODO_
 3. warmup_csaw_2016
    1. amd64, C `gets` and `system("cat flag.txt")` found
    2. overwrite return address
@@ -66,3 +66,5 @@ date:   2020-07-18 12:15:38 +0800
     3.  truncated string length: `uint8_t length = (uint8_t) strlen(input)`
 13. [**script**]({{ site.url }}/assets/ciscn_2019_n_8.py) ciscn_2019_n_8
 14. [**script**]({{ site.url }}/assets/not_the_same_3dsctf_2016.py) not_the_same_3dsctf_2016
+    1.  [ROP]({{ site.url }}/assets/not_the_same_3dsctf_2016.py), or
+    2.  [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
