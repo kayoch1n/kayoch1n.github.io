@@ -65,3 +65,4 @@ date:   2020-07-18 12:15:38 +0800
     2.  `system` and `"/bin/sh"` found
     3.  truncated string length: `uint8_t length = (uint8_t) strlen(input)`
 13. [**script**]({{ site.url }}/assets/ciscn_2019_n_8.py) ciscn_2019_n_8
+14. [**script**]({{ site.url }}/assets/not_the_same_3dsctf_2016.py) not_the_same_3dsctf_2016
