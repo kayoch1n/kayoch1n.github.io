@@ -45,15 +45,22 @@ date:   2020-07-16 00:15:38 +0800
    4. `perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1`
 6. [**post**]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html) ciscn_2019_c_1
 7. [**script**]({{ site.url }}/assets/OGeek2019_babyrop.py) [OGeek2019]babyrop
-   1. x86, C `read`
-   2. bypass `strncmp` using `\x00` to truncate string
+   1. x86, NX enabled and stripped
+   2. C `read`
+   3. `strncmp(a, b, 0)` always returns 0
 8. ciscn_2019_en_2: the same as [ciscn_2019_c_1]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html)
 9. [**script**]({{ site.url }}/assets/get_started_3dsctf_2016.py) get_started_3dsctf_2016:
-   1. x86, c `gets`, NX enabled
-   2. `get_flag` and peaceful exit
+   1. x86 and NX enabled
+   2. c `gets`
+   3. `get_flag` and **peaceful exit**
 10. [**script**]({{ site.url }}/assets/5space_pwn5.py) [第五空间2019 决赛]PWN5:
-    1.  x86, NX enabled, canary found, `printf`
+    1.  x86, NX enabled, canary found and stripped
     2.  [**format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
-11. [**script**]({{ site.url }}/assets/5space_pwn5.py) jarvisoj_level0:
-    1.  amd64, NX enabled, `read`
-    2.  `system` given in plt
+11. [**script**]({{ site.url }}/assets/jarvisoj_level0.py) jarvisoj_level0:
+    1.  amd64 and NX enabled
+    2.  c `read`
+    3.  `system` and `"/bin/sh"` found
+12. [**script**]({{ site.url }}/assets/r2t3.py) [BJDCTF 2nd]r2t3:
+    1.  x86 and NX enabled
+    2.  `system` and `"/bin/sh"` found
+    3.  truncated string length: `uint8_t length = (uint8_t) strlen(input)`

