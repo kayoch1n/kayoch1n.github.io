@@ -110,7 +110,7 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
 - x86_64:
   - 前6个参数依次[通过寄存器传递](https://stackoverflow.com/a/2538212/8706476)： RDI, RSI, RDX, RCX, R8, R9
   - gadget 均包含ret指令；
-  - 组织形式：`FUNCTION ADDR` + `GADGET_0 ADDR` + `ARGUMENT_0` + ... + `GADGET_N ADDR` + `ARGUMENT_N` 
+  - 组织形式：`GADGET_0 ADDR` + `ARGUMENT_0` + `GADGET_1 ADDR` + ... + `GADGET_N ADDR` + `ARGUMENT_N` + `FUNCTION ADDR` 
 
 ### Shell
 
