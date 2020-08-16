@@ -13,7 +13,7 @@ diary: "前段时间项目组换了一个新来的产品经理;这位大佬还�
 
 ## Data structure
 
-## CHUNKS and BINS
+### CHUNKS and BINS
 
 glibc 管理动态内存的最小单位是CHUNK，其大小按照**16字节**对齐(`MALLOC_ALIGNMENT`)，最小的CHUNK大小为32字节(`MINSIZE`)。CHUNK的组成结构如下图所示。比较重要的一点有是两个指针`fd`和`bk`:CHUNK在空闲时使用这一/两个变量组成单向/双向链表，在占用时存储用户数据。除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk)，在此不再赘述:
 ```
@@ -60,19 +60,21 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     - 2 bins of size  262144
     - 1 bin  of size what's left
 
-## binmap
+### binmap
 
 这是用来标记 SMALL/LARGE BINS 是否包含 CHUNK 的位图数据结构，本质上是一个包含4个32bit整数的数组。
 
-## _int_malloc
+## Implementation
 
-### Prototype
+### _int_malloc
+
+#### Prototype
 
 ```c
 static void * _int_malloc(mstate av, size_t bytes)
 ```
 
-### Steps
+#### Steps
 
 1. 传入的av指针为NULL，调用`sysmalloc`向操作系统申请内存 -> DONE;
 2. 将 sz 转换为 nb;
