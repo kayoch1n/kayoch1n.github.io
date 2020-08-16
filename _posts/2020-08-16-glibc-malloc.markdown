@@ -13,9 +13,11 @@ diary: "前段时间项目组换了一个新来的产品经理;这位大佬还�
 
 ## Data structure
 
+每个堆都存在一个 `malloc_state` 结构；主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`。在这个结构中：
+
 ### CHUNKS and BINS
 
-glibc 管理动态内存的最小单位是CHUNK，其大小按照**16字节**对齐(`MALLOC_ALIGNMENT`)，最小的CHUNK大小为32字节(`MINSIZE`)。CHUNK的组成结构如下图所示。比较重要的一点有是两个指针`fd`和`bk`:CHUNK在空闲时使用这一/两个变量组成单向/双向链表，在占用时存储用户数据。除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk)，在此不再赘述:
+glibc 管理动态内存的最小单位是CHUNK，其大小按照**16字节**对齐(`MALLOC_ALIGNMENT`)，最小的CHUNK大小为32字节(`MINSIZE`)。CHUNK的组成结构如下图所示。比较重要的一点是两个指针`fd`和`bk`: 在 CHUNK 空闲时，这一/两个变量能够为 CHUNK 组成单向/双向链表，在 CHUNK 被占用时又能存储用户数据。除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk)，在此不再赘述:
 ```
 chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         |             Size of previous chunk, if unallocated (P clear)  |
@@ -51,7 +53,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   - 每个 BIN 采取和队列一致、先进先出(FIFO)的存取方式，从头部放入、从尾部取出;
   - 在 `malloc_state::bins` 中除去 UNSORTED 和62个 SMALL 以外的都是 LARGE ;
   - 每个 BIN 内的 CHUNK 大小控制在一定的公差范围内，不要求严格一致;
-  - 每个 BIN 内的 CHUNK 额外使用两个指针组成另一个双链表，在这个链表内按照大小排列;和BIN本身形成一个跳表(skip list);
+  - 每个 BIN 内的 CHUNK 额外使用两个指针组成另一个双链表，在这个链表内按照大小递增排列;和BIN本身形成一个跳表(skip list);
   - BINS按照公差分成六组，32bit和64bit系统的划分方式一致(摘自源码):
     - 32 bins of size      64
     - 16 bins of size     512
@@ -62,11 +64,11 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 ### binmap
 
-这是用来标记 SMALL/LARGE BINS 是否包含 CHUNK 的位图数据结构，本质上是一个包含4个32bit整数的数组。
+这是用来标记 SMALL/LARGE BINS 是否包含 CHUNK 的位图数据结构，本质上是一个包含4个32bit整数的数组；存放位置是 `malloc_state::binmap`
 
 ## Implementation
 
-### _int_malloc
+### `_int_malloc`
 
 #### Prototype
 
@@ -76,27 +78,27 @@ static void * _int_malloc(mstate av, size_t bytes)
 
 #### Steps
 
-1. 传入的av指针为NULL，调用`sysmalloc`向操作系统申请内存 -> DONE;
-2. 将 sz 转换为 nb;
-3. 如果 nb < global_max_fast(176):
+1. 如果传入的av指针为NULL，调用`sysmalloc`向操作系统申请内存 -> DONE;
+2. 将 sz(用户申请的大小) 转换为 nb(CHUNK的大小);
+3. 如果 nb < `global_max_fast` (176B):
    1. *EXACT FIT*: 从 FAST BINS 中找到大小为 nb 的 BIN，从**头部**取出 -> DONE;
-4. 如果是 SMALL 申请 nb < MIN_LARGE_SIZE (1024):
+4. 如果 nb 是 SMALL 申请 nb < `MIN_LARGE_SIZE` (1024B):
    1. *EXACT FIT*: 从 SMALL BINS 中找到大小为 nb 的 BIN，从**尾部**取出，UNLINK -> DONE;
 5. 否则这是一个 LARGE 申请。先执行一次 `malloc_consolidate`:
    1. 遍历并清空 FAST 单链表;
    2. 尝试对 CHUNK 和其前一个、后一个的非 TOP 、空闲的 CHUNK 进行合并;
-   3. 把 CHUNK放入 UNSORTED;
-   4. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的SMALL/LARGE BIN中拆出，即发生 `UNLINK`。
-6. 在 4 和 5 都不能从 nb 对应的BIN中找到CHUNK后，
+   3. 把 CHUNK 放入 UNSORTED;
+   4. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的 SMALL/LARGE BIN中拆出，即发生 `UNLINK`。
+6. 接着在 *EXACT FIT* 失败，或者 nb 是 LARGE 申请的情况下，
    1. 从后往前遍历 UNSORTED 
       1. *BEST FIT*: 如果满足以下条件，就可以从 `av->last_remainder` 切一块出来 -> DONE:
          1. UNSORTED 只有一个 CHUNK ;
          2. 这个 CHUNK 刚好是 `av->last_remainder`;
          3. nb 是 SMALL 申请;
-         4. 假设切了一块之后剩余部分大于 `MINSIZE`(32);
+         4. 切了一块之后剩余部分大于 `MINSIZE`(32);
       2. *EXACT FIT*: 如果 CHUNK 大小刚好等于 nb -> DONE;
       3. 否则，把 CHUNK 按照大小放到对应的 SMALL/LARGE BINS。按照注释，这是**唯一一处把 CHUNK 放入到 SMALL/LARGE BINS 的代码**;
-      4. 在一次 `_int_malloc` （而不是遍历 UNSORTED）过程中，最多遍历 10000 次然后结束遍历。
+      4. 在一次 `_int_malloc` （不限于一次遍历 UNSORTED）过程中，最多循环 10000 次然后退出。
    2. *BEST/EXACT FIT*: 如果这是一个 LARGE 申请，尝试从 LARGE BINS 找到满足 nb 的最小 CHUNK -> DONE:
       1. 发生 UNLINK
       2. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED;
@@ -104,11 +106,15 @@ static void * _int_malloc(mstate av, size_t bytes)
       1. 尝试从nb开始，按照大小逐个扫描位图 binmap，期望找到包含 CHUNK 的 BIN -> DONE;
       2. 发生 UNLINK;
       3. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED;
-   4. 如果逐个扫描位图也不能找到 CHUNK，但 TOP 可以满足，则从 TOP 的低地址方向切一块;
+   4. 如果逐个扫描位图也不能找到 CHUNK，但 TOP 可以满足，则从 TOP 的低地址方向切一块 -> DONE;
    5. 如果 TOP 仍不能满足但 FAST 中仍存在 CHUNK，则再次发生 `malloc_consolidate`;
       1. 猜测可能是要照顾多线程程序？
    6. 否则，使用 `sysmalloc` 向操作系统申请内存 -> DONE
 7. 回到 6.
+
+### `sysmalloc`
+
+### `_int_free`
 
 # Reference
 
