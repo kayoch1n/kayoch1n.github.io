@@ -42,6 +42,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   - 每个 BIN 采取和栈一致、后进先出(LIFO)的存取方式，从头部存入/取出;
   - 按照CHUNK大小分类，最小的BINS为32字节，和 `MINSIZE` 保持一致，对应的索引为0;最大的BINS大小为160字节，对应的索引为8;
   - 因此一共有9=(160-32)//16+1类不同大小的 BINS: 32, 48, 64, ..., 160.
+  - 和其它 BINS 不同，FAST BIN 内的 CHUNK 一直处于占用状态。
 - UNSORTED BIN: 只有一个 BIN ，而且是双向链表;
 - SMALL BINS:
   - 每个 BIN 都是双向链表;
@@ -68,7 +69,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 ## Implementation
 
-### `_int_malloc`
+### _int_malloc
 
 #### Prototype
 
@@ -104,17 +105,22 @@ static void * _int_malloc(mstate av, size_t bytes)
       2. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED;
    3. *BEST FIT*: 到这里为止，nb 对应的 SMALL/LARGE BIN 没有 CHUNK 了。
       1. 尝试从nb开始，按照大小逐个扫描位图 binmap，期望找到包含 CHUNK 的 BIN -> DONE;
-      2. 发生 UNLINK;
+      2. 发生 `UNLINK`;
       3. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED;
+      4. 如果 nb 是一个 SMALL 申请，还会将剩下部分设为 `av->last_remainder`;
    4. 如果逐个扫描位图也不能找到 CHUNK，但 TOP 可以满足，则从 TOP 的低地址方向切一块 -> DONE;
    5. 如果 TOP 仍不能满足但 FAST 中仍存在 CHUNK，则再次发生 `malloc_consolidate`;
       1. 猜测可能是要照顾多线程程序？
    6. 否则，使用 `sysmalloc` 向操作系统申请内存 -> DONE
 7. 回到 6.
 
-### `sysmalloc`
+### sysmalloc
 
-### `_int_free`
+To be continued...
+
+### _int_free
+
+To be continued...
 
 # Reference
 
