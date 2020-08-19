@@ -13,7 +13,7 @@ diary: "前段时间项目组换了一个新来的产品经理;这位大佬还�
 
 ## Data structure
 
-每个堆都存在一个 `malloc_state` 结构；主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`。在这个结构中：
+每个堆都存在一个 `malloc_state` 结构; 主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`。在这个结构中：
 
 ### CHUNKS and BINS
 
@@ -35,13 +35,13 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-`free()`释放后的CHUNK不会直接返回给操作系统;glibc 使用链表来管理CHUNK，这些链表称为 BINS。BINS分为四类，其中 UNSORTED, SMALL & LARGE BINS 使用数组`malloc_state::bins`存放在一起，而FAST BINS单独存放在`malloc_state::fastbinsY`:
+`free()`释放后的CHUNK不会直接返回给操作系统;glibc 使用链表来管理CHUNK，这些链表称为 BINS。BINS分为四类，其中 UNSORTED, SMALL & LARGE BINS 使用数组`malloc_state::bins`存放在一起; 而FAST BINS单独存放在`malloc_state::fastbinsY`，其中的 CHUNK **一直处于占用状态**:
 
 - FAST BINS: 
-  - 每个 BIN 内的CHUNK通过`fd`组成单向链表;
+  - 每个 BIN 内的 CHUNK 通过`fd`组成单向链表;
   - 每个 BIN 采取和栈一致、后进先出(LIFO)的存取方式，从头部存入/取出;
-  - 按照CHUNK大小分类，最小的BINS为32字节，和 `MINSIZE` 保持一致，对应的索引为0;最大的BINS大小为160字节，对应的索引为8;
-  - 因此一共有9=(160-32)//16+1类不同大小的 BINS: 32, 48, 64, ..., 160.
+  - 按照CHUNK大小分类，最小的BINS为32字节，和 `MINSIZE` 保持一致，对应的索引为0; 最大的BINS大小为 `global_max_fast`(默认为128) 字节，这个最大值可以通过 `__libc_mallopt(M_MXFAST, value)` 改变，`global_max_fast`的最大值为`(160 + SIZE_SZ) & ~MALLOC_ALIGN_MASK)`(176) ; 
+  - 因此最多一共有10=(176-32)//16+1类不同大小的 BINS: 32, 48, 64, ..., 176.
   - 和其它 BINS 不同，FAST BIN 内的 CHUNK 一直处于占用状态。
 - UNSORTED BIN: 只有一个 BIN ，而且是双向链表;
 - SMALL BINS:
@@ -65,7 +65,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 ### binmap
 
-这是用来标记 SMALL/LARGE BINS 是否包含 CHUNK 的位图数据结构，本质上是一个包含4个32bit整数的数组；存放位置是 `malloc_state::binmap`
+这是用来标记 SMALL/LARGE BINS 是否包含 CHUNK 的位图数据结构，本质上是一个包含4个32bit整数的数组; 存放位置是 `malloc_state::binmap`
 
 ## Implementation
 
@@ -81,7 +81,7 @@ static void * _int_malloc(mstate av, size_t bytes)
 
 1. 如果传入的av指针为NULL，调用`sysmalloc`向操作系统申请内存 -> DONE;
 2. 将 sz(用户申请的大小) 转换为 nb(CHUNK的大小);
-3. 如果 nb < `global_max_fast` (176B):
+3. 如果 nb < `global_max_fast` :
    1. *EXACT FIT*: 从 FAST BINS 中找到大小为 nb 的 BIN，从**头部**取出 -> DONE;
 4. 如果 nb 是 SMALL 申请 nb < `MIN_LARGE_SIZE` (1024B):
    1. *EXACT FIT*: 从 SMALL BINS 中找到大小为 nb 的 BIN，从**尾部**取出，UNLINK -> DONE;
@@ -120,7 +120,23 @@ To be continued...
 
 ### _int_free
 
-To be continued...
+#### Prototype
+
+```c
+static void _int_free(mstate av, mchunkptr p, int have_lock)
+```
+
+#### Steps
+
+`free()` 的逻辑相对简单得多：
+
+1. 如果 size < `global_max_fast` 则放入对应大小的 FAST BIN 的头部 -> DONE;
+2. 如果不是 `mmap` 申请得来的，尝试合并前后的空闲 CHUNK:
+   1. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的 SMALL/LARGE BIN中拆出，即发生 `UNLINK`; 
+   2. 如果后一个 CHUNK 是 TOP，就不会对 TOP 进行 UNLINK; 而是直接修改 `av->top`
+   3. 否则把 CHUNK 放入 UNSORTED; 
+   4. 如果合并后的size 大于阈值 `FASTBIN_CONSOLIDATION_THRESHOLD`(65536) ，glibc 认为堆中可能存在较多碎片，因此会调用 `malloc_consolidate`; 
+3. 否则这个 CHUNK 是 `mmap` 申请得来的，就调用 `munmap_chunk` 返还给操作系统。
 
 # Reference
 
