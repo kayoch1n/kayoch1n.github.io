@@ -20,7 +20,7 @@ diary: "今天用刷子打出11杀，真是最高にhighでやつだ！"
 
 ## 关于梯子
 
-因为平时有用到 v2rayN(Windows端)，所以就想这软件应该可以开给局域网（这不是废话么😓要不然SwitchyOmega怎么用）。
+平时有用到 v2rayN(Windows端)，就想这软件应该可以开给局域网（这不是废话么😓要不然SwitchyOmega怎么用）。
 
 1. 打开主界面 -> v2rayN 设置，勾选“允许来自局域网的连接”;
 2. 参数设置-> Core基础设置，记录下本地监听端口。
@@ -44,7 +44,7 @@ diary: "今天用刷子打出11杀，真是最高にhighでやつだ！"
 
 ## 最后的最后
 
-启动可以在MinGW的窗口用以下命令检查下是否成功:
+可以在MinGW的窗口用以下命令检查下是否成功:
 
 ```shell
 curl https://www.google.com -v -s -o /dev/null
