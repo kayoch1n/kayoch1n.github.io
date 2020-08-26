@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "Pwn 入门笔记 ciscn_2019_c_1"
+title:  "Pwn/ROP 入门笔记 ciscn_2019_c_1"
 date:   2020-07-14 12:15:38 +0800
 ---
 
-# Pwn 入门笔记 ciscn_2019_c_1
+# Pwn/ROP 入门笔记 ciscn_2019_c_1
 
 ## Overview
 先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有堆栈保护。

@@ -133,7 +133,7 @@ static void _int_free(mstate av, mchunkptr p, int have_lock)
 1. 如果 size < `global_max_fast` 则放入对应大小的 FAST BIN 的头部 -> DONE;
 2. 如果不是 `mmap` 申请得来的，尝试合并前后的空闲 CHUNK:
    1. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的 SMALL/LARGE BIN中拆出，即发生 `UNLINK`; 
-   2. 如果后一个 CHUNK 是 TOP，就不会对 TOP 进行 UNLINK; 而是直接修改 `av->top`
+   2. 如果后一个 CHUNK 是 TOP，不会对 TOP 进行 UNLINK; 而是直接修改 `av->top`
    3. 否则把 CHUNK 放入 UNSORTED; 
    4. 如果合并后的size 大于阈值 `FASTBIN_CONSOLIDATION_THRESHOLD`(65536) ，glibc 认为堆中可能存在较多碎片，因此会调用 `malloc_consolidate`; 
 3. 否则这个 CHUNK 是 `mmap` 申请得来的，就调用 `munmap_chunk` 返还给操作系统。
