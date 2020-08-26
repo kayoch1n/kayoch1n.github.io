@@ -155,6 +155,11 @@ cd /home/LibcSearcher/libc-database/
 ./add /lib64/libc.so.6
 ./find puts 6b0
 # 输出对应的libc库的id
+
+# ところで、也可以稍微验证下有没有找对libc https://stackoverflow.com/a/22997894/8706476
+objdump -T /lib/x86_64-linux-gnu/libc.so.6 | grep puts
+# 或者更直接一些 https://stackoverflow.com/a/4514781/8706476
+nm -D /lib/x86_64-linux-gnu/libc.so.6 | grep puts
 ```
 
 计算`system()`:
