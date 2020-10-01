@@ -1,12 +1,13 @@
 ---
 layout: post
-title:  "Pwn/ROP 入门笔记 ciscn_2019_c_1"
+title:  "Pwn 学习笔记 - ROP - ciscn_2019_c_1"
 date:   2020-07-14 12:15:38 +0800
 ---
 
-# Pwn/ROP 入门笔记 ciscn_2019_c_1
+# Pwn 学习笔记 - ROP - ciscn_2019_c_1
 
-## Overview
+## Check二进制对象
+
 先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有堆栈保护。
 ```shell
 [root@VM_0_5_centos buuoj]# file ciscn_2019_c_1 
@@ -20,7 +21,7 @@ ciscn_2019_c_1: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically
     PIE:      No PIE (0x400000)
 ```
 
-## Control flow
+## 梳理程序逻辑
 这是一个交互式的程序，先询问用户输入一个数字，根据数字的值决定后面的流程：
 - 输入1执行加密`encrypt()`；
 - 输入2则是一个假的解密；
@@ -39,7 +40,7 @@ def encrypt2(c):
     return c
 ```
 
-## Vulnerability
+## 存在的风险
 
 使用`gets`函数有缓冲区溢出的风险，距离返回地址的距离是`0x50+0x8=0x58`个字节长度；但上述`encrypt2()`会破坏输入的payload。网上文章多数认为因为使用了异或，所以再加密一次（拼接payload后加密第一次、程序加密第二次）就能还原payload。这个看法不是十分严谨，因为两次加密之后有部分字节不能还原，可用以下代码验证：
 
@@ -69,7 +70,16 @@ jb      loc_4009E7      ; 仅当x小于输入内容的长度才会执行encrypt(
 
 总结下，网上文章能成功的原因有两类，一是payload的每个字节都恰好能被还原；二是直接用`\X00`字节填充到返回地址之前，完全绕过加密逻辑。
 
-## Leak `system()`
+## 寻找合适的元素以构造payload
+
+### gadgets
+
+```shell
+ROPgadget --binary ciscn_2019_c_1 --only 'pop|ret'
+# 查找 gadgets
+```
+
+### 泄露C库函数地址: `system()`
 
 不像前面的题目，这里没有现成的`system("/bin/sh")`的调用，IDA的函数列表里面也木有`system`；虽然堆栈不可执行，但是因为有使用到其它libc函数，可以尝试以下办法：
 
@@ -85,7 +95,7 @@ jb      loc_4009E7      ; 仅当x小于输入内容的长度才会执行encrypt(
 
 因为堆栈不可执行，计算地址的过程无法通过payload实现，所以需要输入两次不同的payload，第一次用来计算地址，第二次才是拉起shell。程序使用了libc的`puts()`，所以可以通过`puts()`泄露`system()`的地址。在C代码中，`puts()`的调用经过编译后对应的指令 `call <0x4006e0 >puts@plt`。这个 0x4006e0 不是`puts()`在libc中的地址，而是`puts()`的stub函数在**PLT**中的地址；`puts()`在libc中的地址实际上存储在**GOT**的0x602020处。
 
-### GOT and PLT
+### GOT and PLT 原理
 
 libc库的内容是动态装载到进程空间的，里边的函数和变量的地址只能在运行时定位。这里涉及到GOT表(Global offset table, 全局偏移数组)和PLT表(Procedure linkage table, 过程链接表)，[外网文章](https://systemoverlord.com/2017/03/19/got-and-plt-for-pwning.html)十分清晰明了地讲述了Linux使用这两个数据结构调用库函数的过程。下面记录一下我对这篇文章的理解。
 
@@ -95,9 +105,9 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
 
 ![Resolved GOT and PLT]({{ site.url }}/assets/2020-07-11-got_plt_resolved.png)
 
-## Payload
+## 拼接 Payload
 
-### Diffs between x86 and x86_64
+### x86 和 x86_64 的ROP差异
 
 在 x86 和 x86_64 两种架构下、ROP 方法的 payload 组织方式有所不同：
 - x86 非syscall: 
@@ -115,10 +125,7 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
 ### Shell
 
 为了输出`puts()`的地址，可以将`puts()`在GOT中的地址0x602020作为参数、调用`puts()`并打屏。因为amd64下参数一般通过寄存器传递，第一个参数存储在rdi，所以需要找到形如 `pop rdi;ret` 的gadgets地址去覆盖返回地址，紧跟着作为参数的0x602020(GOT)以及ret的返回地址0x4006e0(PLT)。为了能够第二次输入payload，还需要让程序正常地回到main：
-```shell
-ROPgadget --binary ciscn_2019_c_1 --only 'pop|ret'
-# 查找 gadgets
-```
+
 ```python
 #!/usr/bin/python3.6
 from pwn import *
