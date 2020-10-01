@@ -117,10 +117,10 @@ libc库的内容是动态装载到进程空间的，里边的函数和变量的�
     - epilogue: `leave;ret`
   - 组织形式：`FUNCTION ADDR` + `RETURN ADDR` + `ARGUMENT_0...N`
     - 如果要实现执行多个函数，`RETURN ADDR`需要使用ROP gadget
-- x86_64:
+- x86_64 非syscall:
   - 前6个参数依次[通过寄存器传递](https://stackoverflow.com/a/2538212/8706476)： RDI, RSI, RDX, RCX, R8, R9
   - gadget 均包含ret指令；
-  - 组织形式：`GADGET_0 ADDR` + `ARGUMENT_0` + `GADGET_1 ADDR` + ... + `GADGET_N ADDR` + `ARGUMENT_N` + `FUNCTION ADDR` 
+  - 组织形式：`GADGET_0 ADDR` + `ARGUMENT_0` + `GADGET_1 ADDR` + ... + `GADGET_N ADDR` + `ARGUMENT_N` + `FUNCTION ADDR`   
 
 ### Shell
 
@@ -196,5 +196,5 @@ proc.interactive()
 
 ## Reference
 
-1. [ciscn_2019_c_1](https://darkwing.moe/2019/11/26/ciscn-2019-c-1/)
-2. [ciscn_2019_c_1](http://liul14n.top/2020/01/29/ciscn-2019-c-1/)
+1. [LiuLian: ciscn_2019_c_1](https://darkwing.moe/2019/11/26/ciscn-2019-c-1/)
+2. [暗羽: ciscn_2019_c_1](http://liul14n.top/2020/01/29/ciscn-2019-c-1/)
