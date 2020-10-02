@@ -72,4 +72,5 @@ date:   2020-08-26 22:15:38 +0800
     1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
     2.  Construct `"/bin/sh"` and ROP chain in .bss segment
 21. [**ROP**]({{ site.url }}/assets/pwn2_sctf_2016.py) [pwn2_sctf_2016]pwn2_sctf_2016
-    1.  Flaw: only check if length <=0x20
+    1.  Flaw: only check if length<=0x20
+22. [**ROP**]({{ site.url }}/assets/2018_rop.py) [铁人三项(第五赛区)] 2018_rop
