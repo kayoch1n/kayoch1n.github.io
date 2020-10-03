@@ -71,6 +71,13 @@ date:   2020-08-26 22:15:38 +0800
 20. [**ROP**]({{ site.url }}/assets/HarekazeCTF2019_baby_rop_2.py) [HarekazeCTF2019]babyrop2
     1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
     2.  Construct `"/bin/sh"` and ROP chain in .bss segment
-21. [**ROP**]({{ site.url }}/assets/pwn2_sctf_2016.py) [pwn2_sctf_2016]pwn2_sctf_2016
+21. [**ROP**]({{ site.url }}/assets/pwn2_sctf_2016.py) pwn2_sctf_2016
     1.  Flaw: only check if length<=0x20
 22. [**ROP**]({{ site.url }}/assets/2018_rop.py) [铁人三项(第五赛区)] 2018_rop
+23. [**ROP**]({{ site.url }}/assets/bjdctf_2020_babyrop.py) [bjdctf_2020] bjdctf_2020_babyrop
+24. [**ROP**]({{ site.url }}/assets/ez_pz_hackover_2016.py) ez_pz_hackover_2016
+    1.  [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
+25. [**ROP**]({{ site.url }}/assets/jarvisoj_level2_x64.py) jarvisoj_level2_x64
+26. [**ROP**]({{ site.url }}/assets/ciscn_2019_ne_5.py) ciscn_2019_ne_5
+    1.  `system("sh")` works...
+    2.  `scanf()` ignores `'\x0b'`
