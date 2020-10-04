@@ -81,3 +81,7 @@ date:   2020-08-26 22:15:38 +0800
 26. [**ROP**]({{ site.url }}/assets/ciscn_2019_ne_5.py) ciscn_2019_ne_5
     1.  `system("sh")` works...
     2.  `scanf()` ignores `'\x0b'`
+27. others_shellcode: `"/bin/////sh"` works fine
+28. [**ROP**]({{ site.url }}/assets/ciscn_2019_es_2.py) ciscn_2019_es_2
+    1.  Only EBP and RA get overwhelmed: [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
+29. [BJDCTF 2nd]test: privilege escalation using [shell(`x86_64`)](https://zhuanlan.zhihu.com/p/138482510)
