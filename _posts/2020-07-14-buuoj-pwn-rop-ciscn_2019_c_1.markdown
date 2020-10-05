@@ -1,10 +1,13 @@
 ---
-layout: post
+toc: true
+toc_sticky: true
 title:  "Pwn 学习笔记 - ROP - ciscn_2019_c_1"
 date:   2020-07-14 12:15:38 +0800
+categories: 
+  - pwn
 ---
 
-# Pwn 学习笔记 - ROP - ciscn_2019_c_1
+# Contents
 
 ## Check二进制对象
 

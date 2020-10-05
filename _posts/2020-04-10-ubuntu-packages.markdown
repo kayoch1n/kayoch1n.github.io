@@ -1,9 +1,12 @@
 ---
-layout: post
+toc: true
+toc_sticky: true
 title:  "Ubuntu安装各种包"
 date:   2020-04-10 21:15:38 +0800
+categories: 
+  - ubuntu
 ---
-# Install packages on Ubuntu
+# Contents
 
 ## Perl Modules
 

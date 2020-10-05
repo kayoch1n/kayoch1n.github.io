@@ -1,9 +1,15 @@
 ---
-layout: post
+toc: true
+toc_sticky: true
 title:  "信息安全学习笔记 - 南邮攻防平台 CG CTF Web"
 date:   2020-04-12 23:00:38 +0800
+categories: 
+  - web
 ---
-# Problems
+
+最近南邮登录不上去了，原因不清楚。
+
+# Contents
 
 ## 签到题
 

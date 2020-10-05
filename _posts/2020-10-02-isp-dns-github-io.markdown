@@ -1,12 +1,15 @@
 ---
-layout: post
+toc: true
+toc_sticky: true
 title:  "修复xxx.github.io解析到本地127.0.0.1问题"
 date:   2020-10-02 16:42:38 +0800
+categories: 
+  - blog
 ---
 
-# 修复xxx.github.io解析到本地127.0.0.1问题
-
 中秋回家没有网，用了另一个电信卡开热点给笔记本，结果chrome打开github page提示拒绝连接 ❌ 黑人问号？？？.jpg
+
+# Contents
 
 换用另一只移动卡开热点，结果还是拒绝连接。我第一反应竟然是github.io被墙了 😂 
 

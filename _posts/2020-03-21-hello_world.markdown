@@ -1,9 +1,10 @@
 ---
-layout: post
 title:  "Hello, world!"
 date:   2020-03-21 13:15:38 +0800
+categories: 
+  - blog
 ---
-# Hello, world!
+# Contents
 ```
   _    _      _ _                             _     _ _ 
  | |  | |    | | |                           | |   | | |

