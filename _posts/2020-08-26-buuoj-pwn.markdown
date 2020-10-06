@@ -1,6 +1,5 @@
 ---
 toc: true
-toc_sticky: true
 title:  "信息安全学习笔记 - BUUOJ Pwn"
 date:   2020-08-26 22:15:38 +0800
 categories: 
