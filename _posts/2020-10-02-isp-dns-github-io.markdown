@@ -1,6 +1,6 @@
 ---
-toc: true
-toc_sticky: true
+classes: wide
+layout: single
 title:  "修复xxx.github.io解析到本地127.0.0.1问题"
 date:   2020-10-02 16:42:38 +0800
 categories: 

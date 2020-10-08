@@ -1,6 +1,6 @@
 ---
-toc: true
-toc_sticky: true
+classes: wide
+layout: single
 title:  "记一次分享 switch 截图的过程"
 date:   2020-08-21 23:15:38 +0800
 diary: "今天用刷子打出11杀，真是最高にhighでやつだ！"

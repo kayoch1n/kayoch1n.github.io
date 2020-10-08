@@ -1,5 +1,7 @@
 ---
 title:  "Hello, world!"
+classes: wide
+layout: single
 date:   2020-03-21 13:15:38 +0800
 categories: 
   - blog
