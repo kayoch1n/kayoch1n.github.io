@@ -66,6 +66,22 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 ## Implementation
 
+### malloc_consolidate
+
+通过清空 FAST 单链表整理内存碎片
+
+#### Prototype 
+
+```c
+static void malloc_consolidate(mstate av)
+```
+
+#### Details
+遍历并清空 FAST 单链表：
+1. 尝试对 CHUNK 和其前一个、后一个的非 TOP 、空闲 CHUNK 进行合并;
+2. 把 CHUNK 放入 UNSORTED;
+3. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的 SMALL/LARGE BIN中拆出，即发生 `UNLINK`。
+
 ### _int_malloc
 
 #### Prototype
@@ -74,7 +90,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 static void * _int_malloc(mstate av, size_t bytes)
 ```
 
-#### Steps
+#### Details
 
 1. 如果传入的av指针为NULL，调用`sysmalloc`向操作系统申请内存 -> DONE;
 2. 将 sz(用户申请的大小) 转换为 nb(CHUNK的大小);
@@ -82,10 +98,7 @@ static void * _int_malloc(mstate av, size_t bytes)
    1. *EXACT FIT*: 尝试从 FAST BINS 中找到大小为 nb 的 BIN，从**头部**取出 -> DONE;
 4. 如果 nb 是 SMALL 申请 nb < `MIN_LARGE_SIZE` (1024B):
    1. *EXACT FIT*: 尝试从 SMALL BINS 中找到大小为 nb 的 BIN，从**尾部**取出，UNLINK -> DONE;
-5. 否则这是一个 LARGE 申请。先执行一次 `malloc_consolidate` 遍历并清空 FAST 单链表: 
-   1. 尝试对 CHUNK 和其前一个、后一个的非 TOP 、空闲 CHUNK 进行合并;
-   3. 把 CHUNK 放入 UNSORTED;
-   4. 如果有前后 CHUNK 因此被合并，要将 CHUNK 从对应的 SMALL/LARGE BIN中拆出，即发生 `UNLINK`。
+5. 否则这是一个 LARGE 申请。先执行一次 `malloc_consolidate`: 
 6. 走到了这里，要么原因是 *EXACT FIT* 失败，或者因为 nb 是 LARGE 申请，接着：
    1. 从后往前遍历 UNSORTED 
       1. *BEST FIT*: 如果满足以下条件，就可以从 `av->last_remainder` 切一块出来 -> DONE:
@@ -102,13 +115,15 @@ static void * _int_malloc(mstate av, size_t bytes)
    3. *BEST FIT*: 到这里为止，nb 对应的 SMALL/LARGE BIN 没有 CHUNK 了。
       1. 尝试从nb开始，按照大小逐个扫描位图 binmap，期望找到包含 CHUNK 的 BIN -> DONE;
       2. 发生 `UNLINK`;
-      3. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED;
+      3. 如果 CHUNK 剩下部分的长度大于 `MINSIZE`，则将剩下部分放入 UNSORTED. 这里就是 6.1 中 last_remainder出现在 UNSORTED 的原因;
       4. 如果 nb 是一个 SMALL 申请，还会将剩下部分设为 `av->last_remainder`;
    4. 如果逐个扫描位图也不能找到 CHUNK，但 TOP 可以满足，则从 TOP 的低地址方向切一块 -> DONE;
    5. 如果 TOP 仍不能满足但 FAST 中仍存在 CHUNK，则再次发生 `malloc_consolidate`;
       1. 猜测可能是要照顾多线程程序？
    6. 否则，使用 `sysmalloc` 向操作系统申请内存 -> DONE
 7. 回到 6.
+
+多说一句，从_int_malloc 分配得的CHUNK块的内容一般不会清空，上次使用时写入的数据能够保留。如果事先通过 _libc_mallopt(M_PERTURB, c) 将字符 perturb_byte 设置为c，CHUNK块的所有字节会被memset设置为 c^0Xff（和0xff异或的结果）。
 
 ### sysmalloc
 
@@ -122,7 +137,7 @@ To be continued...
 static void _int_free(mstate av, mchunkptr p, int have_lock)
 ```
 
-#### Steps
+#### Details
 
 `free()` 的逻辑相对简单得多：
 
@@ -134,7 +149,7 @@ static void _int_free(mstate av, mchunkptr p, int have_lock)
    4. 如果合并后的size 大于阈值 `FASTBIN_CONSOLIDATION_THRESHOLD`(65536) ，glibc 认为堆中可能存在较多碎片，因此会调用 `malloc_consolidate`; 
 3. 否则这个 CHUNK 是 `mmap` 申请得来的，就调用 `munmap_chunk` 返还给操作系统。
 
-# Reference
+## Reference
 
 1. [CTF wiki 堆利用](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/introduction-zh/)
 2. [glibc source malloc.c](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html)
