@@ -8,16 +8,25 @@ categories:
   - glibc
 ---
 
-记录一下学习glibc的堆内存分配函数[void *_int_malloc(mstate av, size_t bytes)](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#_int_malloc)的学习过程，以下行文内容都是基于 **x86_64** 操作系统，暂不考虑tcache。
+记录一下学习glibc的堆内存分配源代码[malloc.c](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#_int_malloc)的学习过程。
 
+## Macros
+
+| Name | Value in x86 | Value in X86_64 | Definition | Notes
+| --- | --- | --- | --- | --- |
+| SIZE_SZ | 4 | 8 | `sizeof(size_t)` | 定义不在 malloc.c
+| MALLOC_ALIGNMENT | 8 | 16 | | 定义不在 malloc.c
+| MALLOC_ALIGN_MASK | 0x7 | 0xf | `MALLOC_ALIGNMENT - 1` | 定义不在 malloc.c
+| MINSIZE | 16 | 32 |  | 定义不在 malloc.c
+| MAX_FAST_SIZE | 80 | 160 | `80 * SIZE_SZ / 4` | 通过 `mallopt()`函数能够设置的最大FASTBIN的大小 |
+| DEFAULT_MXFAST | 64 | 128| `64 * SIZE_SZ / 4` |
 
 ## Data structure
-
-每个堆都存在一个 `malloc_state` 结构; 主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`。
+以下行文内容都是基于 **x86_64** 操作系统，暂不考虑tcache。每个堆都存在一个 `malloc_state` 结构; 主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`。
 
 ### CHUNKS and BINS
 
-glibc 管理动态内存的最小单位是CHUNK，其大小按照**16字节**对齐(`MALLOC_ALIGNMENT`)，最小的CHUNK大小为32字节(`MINSIZE`)。CHUNK的组成结构如下图所示。比较重要的一点是两个指针`fd`和`bk`: 在 CHUNK 空闲时，这一/两个变量能够为 CHUNK 组成单向/双向链表，在 CHUNK 被占用时又能存储用户数据。除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk)，在此不再赘述:
+glibc 管理动态内存的最小单位是CHUNK，大小按照**16字节**对齐(`MALLOC_ALIGNMENT`)，最小的CHUNK大小为32字节(`MINSIZE`)。CHUNK的组成结构如下图所示。比较重要的一点是两个指针`fd`和`bk`: 在 CHUNK 空闲时，这一/两个变量能够为 CHUNK 组成单向/双向链表，在 CHUNK 被占用时又能存储用户数据。除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk)，在此不再赘述:
 ```
 chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         |             Size of previous chunk, if unallocated (P clear)  |
