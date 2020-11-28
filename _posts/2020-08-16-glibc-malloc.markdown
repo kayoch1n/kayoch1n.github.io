@@ -26,7 +26,7 @@ categories:
 
 ### CHUNKS and BINS
 
-按照[结构体的定义](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk), glibc 管理动态内存的最小单位是 chunk , 大小按照**8/16字节**对齐(`MALLOC_ALIGNMENT`)。"对齐"的意思是说, 所有的 chunk 大小都是8/16的整数倍。除了用户数据以外 chunk 还存储一些让用于管理堆内存的元数据, 因此最小的 chunk 大小为16/32字节(`MINSIZE`), 能够存储12(8+4)/24（16+8）字节的用户数据. 
+按照[结构体的定义](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk), glibc 管理动态内存的最小单位是 chunk , 大小按照**8/16字节**对齐(`MALLOC_ALIGNMENT`). "对齐"的意思是说, 所有的 chunk 大小都是8/16的整数倍. 除了用户数据以外 chunk 还存储一些让用于管理堆内存的元数据, 因此最小的 chunk 大小为16/32字节(`MINSIZE`), 能够存储12(8+4)/24（16+8）字节的用户数据. 
 
 chunk 的组成结构如下图所示. 比较重要的一点是两个指针`fd`和`bk`: 在 chunk 空闲时, 这一/两个变量能够为 chunk 组成单向/双向链表, 在 chunk 被占用时又能存储用户数据. 除此之外的细节可参见[CTF wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/heap_structure-zh/#malloc_chunk), 在此不再赘述:
 ```
@@ -46,7 +46,7 @@ chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-glibc 使用链表来管理 chunk , 这些链表称为 BINS. BINS分为四类, 其中 UNSORTED, SMALL & LARGE BINS 使用数组`malloc_state::bins`存放在结构体 [malloc_state](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_state),  chunk 被标记为空闲状态; 而FAST BINS单独存放在`malloc_state::fastbinsY`, chunk **一直处于占用状态**。在x86_64系统中: 
+glibc 使用链表来管理 chunk , 这些链表称为 BINS. BINS分为四类, 其中 UNSORTED, SMALL & LARGE BINS 使用数组`malloc_state::bins`存放在结构体 [malloc_state](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_state),  chunk 被标记为空闲状态; 而FAST BINS单独存放在`malloc_state::fastbinsY`, chunk **一直处于占用状态**. 在x86_64系统中: 
 
 - FAST BINS: 
   - 通过`fd`组成**单向链表**, 从头部存取（后进先出）;
@@ -165,11 +165,30 @@ static void _int_free(mstate av, mchunkptr p, int have_lock)
 
 ### Leak address
 
-1. 如果 chunk 被插入 unsorted 链表的尾部, 它的 fd 和 bk 会被设置为一个“假的” chunk 的地址, 这个地址和 `main_arena` 有关, 因此能够进一步泄露 libc 的地址。以下场景能够使得 chunk 被插入 unsorted 尾部: 
-   1. 释放一个大于 `global_max_fast` 大小的 chunk; 
-   2. last_remainder 分裂, 即上述 `_int_malloc` 的6.1.1; 
-   3. unsorted 的最后一个 chunk 发生分离, 即上述 `_int_malloc` 的6.3.3; 
+如果 chunk 被插入 unsorted 链表的尾部, 它的 fd 和 bk 会被设置为一个“假的” chunk 的地址, 这个地址和 `main_arena` 有关, 因此能够进一步泄露 libc 的地址. 以下场景能够使得 chunk 被插入 unsorted 尾部: 
+1. 释放一个大于 `global_max_fast` 大小的 chunk; 
+2. last_remainder 分裂, 即上述 `_int_malloc` 的6.1.1; 
+3. unsorted 的最后一个 chunk 发生分离, 即上述 `_int_malloc` 的6.3.3; 
 
+这个地址是`main_arena.top`成员变量的地址, 这个关系和 `malloc_state` 的存储结构有关, 如下图所示; 在 x86_64 系统中, 这个地址等于 (char*)&main_arena+88. 这个“假”chunk的fd和bk正好指向了`main_arena.bins[0]`及`main_arena.bins[1]`, 也就是 unsorted 的第一个chunk, 共同组成了一个双链表. 
+
+```cpp
+struct malloc_state
+{
+  __libc_lock_define (, mutex);           // &main_arena+0, mutex_t, 4字节
+  /* Flags (formerly in max_fast).  */
+  int flags;                              // &main_arena+4, 32bit整数, 4字节
+  int have_fastchunks;                    // gdb 调试发现没有这个变量, 估计被编译器优化掉了
+  mfastbinptr fastbinsY[NFASTBINS];       // &main_arena+8, 指针数组, 长度为10, 80字节
+  mchunkptr top;                          // &main_arena+88, 指针, 8字节
+  mchunkptr last_remainder;               // &main_arena+96, 指针, 8字节
+  /* Normal bins packed as described above */
+  mchunkptr bins[NBINS * 2 - 2];          // &main_arena+104
+  /*
+   其他代码省略...
+   */
+}
+```
 ## Reference
 
 1. [CTF wiki 堆利用](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/introduction-zh/)
