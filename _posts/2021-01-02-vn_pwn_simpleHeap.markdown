@@ -54,7 +54,7 @@ Dump of assembler code for function __GI___libc_realloc:
    0x00007f6b07bc771b <+11>:    push   %rbp       #
    0x00007f6b07bc771c <+12>:    push   %rbx       #
    0x00007f6b07bc771d <+13>:    mov    %rdi,%rbx  #
-   0x00007f6b07bc7720 <+16>:    sub    $0x38,%rsp # 以上指令和调整栈顶
+   0x00007f6b07bc7720 <+16>:    sub    $0x38,%rsp # 以上指令调整栈顶
    0x00007f6b07bc7724 <+20>:    mov    0x33f8a5(%rip),%rax        # 0x7f6b07f06fd0
    0x00007f6b07bc772b <+27>:    mov    (%rax),%rax
    0x00007f6b07bc772e <+30>:    test   %rax,%rax
@@ -80,9 +80,9 @@ Dump of assembler code for function __GI___libc_realloc:
 0x7ffc3042aae8: 0x00007ffc3042ab80      0x0000000000000000
 0x7ffc3042aaf8: 0x0000000000000000      0x40c55016c39ddc50
 0x7ffc3042ab08: 0x41eb3ffff90ddc50      0x0000000000000000
-0x7ffc3042ab18: 0x0000000000000000      0x0000000000000000
-0x7ffc3042ab28: 0x00007ffc3042ab98      0x00007f6b08134168
-0x7ffc3042ab38: 0x00007f6b07f1d80b      0x0000000000000000
+0x7ffc3042ab18: 0x0000000000000000      0x0000000000000000 # +0x50
+0x7ffc3042ab28: 0x00007ffc3042ab98      0x00007f6b08134168 
+0x7ffc3042ab38: 0x00007f6b07f1d80b      0x0000000000000000 # +0x70
 0x7ffc3042ab48: 0x0000000000000000      0x000055f11f8d38e0
 0x7ffc3042ab58: 0x00007ffc3042ab80      0x0000000000000000
 ```
