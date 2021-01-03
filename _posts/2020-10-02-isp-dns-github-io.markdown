@@ -5,6 +5,8 @@ title:  "修复xxx.github.io解析到本地127.0.0.1问题"
 date:   2020-10-02 16:42:38 +0800
 categories: 
   - blog
+tags:
+  - dns
 ---
 
 中秋回家没有网，用了另一个电信卡开热点给笔记本，结果chrome打开github page提示拒绝连接 ❌ 黑人问号？？？.jpg

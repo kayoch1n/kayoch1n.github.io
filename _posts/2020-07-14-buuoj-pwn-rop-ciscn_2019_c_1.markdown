@@ -4,7 +4,10 @@ toc_sticky: true
 title:  "Buuoj冲分过程-PWN/ROP-ciscn_2019_c_1"
 date:   2020-07-14 12:15:38 +0800
 categories: 
+  - blog
+tags:
   - pwn
+  - rop
 ---
 
 # Contents

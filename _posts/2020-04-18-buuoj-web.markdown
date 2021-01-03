@@ -3,7 +3,9 @@ toc: true
 toc_sticky: true
 title:  "信息安全学习笔记 - BUUOJ Web"
 date:   2020-04-18 20:00:38 +0800
-categories: 
+categories:
+  - blog 
+blog:
   - web
 ---
 
