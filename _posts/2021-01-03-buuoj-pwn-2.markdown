@@ -225,4 +225,4 @@ p.interactive()
 
 #### [V&N2020 公开赛]simpleHeap
 
-[传送门]({{ site.url }}/pwn/buuoj-pwn-heap-vn_pwn_simpleHeap/)
+[传送门]({{ site.url }}/blog/buuoj-pwn-heap-vn_pwn_simpleHeap/)
