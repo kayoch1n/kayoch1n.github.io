@@ -228,7 +228,7 @@ p.interactive()
 [传送门]({{ site.url }}/blog/buuoj-pwn-heap-vn_pwn_simpleHeap/)
 
 ### bjdctf_2020_babyrop2
-题目里面有一个各式字符串漏洞可以输出canary。由于64bit系统前6个参数通过寄存器传递，这个地方需要输出第7个参数的话要用上一点[技巧](https://stackoverflow.com/a/44192302/8706476)
+题目里面有一个格式字符串漏洞可以输出canary。由于64bit系统前6个参数通过寄存器传递，这个地方需要输出第7个参数的话要用上一点[技巧](https://stackoverflow.com/a/44192302/8706476)。此外这个地方用printf搜不到libc，原因暂时没搞清楚。
 ```python
 #!/usr/bin/python3.6
 from pwn import *
