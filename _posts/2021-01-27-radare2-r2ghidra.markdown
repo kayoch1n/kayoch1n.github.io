@@ -78,7 +78,9 @@ r2 -H
 # ...
 ```
 
-这个自动生成的目录是lib/radare2/last，所以要给cmake的安装前缀改成 /usr/local 。然后按照官方README.md的操作执行编译。因为我指定了目录 /usr/local，所以需要在安装的时候加上 sudo：
+这个自动生成的目录是lib/radare2/last，所以要给cmake的安装前缀改成 /usr/local 。不改前缀也可以，这样的话需要把core_ghidra.so拷贝到radare2的插件目录下。
+
+按照官方README.md的操作执行编译。因为我指定了目录 /usr/local，所以需要在安装的时候加上 sudo：
 
 ```shell
 git submodule init
