@@ -14,7 +14,7 @@ tags:
 
 ## Check二进制对象
 
-先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有堆栈保护。
+先把程序下载下来检查下是什么情况：x86-64，有符号表，禁止从堆栈执行代码而且没有栈溢出警惕标志。
 ```shell
 [root@VM_0_5_centos buuoj]# file ciscn_2019_c_1 
 ciscn_2019_c_1: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.32, BuildID[sha1]=06ddf49af2b8c7ed708d3cfd8aec8757bca82544, not stripped
