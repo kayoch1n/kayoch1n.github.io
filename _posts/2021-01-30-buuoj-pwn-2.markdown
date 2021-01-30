@@ -355,7 +355,7 @@ p.interactive()
 
 ### [ZJCTF 2019]Login
 
-这是一个用C++写的程序，开启了栈溢出警惕标志。哎，实在是看不懂C++的符号，最后[装了radare2和rghidra]({{ site.url }}/blog/radare2-r2ghidra/)反编译出稍微能看得懂的源码；而且这个程序的源代码还用了C++的lambda特性，无捕获列表的lambda对象可以隐式转换为函数指针，还好以前看过[这篇文章](https://ld246.com/article/1545790136502)~
+这是一个用C++写的程序，开启了栈溢出警惕标志。哎，实在是看不懂C++的符号，最后[装了radare2和rghidra]({{ site.url }}/blog/ubuntu-packages/#radare2)反编译出稍微能看得懂的源码；而且这个程序的源代码还用了C++的lambda特性，无捕获列表的lambda对象可以隐式转换为函数指针，还好以前看过[这篇文章](https://ld246.com/article/1545790136502)~
 
 ```python
 #!/usr/bin/python3
