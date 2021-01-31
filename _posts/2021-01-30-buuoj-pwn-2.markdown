@@ -382,7 +382,7 @@ cmcc_simplerop: ELF 32-bit LSB executable, Intel 80386, version 1 (GNU/Linux), s
 
 程序是静态链接的，体积比一般的题目大，而且符号表里没有system，ROPgadget也没有找到/bin/sh，所以需要把/bin/sh写入到一个固定的地址、然后通过中断`int 0x80`触发系统调用。
 
-```python3
+```python
 #!/usr/bin/python3
 from pwn import *
 # from LibcSearcher import LibcSearcher

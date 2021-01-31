@@ -34,7 +34,7 @@ UBUNTU_CODENAME=bionic
 
 使用者可以通过编辑 ~/.gdbinit 文件改变 gdb 的默认行为。关于如何编辑 ~/.gdbinit 使调试窗口高亮显示，可以参见[这个回答](https://stackoverflow.com/a/17341335/8706476)(亲测第一种办法不会高亮显示C代码)。
 
-### glibc 源代码，符号表及调试信息
+### 为 gdb 安装 glibc 源代码，符号表及调试信息
 
 安装[glibc源代码](https://stackoverflow.com/questions/29955609/include-source-code-of-malloc-c-in-gdb#comment99820296_29956038)、[x86及x86_64的符号表及调试信息](https://stackoverflow.com/a/20019999/8706476)：
 
@@ -56,9 +56,9 @@ echo "dir /usr/src/glibc/glibc-2.27/malloc" >> ~/.gdbinit
 
 ## Perl
 
-ubuntu自带
+ubuntu自带perl。
 
-### 安装模块
+### 安装perl模块
 
 按照这个[CPAN的指引](http://www.cpan.org/modules/INSTALL.html)可以使用 cpan 安装perl模块，而ubuntu自带cpan。输入cpan后进入交互命令模式配置源:
 
@@ -101,7 +101,7 @@ sudo cpan App::cpanminus
 sudo cpanm HTML::Entities
 ```
 
-### 食用方法
+### 部分模块的食用方法
 
 [Scripts](https://stackoverflow.com/a/13161719/8706476) to convert HTML entities to characters:
 
@@ -110,7 +110,7 @@ curl http://cms.nuptzj.cn/about.php?file=about.php | perl -MHTML::Entities -pe '
 ```
 ## Docker 
 
-### 从离线package安装
+### 离线安装
 
 按照[官网的安装指引](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-from-a-package)，先下载离线：
 - 查看ubuntu的 **开发代号**(codename)`lsb_release -c`。18.04的开发代号是bionic；
@@ -123,7 +123,7 @@ curl http://cms.nuptzj.cn/about.php?file=about.php | perl -MHTML::Entities -pe '
 sudo dpkg -i /path/to/package.deb
 ```
 
-### 配置镜像源(可选)
+### 配置docker镜像源(可选)
 vim 打开 `/etc/docker/daemon.json`（不存在就创建一个），把下面这个镜像源加进去：
 ```json
 {
@@ -162,14 +162,14 @@ sudo chmod 666 /var/run/docker.sock
 
 ## radare2
 
-### 背景[]~(￣▽￣)~*
+关于装这玩意的背景[]~(￣▽￣)~*
 
 - 需要反编译二进制程序；
-- 网上的IDA Pro都上传到百度网盘。但是我不喜欢百度的产品，所以就不找IDA Pro的下载资源；
-- 公司的电脑不方便研究这个东西。所以就想在服务器上面弄；
-- 服务器是ubuntu，没有gui；
+- 网上的IDA Pro都在百度网盘。但是我不喜欢百度的软件，所以不用IDA Pro；
+- 公司的电脑不方便搞这个，所以就在CVM上面弄；
+- 众所周知服务器没有gui；
 - snowman反编译出来的c++代码不好看；
-- 终于找到radare2+r2ghidra作为IDA Pro的替代品。
+- ghidra勉强能看。
 
 ### 从源码编译安装主件 radare2
 
