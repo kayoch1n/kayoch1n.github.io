@@ -11,9 +11,9 @@ tags:
   - heap
 ---
 
-# Overview - 明けましておめでとうございます‼
+# 🍺明けましておめでとうございます😆
 
-sub_C39 函数有一个 off-by-one 漏洞，会从stdin读取、写入多一个字节。根据堆内存的chunk结构，我们可以覆盖下一个chunk `mchunk_size`的最后一个字节并修改chunk的大小，然后经分配得到重叠的chunk并泄露出 `main_arena.top` 的地址；进一步利用重叠的chunk修改 fastbin并在 main_arena 上方构造大小为0X7F的chunk，最终实现写入任意地址到 `__malloc_hook` 。
+sub_C39 函数有一个 off-by-one 漏洞，会从stdin读取、写入多一个字节。根据堆内存的chunk结构，我们可以覆盖下一个chunk `mchunk_size`的最后一个字节并修改chunk的大小，然后利用chunk的分裂特点、分配得到重叠的chunk并泄露出 `main_arena.top` 的地址；进一步利用重叠的chunk修改 fastbin并在 main_arena 上方构造大小为0X7F的chunk，最终实现写入任意地址到 `__malloc_hook` 。
 
 ## Leak libc
 

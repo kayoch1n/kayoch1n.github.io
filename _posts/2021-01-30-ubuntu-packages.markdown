@@ -30,6 +30,30 @@ VERSION_CODENAME=bionic
 UBUNTU_CODENAME=bionic
 ```
 
+## gdb
+
+使用者可以通过编辑 ~/.gdbinit 文件改变 gdb 的默认行为。关于如何编辑 ~/.gdbinit 使调试窗口高亮显示，可以参见[这个回答](https://stackoverflow.com/a/17341335/8706476)(亲测第一种办法不会高亮显示C代码)。
+
+### glibc 源代码，符号表及调试信息
+
+安装[glibc源代码](https://stackoverflow.com/questions/29955609/include-source-code-of-malloc-c-in-gdb#comment99820296_29956038)、[x86及x86_64的符号表及调试信息](https://stackoverflow.com/a/20019999/8706476)：
+
+```shell
+sudo apt-get install glibc-source libc6-dbg libc6:i386 libc6-dbg:i386
+```
+按照这个办法下载的源代码是个压缩包。然后得让[gdb找到已安装的源代码](https://stackoverflow.com/a/29956038/8706476)：
+
+```shell
+cd /usr/src/glibc
+# 解压缩
+tar xf glibc-2.27.tar.xz
+# 编辑 `~/.gdbinit`，这样就不需要每次启动gdb都手敲一遍命令
+echo "dir /usr/src/glibc/glibc-2.27/malloc" >> ~/.gdbinit
+```
+
+然鹅在gdb中调试过程中发现源代码大多数变量都被编译优化掉了ㄟ( ▔, ▔ )ㄏ只能勉强看下执行到源码哪里。
+
+
 ## Perl
 
 ubuntu自带

