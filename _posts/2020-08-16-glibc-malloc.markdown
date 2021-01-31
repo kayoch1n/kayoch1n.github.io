@@ -13,9 +13,9 @@ tags:
 
 记录一下学习glibc的堆内存分配源代码[malloc.c](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#_int_malloc)的学习过程. 
 
-## Macros
+## 宏定义
 
-| Name | Value in x86 | Value in X86_64 | Definition | Notes
+| 名曾 | x86 | x86_64 | 定义 | 备注
 | --- | --- | --- | --- | --- |
 | SIZE_SZ | 4 | 8 | `sizeof(size_t)` | 定义不在 malloc.c
 | MALLOC_ALIGNMENT | 8 | 16 | | 定义不在 malloc.c
@@ -24,10 +24,11 @@ tags:
 | MAX_FAST_SIZE | 80 | 160 | `80 * SIZE_SZ / 4` | 通过 `mallopt()`函数能够设置的最大FASTBIN的大小 |
 | DEFAULT_MXFAST | 64 | 128| `64 * SIZE_SZ / 4` |
 
-## Data structure
+## 数据结构
+
 每个堆都存在一个 `malloc_state` 结构; 主线程的第一个堆对应的 `malloc_state` 结构又称为 `main_arena`. 
 
-### CHUNKS and BINS
+### CHUNKS 和 BINS
 
 按照[结构体的定义](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk), glibc 管理动态内存的最小单位是 chunk , 大小按照**8/16字节**对齐(`MALLOC_ALIGNMENT`). "对齐"的意思是说, 所有的 chunk 大小都是8/16的整数倍. 除了用户数据以外 chunk 还存储一些让用于管理堆内存的元数据, 因此最小的 chunk 大小为16/32字节(`MINSIZE`), 能够存储12(8+4)/24（16+8）字节的用户数据. 
 
@@ -80,33 +81,30 @@ glibc 使用链表来管理 chunk , 这些链表称为 BINS. BINS分为四类, �
 
 `malloc_state::binmap`是用来标记 SMALL/LARGE BINS中的链表是否为空的位图数据结构, 本质上是一个包含4个32bit整数的数组, 其用途是快速检查对应比特位的 BIN 是否为空, 而不需要直接去遍历BINS. 
 
-## Implementation
+## 函数实现
 
 ### malloc_consolidate
 
-通过清空 FAST BINS 整理内存碎片
-
-#### Prototype 
+这个函数通过清空 FAST BINS 实现整理内存碎片，其函数签名为：
 
 ```c
 static void malloc_consolidate(mstate av)
 ```
 
-#### Details
-遍历并清空 FAST 单链表: 
+通过遍历并清空 FAST 单链表: 
 1. 尝试对 chunk 和其前一个、后一个的非 TOP 、空闲 chunk 进行合并;
 2. 把 chunk 放入 UNSORTED;
 3. 如果有前后 chunk 因此被合并, 要将 chunk 从对应的 SMALL/LARGE BIN中拆出, 即发生 `UNLINK`. 
 
 ### _int_malloc
 
-#### Prototype
+从堆中分配内存。函数签名为：
 
 ```c
 static void * _int_malloc(mstate av, size_t bytes)
 ```
 
-#### Details
+函数逻辑：
 
 1. 如果传入的av指针为NULL, 调用`sysmalloc`向操作系统申请内存 -> DONE;
 2. 将 sz(用户申请的大小) 转换为 nb( chunk 的大小);
@@ -141,17 +139,15 @@ static void * _int_malloc(mstate av, size_t bytes)
 
 ### sysmalloc
 
-To be continued...
+TODO
 
 ### _int_free
 
-#### Prototype
+释放从堆中申请的内存。函数签名为：
 
 ```c
 static void _int_free(mstate av, mchunkptr p, int have_lock)
 ```
-
-#### Details
 
 `free()` 的逻辑相对简单得多: 
 
@@ -164,9 +160,9 @@ static void _int_free(mstate av, mchunkptr p, int have_lock)
    4. 如果合并后的size 大于阈值 `FASTBIN_CONSOLIDATION_THRESHOLD`(65536) , glibc 认为堆中可能存在较多碎片, 因此会调用 `malloc_consolidate`; 
 3. 否则这个 chunk 是 `mmap` 申请得来的, 就调用 `munmap_chunk` 返还给操作系统. 
 
-## Tricks
+## Misc
 
-### Leak address
+### 泄露堆结构的地址
 
 如果 chunk 被插入 unsorted 链表的尾部, 它的 fd 和 bk 会被设置为一个“假的” chunk 的地址, 这个地址和 `main_arena` 有关, 因此能够进一步泄露 libc 的地址. 以下场景能够使得 chunk 被插入 unsorted 尾部: 
 1. 释放一个大于 `global_max_fast` 大小的 chunk; 
@@ -192,7 +188,18 @@ struct malloc_state
    */
 }
 ```
-## Reference
+所以，根据泄露出来的`main_arena.top`地址就能根据libc的库文件计算main_arena的地址；尽管libc的库文件里面没有main_arena这个符号，但是另一个符号 __malloc_hook 却在库中，而且它和main_arena的地址距离是固定，因此就能够确定libc的版本了。举个例子，在64bit ubuntu16.04中，__malloc_hook位于main_arena之前0x10的地方，而紧挨着另一个符号__realloc_hook ：
+
+```
+gdb$ x/gx 0x7fa731ec7b08
+0x7fa731ec7b08 <__realloc_hook>:        0x00007fa731b88a70
+gdb$ x/gx 0x7fa731ec7b10
+0x7fa731ec7b10 <__malloc_hook>: 0x0000000000000000
+gdb$ x/gx 0x7fa731ec7b20
+0x7fa731ec7b20 <main_arena>:    0x0000000100000000
+```
+
+## 引用
 
 1. [CTF wiki 堆利用](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/introduction-zh/)
 2. [glibc source malloc.c](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html)
