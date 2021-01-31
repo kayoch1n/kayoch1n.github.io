@@ -199,7 +199,7 @@ sys/install.sh
 
 ### 从源码编译安装插件 r2ghidra
 
-先克隆[radare2](https://github.com/radareorg/r2ghidra)的代码到本地。这个代码库使用到两个子模块，同样道理，.gitmodules的URL需要修改成镜像源实现加速克隆：
+先克隆插件[r2ghidra](https://github.com/radareorg/r2ghidra)的代码到本地。这个代码库使用到两个子模块，同样道理，.gitmodules的URL需要修改成镜像源实现加速克隆：
 
 ```
 [submodule "ghidra/ghidra"]
