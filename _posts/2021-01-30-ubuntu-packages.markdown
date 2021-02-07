@@ -36,6 +36,13 @@ UBUNTU_CODENAME=bionic
 
 ### 为 gdb 安装 glibc 源代码，符号表及调试信息
 
+瞄一下系统自带的[glibc的版本号](https://dev.to/0xbf/how-to-get-glibc-version-c-lang-26he)是多少。这个步骤不是必须的~
+
+```shell
+ldd --version
+# ldd (Ubuntu GLIBC 2.27-3ubuntu1.2) 2.27
+```
+
 安装[glibc源代码](https://stackoverflow.com/questions/29955609/include-source-code-of-malloc-c-in-gdb#comment99820296_29956038)、[x86及x86_64的符号表及调试信息](https://stackoverflow.com/a/20019999/8706476)：
 
 ```shell
