@@ -220,10 +220,9 @@ tcache涉及两个操作, `tcache_get`以及`tcache_put`. 引入tcache后, 这�
 - malloc(__libc_malloc): 首先尝试在tcache中找对应的链表是否为空, 如果不为空就可以调用`tcache_get`从单链表中取一个出来, 后面就不会调用函数 `_int_malloc` . 
 
 - _int_malloc: 在 fast 和 small bin 的精确查找过程中, 如果精确查找成功, 就会调用 `tcache_put` 把对应bin里的 chunk 装入 tcache 的链表, 直到填满7个为止; 
+   - 另外, 在遍历unsorted的过程中, 如果chunk的长度和请求的长度一致, glibc会先把chunk通过`tcache_put`放到tcache里, 而不是立即返回这个. 个人猜测这样做的原因是要把unsorted列表里面同样大小的chunk给安排到tcache. 
 
-另外, 在遍历unsorted的过程中, 如果chunk的长度和请求的长度一致, glibc会先把chunk通过`tcache_put`放到tcache里, 而不是立即返回这个. 个人猜测这样做的原因是要把unsorted列表里面同样大小的chunk给安排到tcache. 
-
-#### _int_free
+- _int_free
 
 在fast bin之前, 优先通过 tcache_put 把chunk放到 tcache. 
 
