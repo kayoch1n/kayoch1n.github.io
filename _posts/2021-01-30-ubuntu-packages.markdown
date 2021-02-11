@@ -36,9 +36,11 @@ UBUNTU_CODENAME=bionic
 
 ### 为 gdb 安装 glibc 源代码，符号表及调试信息
 
-瞄一下系统自带的[glibc的版本号](https://dev.to/0xbf/how-to-get-glibc-version-c-lang-26he)是多少。这个步骤不是必须的~
+瞄一下系统自带的[glibc的版本号](https://dev.to/0xbf/how-to-get-glibc-version-c-lang-26he)是多少。这个步骤不是必须的~然而ldd和直接执行libc.so.6的结果有些出入，原因暂时没弄明白
 
 ```shell
+/lib/x86_64-linux-gnu/libc.so.6
+# GNU C Library (Ubuntu GLIBC 2.27-3ubuntu1.4) stable release version 2.27.
 ldd --version
 # ldd (Ubuntu GLIBC 2.27-3ubuntu1.2) 2.27
 ```
@@ -59,6 +61,36 @@ echo "dir /usr/src/glibc/glibc-2.27/malloc" >> ~/.gdbinit
 ```
 
 然鹅在gdb中调试过程中发现源代码大多数变量都被编译优化掉了ㄟ( ▔, ▔ )ㄏ只能勉强看下执行到源码哪里。
+
+
+### 编译其他版本的 glibc
+
+有时候系统自带的libc版本不能满足要求。比如有一个需要利用tcache double free风险的pwn题目，要求ubuntu18；然而最新的ubuntu18自带的glibc版本是 2.27-3ubuntu1.4 ，这个小版本1.4会检测到tcache的double free风险👿；所以为了还原题目环境，[得自己编译一个也带调试信息的glibc](https://ss8651twtw.github.io/blog/note/build-libc-with-debug-info/)。
+
+```shell
+# 1. 从官方的ftp服务器上下载glibc源代码 http://ftp.gnu.org/gnu/glibc/
+# 2. 解压到一个文件夹，比如 ~/glibc-src/glibc-2.27
+# 3. 在这里，我把源码放在 ~/glibc-src/glibc-2.27，后面编译出来的东西放到 ~/glibc-2.27
+GLIBC_VERSION=glibc-2.27
+cd ~/glibc-src/${GLIBC_VERSION}
+mkdir -p build && cd build
+# 4. 检查依赖
+CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}
+# 32bit
+# CC='gcc -m32' CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error --host=i686-linux-gnu --bulid=i686-linux-gnu' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}
+# 5. 编译
+make -j4
+# 6. 安装
+make install -j4
+```
+
+安装完成之后，头文件和函数库就放到了 ```/home/`whoami`/${GLIBC_VERSION}```。为了让程序使用这个glibc，需要[修改程序的loader到新编译的glibc的loader](https://ss8651twtw.github.io/blog/note/pwn-tips/)。这是因为libc.so.2其实是在编译的时候已经写死到了loader里面去了。
+
+```shell
+# 7. 在系统的loader目录创建一个软链接指向新编译的loader，把横杠"-"修改成下划线"_"
+sudo ln /home/ubuntu/glibc-2.27/lib/ld-2.27.so /lib64/ld_linux-x86-64.so.2
+# 8. vim修改程序的loader路径
+```
 
 
 ## Perl
