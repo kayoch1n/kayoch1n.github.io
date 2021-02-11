@@ -22,7 +22,7 @@ tags:
 | MALLOC_ALIGN_MASK | 0x7 | 0xf | | `MALLOC_ALIGNMENT - 1` 
 | MINSIZE | 16 | 32 | chunk的最小长度 | `4*SIZE_SZ`
 | MAX_FAST_SIZE | 80 | 160 | 通过 `mallopt()`函数能够设置的最大fastBIN的长度 | `80 * SIZE_SZ / 4` |
-| DEFAULT_MXfast | 64 | 128| fastBIN的默认最大长度 | `64 * SIZE_SZ / 4` |
+| DEFAULT_MXFAST | 64 | 128| fast bin的默认最大长度 | `64 * SIZE_SZ / 4` |
 
 ## 数据结构
 
@@ -63,7 +63,7 @@ glibc 使用链表来管理chunk, 这些链表称为 bins. bins分为四类, 其
 
 - fast bins: 
   - 通过`fd`组成**单向链表**, 从头部存取（后进先出）;
-  - 链表内chunk长度一致. 最小为32字节（`MINSIZE`）, 对索引为0; 最大为 `global_max_fast`, 这个值可以通过函数 `__libc_mallopt(M_MXfast, value)` 改变, 默认值为128字节, 最大值为`(160 + SIZE_SZ) & ~MALLOC_ALIGN_MASK)`, 即176字节; 
+  - 链表内chunk长度一致. 最小为32字节（`MINSIZE`）, 对索引为0; 最大为 `global_max_fast`, 这个值可以通过函数 `__libc_mallopt(M_MXFAST, value)` 改变, 默认值为128字节, 最大值为`(160 + SIZE_SZ) & ~MALLOC_ALIGN_MASK)`, 即176字节; 
   - 因此最多一共有10=(176-32)//16+1类不同长度的链表: 32, 48, 64, ..., 176.
   -chunk一直处于**占用**状态. 
 - unsorted bin: 
@@ -283,10 +283,12 @@ gdb$ x/gx 0x7fa731ec7b20
 0x7fa731ec7b20 <main_arena>:    0x0000000100000000
 ```
 
+<!-- TODO -->
+<!-- ### glibc的安全检查
+
 ### 写入任意内存地址
 
-<!-- TODO -->
-<!-- glibc使用单链表(tcache, fast bin)/双链表(small, large, unsorted bin)/跳表(large bin)。通过重复分配chunk然后释放等手段，修改链表的结构（指针），从而在chunk被插入或拆除的时候实现写入任意内存地址。 -->
+glibc使用单链表(tcache, fast bin)/双链表(small, large, unsorted bin)/跳表(large bin)。通过重复分配chunk然后释放等手段，修改链表的结构（指针），从而在chunk被插入或拆除的时候实现写入任意内存地址。 -->
 
 ## 引用
 
