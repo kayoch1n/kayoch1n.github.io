@@ -65,7 +65,7 @@ echo "dir /usr/src/glibc/glibc-2.27/malloc" >> ~/.gdbinit
 
 ### 编译其他版本的 glibc
 
-有时候系统自带的libc版本不能满足要求。比如有一个需要利用tcache double free风险的pwn题目，要求ubuntu18；然而最新的ubuntu18自带的glibc版本是 2.27-3ubuntu1.4 ，这个小版本1.4会检测到tcache的double free风险👿；所以为了还原题目环境，[得自己编译一个也带调试信息的glibc](https://ss8651twtw.github.io/blog/note/build-libc-with-debug-info/)。
+有时候系统自带的libc版本不能满足要求。比如有一个需要利用tcache double free风险的pwn题目，要求ubuntu18；然而最新的ubuntu18自带的glibc版本是 2.27-3ubuntu1.4 ，这个小版本1.4会检测到tcache的double free风险👿；为了还原题目环境，[得自己编译一个也带调试信息的glibc](https://ss8651twtw.github.io/blog/note/build-libc-with-debug-info/)，然后修改题目的loader路径，一般是把横杠修改成下划线或者别的什么单个字符，总长度不变，使得程序能够使用自己编译的版本。因此，在编译之前，需要确定好产物的安装目录。
 
 ```shell
 # 1. 从官方的ftp服务器上下载glibc源代码 http://ftp.gnu.org/gnu/glibc/
@@ -76,7 +76,7 @@ cd ~/glibc-src/${GLIBC_VERSION}
 mkdir -p build && cd build
 # 4. 配置编译脚本
 # 为 64bit 操作系统配置编译脚本
-CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}
+CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}-amd64
 # 在 64bit 操作系统上配置 32bit 编译脚本
 # CC='gcc -m32' CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}-i686 --host=i686-linux-gnu
 # 5. 开始编译
@@ -85,14 +85,15 @@ make -j4
 make install -j4
 ```
 
-安装完成之后，头文件和函数库就放到了 ```/home/`whoami`/${GLIBC_VERSION}```。为了让程序使用这个glibc，需要[修改程序的loader到新编译的glibc的loader](https://ss8651twtw.github.io/blog/note/pwn-tips/)。这是因为libc.so.2其实是在编译的时候已经写死到了loader里面去了。
+安装完成之后，头文件和函数库就放到了prefix指定的目录去了，而且libc.so.2的路径已经在编译的时候被写死到了loader的二进制产物里面去了。。最后需要[修改程序的loader到新编译的glibc的loader](https://ss8651twtw.github.io/blog/note/pwn-tips/)。
 
 ```shell
-# 7. 在系统的loader目录创建一个软链接指向新编译的loader，把横杠"-"修改成下划线"_"
-sudo ln /home/ubuntu/glibc-2.27/lib/ld-2.27.so /lib64/ld_linux-x86-64.so.2
-# 8. vim修改程序的loader路径
+# 7. vim修改程序的loader路径，例如目录不变但、横杠"-"修改成下划线"_"
+# 8. 创建一个软链接指向新编译的 64bit loader
+sudo ln /home/ubuntu/glibc-2.27-amd64/lib/ld-2.27.so /lib64/ld_linux-x86-64.so.2
+# 创建一个软链接指向新编译的 32bit loader
+# sudo ln /home/ubuntu/glibc-2.27-i686/lib/ld-2.27.so /lib/ld_linux.so.2
 ```
-
 
 ## Perl
 
@@ -141,7 +142,7 @@ sudo cpan App::cpanminus
 sudo cpanm HTML::Entities
 ```
 
-### 部分模块的食用方法
+### 部分模块的食用方法（其实只有一个模块的例子
 
 [Scripts](https://stackoverflow.com/a/13161719/8706476) to convert HTML entities to characters:
 
@@ -150,7 +151,7 @@ curl http://cms.nuptzj.cn/about.php?file=about.php | perl -MHTML::Entities -pe '
 ```
 ## Docker 
 
-### 离线安装
+### 离线安装方法
 
 按照[官网的安装指引](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-from-a-package)，先下载离线：
 - 查看ubuntu的 **开发代号**(codename)`lsb_release -c`。18.04的开发代号是bionic；
