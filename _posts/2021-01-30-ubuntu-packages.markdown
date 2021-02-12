@@ -74,13 +74,14 @@ echo "dir /usr/src/glibc/glibc-2.27/malloc" >> ~/.gdbinit
 GLIBC_VERSION=glibc-2.27
 cd ~/glibc-src/${GLIBC_VERSION}
 mkdir -p build && cd build
-# 4. 检查依赖
+# 4. 配置编译脚本
+# 为 64bit 操作系统配置编译脚本
 CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}
-# 32bit
-# CC='gcc -m32' CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error --host=i686-linux-gnu --bulid=i686-linux-gnu' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}
-# 5. 编译
+# 在 64bit 操作系统上配置 32bit 编译脚本
+# CC='gcc -m32' CFLAGS='-g3 -ggdb3 -gdwarf-4 -Og -Wno-error' ../configure --prefix=/home/`whoami`/${GLIBC_VERSION}-i686 --host=i686-linux-gnu
+# 5. 开始编译
 make -j4
-# 6. 安装
+# 6. 安装产物
 make install -j4
 ```
 
