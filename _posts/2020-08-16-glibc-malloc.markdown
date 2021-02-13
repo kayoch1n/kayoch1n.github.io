@@ -23,6 +23,10 @@ tags:
 | MINSIZE | 16 | 32 | chunk的最小长度 | `4*SIZE_SZ`
 | MAX_FAST_SIZE | 80 | 160 | 通过 `mallopt()`函数能够设置的最大fastBIN的长度 | `80 * SIZE_SZ / 4` |
 | DEFAULT_MXFAST | 64 | 128| fast bin的默认最大长度 | `64 * SIZE_SZ / 4` |
+| NSMALLBINS | 64 | 64 | small bins的数量? | |
+| SMALLBIN_WIDTH | 8 | 16 | 暂时不明 | `MALLOC_ALIGNMENT`
+| SMALLBIN_CORRECTION | 0 | 0 | 暂时不明 | `(MALLOC_ALIGNMENT > 2 * SIZE_SZ)` |
+| MIN_LARGE_SIZE | 512 | 1024 | 最小的 large bin 长度 | `((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)` | 
 
 ## 数据结构
 
@@ -72,7 +76,7 @@ glibc 使用链表来管理chunk, 这些链表称为 bins. bins分为四类, 其
 - small bins:
   - 双向链表, 从头部放入、从尾部取出（先进先出）;
   - 同一个链表内 chunk 长度一致, 最小为32字节, 最大为1008字节;
-  - 一共有62=(1008-32)//16+1类不同长度的链表: 32, 48, 64, ..., 1008.
+  - 一共有62=(1008-32)//16+1类不同长度的链表: 32, 48, 64, ..., 1008, 数量和 `NSMALLBINS` 不同; 
 - large bins:
   - 双向链表, 从头部放入、从尾部取出（先进先出）;
   - 在 `malloc_state::bins` 中, 除去 unsorted 和62个 small 以外的都是 large ;
