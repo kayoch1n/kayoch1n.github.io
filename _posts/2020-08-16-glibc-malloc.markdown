@@ -18,15 +18,16 @@ tags:
 | 名称 | 32bit取值 | 64bit取值 | 定义 | 备注
 | --- | --- | --- | --- | --- |
 | SIZE_SZ | 4 | 8 | `size_t`的长度 | `sizeof(size_t)`
-| MALLOC_ALIGNMENT | 8 | 16 | 对齐chunk长度的字节数 | `2*SIZE_SZ`
-| MALLOC_ALIGN_MASK | 0x7 | 0xf | | `MALLOC_ALIGNMENT - 1` 
+| MALLOC_ALIGNMENT | 16(重新定义) | 16 | min(sizeof(long double), 2*SIZE_SZ) | 
+| MALLOC_ALIGN_MASK | 0xf | 0xf | | `MALLOC_ALIGNMENT - 1` 
 | MINSIZE | 16 | 32 | chunk的最小长度 | `4*SIZE_SZ`
 | MAX_FAST_SIZE | 80 | 160 | 通过 `mallopt()`函数能够设置的最大fastBIN的长度 | `80 * SIZE_SZ / 4` |
 | DEFAULT_MXFAST | 64 | 128| fast bin的默认最大长度 | `64 * SIZE_SZ / 4` |
 | NSMALLBINS | 64 | 64 | small bins的数量? | |
-| SMALLBIN_WIDTH | 8 | 16 | 暂时不明 | `MALLOC_ALIGNMENT`
-| SMALLBIN_CORRECTION | 0 | 0 | 暂时不明 | `(MALLOC_ALIGNMENT > 2 * SIZE_SZ)` |
-| MIN_LARGE_SIZE | 512 | 1024 | 最小的 large bin 长度 | `((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)` | 
+| SMALLBIN_WIDTH | 16 | 16 | 暂时不明 | `MALLOC_ALIGNMENT`
+| SMALLBIN_CORRECTION | 1 | 0 | 暂时不明 | `(MALLOC_ALIGNMENT > 2 * SIZE_SZ)` |
+| MIN_LARGE_SIZE | 1008 | 1024 | 最小的 large bin 长度 | `((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)` | 
+<!-- | csize2tidx(x) | max_64(x)=528 | max_64(x)=1056 | 返回tcache中的索引 | `(((x) - MINSIZE + MALLOC_ALIGNMENT - 1) / MALLOC_ALIGNMENT)` |  -->
 
 ## 数据结构
 
@@ -34,7 +35,7 @@ tags:
 
 ### chunks 和 bins
 
-按照[结构体的定义](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk), glibc 管理动态内存的最小单位是chunk, 长度按照 MALLOC_ALIGNMENT 对齐, 所有的chunk的长度都是 MALLOC_ALIGNMENT 的整数倍. 
+按照[结构体的定义](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk), glibc 管理动态内存的最小单位是chunk, 长度按照 2xSIZE_SZ 对齐, 所有的chunk的长度都是 2xSIZE_SZ 的整数倍. 
 
 - 元数据部分
    - .mchunk_prev_size 当P位置0时, 表示前一个chunk的长度; 否则存储用户数据
@@ -226,7 +227,7 @@ tcache涉及两个操作, `tcache_get`以及`tcache_put`. 引入tcache后, 这�
 - _int_malloc: 在 fast 和 small bin 的精确查找过程中, 如果精确查找成功, 就会调用 `tcache_put` 把对应bin里的 chunk 装入 tcache 的链表, 直到填满7个为止; 
    - 另外, 在遍历unsorted的过程中, 如果chunk的长度和请求的长度一致, glibc会先把chunk通过`tcache_put`放到tcache里, 而不是立即返回这个. 个人猜测这样做的原因是要把unsorted列表里面同样大小的chunk给安排到tcache. 
 
-- _int_free: 在fast bin之前, 优先通过 tcache_put 把chunk放到 tcache. 
+- _int_free: 在检查是否能塞入fast bin之前, 优先通过 tcache_put 把chunk放到 tcache. 
 
 #### 1.4版本的double free检测
 
