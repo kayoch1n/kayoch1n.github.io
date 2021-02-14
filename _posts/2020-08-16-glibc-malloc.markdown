@@ -26,7 +26,10 @@ tags:
 | NSMALLBINS | 64 | 64 | small bins的数量? | |
 | SMALLBIN_WIDTH | 16 | 16 | 暂时不明 | `MALLOC_ALIGNMENT`
 | SMALLBIN_CORRECTION | 1 | 0 | 暂时不明 | `(MALLOC_ALIGNMENT > 2 * SIZE_SZ)` |
-| MIN_LARGE_SIZE | 1008 | 1024 | 最小的 large bin 长度 | `((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)` | 
+| MIN_LARGE_SIZE | 1008 | 1024 | 最小的 large bin 长度 | `((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)`
+
+<!-- Comment -->
+
 <!-- | csize2tidx(x) | max_64(x)=528 | max_64(x)=1056 | 返回tcache中的索引 | `(((x) - MINSIZE + MALLOC_ALIGNMENT - 1) / MALLOC_ALIGNMENT)` |  -->
 
 ## 数据结构
