@@ -18,7 +18,7 @@ tags:
 | 名称 | 32bit取值 | 64bit取值 | 定义 | 备注
 | --- | --- | --- | --- | --- |
 | SIZE_SZ | 4 | 8 | `size_t`的长度 | `sizeof(size_t)`
-| MALLOC_ALIGNMENT | 16(重新定义) | 16 | min(sizeof(long double), 2*SIZE_SZ) | 
+| MALLOC_ALIGNMENT | 16 | 16 | min(sizeof(long double), 2*SIZE_SZ) | 
 | MALLOC_ALIGN_MASK | 0xf | 0xf | | `MALLOC_ALIGNMENT - 1` 
 | MINSIZE | 16 | 32 | chunk的最小长度 | `4*SIZE_SZ`
 | MAX_FAST_SIZE | 80 | 160 | 通过 `mallopt()`函数能够设置的最大fastBIN的长度 | `80 * SIZE_SZ / 4` |
