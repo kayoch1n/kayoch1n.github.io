@@ -1,6 +1,7 @@
 ---
 toc: true
-layout: "page"
+layout: "post"
+catalog: true
 title:  "Buuoj冲分过程（指俯冲）その２"
 subtitle: "一些PWN"
 date:   2021-01-31 12:10:38 +0800

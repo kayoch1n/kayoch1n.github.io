@@ -1,5 +1,5 @@
 ---
-layout: "page"
+layout: "post"
 subtitle: "本文是记录了glibc的堆内存分配源代码malloc.c的学习笔记."
 title:  "glibc 堆内存分配学习笔记"
 date:   2020-08-15 12:15:38 +0800

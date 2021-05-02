@@ -1,5 +1,5 @@
 ---
-layout: "page"
+layout: "post"
 title:  "Buuoj冲分过程-ciscn_2019_c_1"
 subtitle: "ROP入门"
 date:   2020-07-14 12:15:38 +0800
