@@ -1,7 +1,7 @@
 ---
-toc: true
-toc_sticky: true
+layout: "page"
 title:  "信息安全学习笔记 - 南邮攻防平台 CG CTF Web"
+subtitle: "最近南邮登录不上去了，原因不清楚"
 date:   2020-04-12 23:00:38 +0800
 categories: 
   - blog 
@@ -9,9 +9,7 @@ tags:
   - web
 ---
 
-最近南邮登录不上去了，原因不清楚。
-
-# Contents
+# 问题
 
 ## 签到题
 

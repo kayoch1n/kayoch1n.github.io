@@ -1,9 +1,8 @@
 ---
-toc: true
-toc_sticky: true
+layout: "page"
 title:  "信息安全学习笔记 - 南邮攻防平台 CG CTF Re"
 date:   2020-03-29 19:19:38 +0800
-diary: "逆向工程。想起在学校图书馆电阅的破电脑上看汇编的日子，还是xp。。。"
+subtitle: "逆向工程。想起在学校图书馆电阅的破电脑上看汇编的日子，还是xp。。。"
 categories: 
   - blog 
 tags:
@@ -11,7 +10,7 @@ tags:
 ---
 最近南邮登录不上去了，原因不清楚。
 
-# Contents
+# 问题
 
 ## [Hello,RE!](https://cgctf.nuptsast.com/files/1.exe)
 

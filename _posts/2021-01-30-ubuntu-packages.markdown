@@ -1,8 +1,8 @@
 ---
-toc: true
-toc_sticky: true
+layout: page
 title:  "Ubuntu 安装各种程序"
 date:   2021-01-30 12:15:38 +0800
+subtitle: "[]~(￣▽￣)~*🍻"
 categories:
   - blog 
 tags: 
@@ -10,7 +10,8 @@ tags:
   - docker
   - perl
 ---
-# []~(￣▽￣)~*🍻
+
+# 正文
 
 操作系统是64bit的ubuntu 18.04 。
 

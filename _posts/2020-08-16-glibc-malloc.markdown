@@ -1,9 +1,8 @@
 ---
-toc: true
-toc_sticky: true
+layout: "page"
+subtitle: "本文是记录了glibc的堆内存分配源代码malloc.c的学习笔记."
 title:  "glibc 堆内存分配学习笔记"
 date:   2020-08-15 12:15:38 +0800
-diary: "前段时间项目组换了一个新来的产品经理;这位大佬还未熟悉产品, 别人问到啥问题都要找测试回答, 连客户演示、销售之类的问题都要来找测试, 晕😵, 到底我是产品还是你是产品？"
 categories: 
   - blog
 tags:
@@ -11,7 +10,7 @@ tags:
   - pwn
 ---
 
-本文记录了glibc的堆内存分配源代码[malloc.c](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html)的学习笔记. 
+前段时间项目组换了一个新来的产品经理;这位大佬还未熟悉产品, 别人问到啥问题都要找测试回答, 连客户演示、销售之类的问题都要来找测试, 晕😵, 到底我是产品还是你是产品？
 
 ## 宏定义
 
