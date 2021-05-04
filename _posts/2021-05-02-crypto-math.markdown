@@ -55,18 +55,14 @@ $$
 其中，$p_i$ 是素数。wiki给出了构造解的一般形式为：
 
 $$
-x=\sum_{i=1}^{n}{a_iA_iA_i^{-1}} +k\prod_{i=1}^{n}{p_i}\text{, }k \in \mathbb{Z}
+\begin{gathered}
+x=\sum_{i=1}^{n}{a_iA_iA_i^{-1}} +k\prod_{i=1}^{n}{p_i}\text{, }k \in \mathbb{Z} \\
+A_i=\prod_{j=1, j\ne i}^{n}{a_j} \\
+A_iA_i^{-1}\equiv 1 \pmod {p_i} \\
+\end{gathered}
 $$
 
-$$
-A_i=\prod_{j=1, j\ne i}^{n}{a_j}
-$$
-
-$$
-A_iA_i^{-1}\equiv 1 \pmod {p_i}
-$$
-
-容易看出，$a_iA_iA_i^{-1} \equiv a_i \pmod {p_i}$；另外，对于 $\forall j\ne i\text{, }a_i|A_j \implies a_jA_jA_j^{-1} \equiv 0 \pmod {p_i}$，因此 $\sum_{i=1}^{n}{a_iA_iA_i^{-1}} \equiv a_i \pmod {p_i}$。构造解的一般形式能满足上述一次同余方程组，解的存在性得证。
+容易看出，$a_iA_iA_i^{-1} \equiv a_i \pmod {p_i}$；另外， $\forall j\ne i\text{, }{A_j} \equiv 0 \pmod {a_i} \implies a_jA_jA_j^{-1} \equiv 0 \pmod {p_i}$，因此 $\sum_{i=1}^{n}{a_iA_iA_i^{-1}} \equiv a_i \pmod {p_i}$。构造解的一般形式能满足上述一次同余方程组，解的存在性得证。
 
 公钥加解密大都涉及大整数运算，比如两个大整数的乘法，不能像32或64bit整数乘法那样能够在一个指令周期运算。在RSA场景下，孙子定理的作用是将大整数 $m$ 取余问题转化为两个相对小素数 $p$ 和 $q$ 的取余问题，而且 $p$ 和 $q$ 的二进制长度通常是 $m$ 的一半，从而减少整数乘法耗时。
 
@@ -100,7 +96,9 @@ $$
 和分析整数分解复杂度类似，假设 $N$ 有 $n$ 个比特，那么随机整数是素数的概率近似于 
 
 $$
+\begin{gathered}
 \frac{1}{\ln N}=\frac{1}{\ln{2^n}}=\frac{1}{n\ln 2}
+\end{gathered}
 $$
 
 而且如果只检测奇数的话，这个概率还能翻倍。例如，长度为1024，这个概率就是 $\frac{2}{1024\times \ln 2}\approx\frac{1}{354}$，这表示使用者期望至少需要随机生成354个整数才能找到一个素数。
