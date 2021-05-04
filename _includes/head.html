@@ -58,5 +58,24 @@
     <![endif]-->
 
     <!-- ga & ba script hoook -->
-    <script></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          TeX: {
+            equationNumbers: {
+              autoNumber: "AMS"
+            }
+          },
+          SVG: {
+            scale: 90
+          },
+          tex2jax: {
+            inlineMath: [ ['$','$'] ],
+            displayMath: [ ['$$','$$'] ],
+            processEscapes: true,
+          }
+        });
+      </script>
+      <script type="text/javascript"
+              src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG">
+      </script>
 </head>

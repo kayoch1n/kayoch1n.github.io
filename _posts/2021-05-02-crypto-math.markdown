@@ -4,6 +4,7 @@ layout: "post"
 catalog: true
 title:  "《深入浅出密码学》中的数学芝士"
 date:   2021-05-02 12:10:38 +0800
+header-img: "img/sz-talent-park-bg.jpg"
 categories: 
   - blog
 tags:
