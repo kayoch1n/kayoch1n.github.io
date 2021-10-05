@@ -5,6 +5,7 @@ catalog: true
 title:  "《深入浅出密码学》中的数学芝士"
 date:   2021-05-02 12:10:38 +0800
 header-img: "img/sz-talent-park-bg.jpg"
+mathjax: true
 categories: 
   - blog
 tags:
@@ -142,10 +143,10 @@ x&\equiv \log_{\alpha}{\beta} &\pmod p
 \end{aligned}
 $$
 
-#### 循环群
+<!-- #### 循环群
 
 由生成元的定义可知，这个解必然存在
 
 #### Elgamal scheme
 
-nondeterministic
+nondeterministic -->

@@ -5,6 +5,7 @@ catalog: true
 title:  "高等代数导论-蒙哥马利算法"
 date:   2021-10-02 12:10:38 +0800
 header-img: "img/sz-transmission-tower.jpg"
+mathjax: true
 categories: 
   - blog
 tags:
@@ -57,13 +58,11 @@ $$
 
 其次，算法断言 $z$ 必然是一个整数。这是因为
 
-$$
-s\equiv am'\pmod r\\
-\Darr\\
-sm\equiv am'm\pmod {rm}\\
-\Darr\\
-a+sm\equiv a+am'm\equiv a(1+m'm)\equiv ar'r\pmod {rm}
-$$
+$$s\equiv am'\pmod r$$
+
+$$sm\equiv am'm\pmod {rm}$$
+
+$$a+sm\equiv a+am'm\equiv a(1+m'm)\equiv ar'r\pmod {rm}$$
 
 
 $a+sm\equiv ar'r\pmod {rm}$ 意味着 $r$ 整除 $a+sm$，所以 $z=\frac{a+sm}{r}$ 是一个整数，即
@@ -84,8 +83,8 @@ $$
 
 $$
 c=\begin{cases}
-z&\text{, if } z\lt m\\
-z-m&\text{, if } m\le z\lt 2m
+z&(z\lt m)\\
+z-m&(m\le z\lt 2m)
 \end{cases}
 $$
 
@@ -112,8 +111,8 @@ $$
 
 $$
 c'=\begin{cases}
-z'&\text{, if } z'\lt m\\
-z'-m&\text{, if } m\le z'\lt 2m
+z'&(z'\lt m)\\
+z'-m&(m\le z'\lt 2m)
 \end{cases}
 $$
 
