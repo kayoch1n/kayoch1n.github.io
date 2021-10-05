@@ -32,12 +32,32 @@ tags:
 RSA的加密过程用公式表示为 $ x^e \equiv y \pmod m $，解密过程为 $ y^d \equiv x \pmod m$。其中，
 1. $m=pq$，$p$ 和 $q$ 是两个素数；
 2. $e$ 和 $m$ 为公钥，$d$ （或者 $p$ 和 $q$）是私钥；
-3. $e$ 和 $d$ 互为模 $m$ 乘法逆，即满足 $ ed \equiv 1 \pmod {\phi(m)}$。$d$ 可通过扩展欧几里得算法计算出；
+3. $e$ 和 $d$ 互为模 $m$ 乘法逆，即满足 $ ed \equiv 1 \pmod {\phi(m)}$。
+    - 该条件的前提是 $\gcd(e, \phi(m))=1$；
+    - $d$ 可通过扩展欧几里得算法计算出。根据[贝祖定理](https://zh.wikipedia.org/wiki/%E8%B2%9D%E7%A5%96%E7%AD%89%E5%BC%8F)，这样的 $d$ 必然存在。
 4. $\phi(m)$ 是欧拉函数，$\phi(m)=(p-1)(q-1)$； 
 
 书中给出了关于RSA加密解密正确性的解释；只要看到上面的几个定义，就可以很快理解这一过程，因此这里不再记录了。
 
 RSA的单向函数(_one-way function_)和整数分解问题有关：计算两个数的乘积是简单的，但将一个整数分解成若干个因数是困难的。上述私钥 $d$ 的计算依赖 $\phi(m)=(p-1)(q-1)$。目前没有解决整数分解的有效算法，只能靠暴力枚举获得 $m$ 的分解方式。假设整数乘法所消耗的时间是一个常数，这个过程的时间复杂度为 $\mathcal{O}(\sqrt {m})$；如果 $m$ 的二进制表示的长度为 $n$ ，实际的复杂度是**指数级别**的 $\mathcal{O}(\sqrt m)=\mathcal{O}(\sqrt {2^n})=\mathcal{O}(2^{\frac{n}{2}})$ 。
+
+#### 快速幂
+
+平方求幂(squaring-and-multiply)
+
+$$
+a^{k}=a^{\sum_{i}^{n}{2^id_i}}=a^{2^0d_0}\times a^{2^1d_1}\times\dots\times a^{2^n d_n}\text{, } d_i\in \{0, 1\}
+$$
+
+double-and-add
+
+$$
+k\times a=a\times\sum_{i}^{n}{2^id_i}=a\times{2^0d_0}+ a\times{2^1d_1}+\dots+a\times{2^n d_n}\text{, } d_i\in \{0, 1\}
+$$
+
+从MSB开始
+
+#### 蒙哥马利算法
 
 #### 利用孙子定理加速解密过程
 
@@ -80,7 +100,7 @@ $$
 $$
 \begin{aligned}
 y^{d} \equiv y^{d_p+t\phi(p)} \equiv y^{d_p} \pmod p 
-\end{aligned} \blacksquare
+\end{aligned}
 $$
 
 
@@ -114,3 +134,18 @@ $$
 ### 离散对数
 
 像我这种非数学专业的本科菜鸡，在学校的时候是不会自觉接触跟数论有关的知识的（理直气壮）。
+
+$$
+\begin{aligned}
+\alpha^{x}&\equiv \beta  &\pmod p \\
+x&\equiv \log_{\alpha}{\beta} &\pmod p
+\end{aligned}
+$$
+
+#### 循环群
+
+由生成元的定义可知，这个解必然存在
+
+#### Elgamal scheme
+
+nondeterministic
