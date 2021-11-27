@@ -217,8 +217,11 @@ $$
 
 $$a^{\varphi(n)}\equiv1\pmod n$$
 
-称为[欧拉定理(Euler's theorem)](https://zh.wikipedia.org/wiki/%E6%AC%A7%E6%8B%89%E5%AE%9A%E7%90%86_(%E6%95%B0%E8%AE%BA))。欧拉定理实际上是[费马小定理(Fermat's little theorem)](https://zh.wikipedia.org/wiki/%E8%B4%B9%E9%A9%AC%E5%B0%8F%E5%AE%9A%E7%90%86)的一般。根据费马小定理，给定质数 $p$，对于任意不能被 $p$ 整除的整数 $a$，都有
+称为[欧拉定理(Euler's theorem)](https://zh.wikipedia.org/wiki/%E6%AC%A7%E6%8B%89%E5%AE%9A%E7%90%86_(%E6%95%B0%E8%AE%BA))。欧拉定理实际上是[费马小定理(Fermat's little theorem)](https://zh.wikipedia.org/wiki/%E8%B4%B9%E9%A9%AC%E5%B0%8F%E5%AE%9A%E7%90%86)的一般化。根据费马小定理，给定质数 $p$，对于任意不能被 $p$ 整除的整数 $a$，都有
 
 $$a^{p-1}\equiv1\pmod p$$
 
-费马小定理的证明非常容易，这里就不赘述。
+费马小定理的证明非常容易，这里就不赘述。而对于所有整数 $a$ （包括被 $p$ 整除）都有
+
+$$a^p\equiv a\pmod p$$
+
