@@ -21,7 +21,7 @@ tags:
 
 定义欧拉函数 $\varphi(n)$ 是**小于 $n$** 且 **和 $n$ 互质** 的正整数的集合的计数，即
 
-$$\varphi(n)=|S|\text{ , }S=\big\{x|x\in\mathbb{Z}^{+}\text{, } x\le n\text{ and }\gcd(x,n)=1\big\}$$
+$$\varphi(n)=\mid S\mid \text{ , }S=\big\{x\mid x\in\mathbb{Z}^{+}\text{, } x\le n\text{ and }\gcd(x,n)=1\big\}$$
 
 ## 性质
 
@@ -46,7 +46,7 @@ $$
 $$
 \begin{aligned}
 S&=\big\{p, 2p,\dots, (p^{t-1}-1)p, p^{t-1}p\big\}\\
-&=\big\{x|x=sp\text{ and }1\le s\le p^{t-1}\big\}
+&=\big\{x\mid x=sp\text{ and }1\le s\le p^{t-1}\big\}
 \end{aligned}
 $$
 
@@ -93,7 +93,7 @@ $$
 M_i^{-1}M_i\equiv1\pmod {m_i}\tag{5}
 $$
 
-两两互质是必要条件，否则至少一个 $m_i$ 的乘法逆元 $M_i^{-1}$ 不存在。这是因为假设存在两个整数 $\gcd(m_s,m_t)=d\gt1$，那么 $m_t|M_s\to\gcd(m_s, M_s)\ge d \gt1$ ，不能满足乘法逆元的条件。
+两两互质是必要条件，否则至少一个 $m_i$ 的乘法逆元 $M_i^{-1}$ 不存在。这是因为假设存在两个整数 $\gcd(m_s,m_t)=d\gt1$，那么 $m_t$ 整除 $M_s$  $\gcd(m_s, M_s)\ge d \gt1$ ，不能满足乘法逆元的条件。
 
 ##### 充分性
 
@@ -124,10 +124,10 @@ $$
 假设 $x_1$，$x_2$是方程组的两个解且 $x_1\ne x_2$，对于任意 $m_i$，都有
 
 $$
-x_1\equiv x_2\equiv a_i\pmod {m_i}\implies m_i|x_1-x_2
+x_1\equiv x_2\equiv a_i\pmod {m_i}\implies m_i\mid x_1-x_2
 $$
 
-由 $\gcd(m_i,m_j)=1$ 可以进一步得到 $m_im_j|x_1-x_2$。这个可以用[贝祖定理](https://en.wikipedia.org/wiki/B%C3%A9zout%27s_identity)推导出来
+由 $\gcd(m_i,m_j)=1$ 可以进一步得到 $m_im_j\mid x_1-x_2$。这个可以用[贝祖定理](https://en.wikipedia.org/wiki/B%C3%A9zout%27s_identity)推导出来
 
 
 $$
@@ -138,9 +138,9 @@ $$
 m_i(x_1-x_2)s+m_j(x_1-x_2)t=x_1-x_2
 $$
 
-加上 $m_im_j|m_i(x_1-x_2)$ 且 $m_im_j|m_j(x_1-x_2)$，所以 $m_im_j|x_1-x_2$。
+加上 $m_im_j\mid m_i(x_1-x_2)$ 且 $m_im_j\mid m_j(x_1-x_2)$，所以 $m_im_j\mid x_1-x_2$。
 
-这表明任意两个 $m$ 的积都能整除两个解的差。更进一步地，因为 $m_i$ 之间两两互质，所以可以对 $m_1m_2\cdots m_i$ 和 $m_{i+1}$ 反复应用上面的办法进行归纳，最终可以推导出 $m_1m_2\cdots m_n|x_1-x_2$，$x_1-x_2=km_1m_2\cdots m_n\text{, } k\in\mathbb{Z}$，换言之 $x_1$和$x_2$ 之间相差了$m_1m_2\cdots m_n$ 的整数倍，$x_1=x_2+k\prod_{i=1}^{n}m_i$。从前面“充分性”的部分已经知道方程组的一个解 $x_1=\sum_{i=1}^{n} a_iM_i^{-1}M_i$，因此方程组的通解是
+这表明任意两个 $m$ 的积都能整除两个解的差。更进一步地，因为 $m_i$ 之间两两互质，所以可以对 $m_1m_2\cdots m_i$ 和 $m_{i+1}$ 反复应用上面的办法进行归纳，最终可以推导出 $m_1m_2\cdots m_n\mid x_1-x_2$，$x_1-x_2=km_1m_2\cdots m_n\text{, } k\in\mathbb{Z}$，换言之 $x_1$和$x_2$ 之间相差了$m_1m_2\cdots m_n$ 的整数倍，$x_1=x_2+k\prod_{i=1}^{n}m_i$。从前面“充分性”的部分已经知道方程组的一个解 $x_1=\sum_{i=1}^{n} a_iM_i^{-1}M_i$，因此方程组的通解是
 
 $$
 x=k\prod_{i=1}^{n}{m_i}+\sum_{i=1}^{n} a_iM_i^{-1}M_i\text{, }k\in\mathbb{Z}
@@ -173,17 +173,17 @@ $$
 x\equiv sb^{-1}b+ta^{-1}a\pmod {ab}
 $$
 
-从这个结果中可以得到一个推论：假如 $a$ 和 $s$ 互质且 $b$ 和 $t$ 互质，那么 $x$ 必然和 $ab$ 互质。用反证法，先假设 $d=(x,ab)\gt1$。由算术基本定理可知存在一个质数 $p|d$，而且因为$(a,b)=1$，所以 $p|a$ 或 $p|b$。这里有两种等价的情形，可以取其中之一 $p|a$ 来进行考虑。观察 $x\pmod p$：
+从这个结果中可以得到一个推论：假如 $a$ 和 $s$ 互质且 $b$ 和 $t$ 互质，那么 $x$ 必然和 $ab$ 互质。用反证法，先假设 $d=(x,ab)\gt1$。由算术基本定理可知存在一个质数 $p\mid d$，而且因为$(a,b)=1$，所以 $p\mid a$ 或 $p\mid b$。这里有两种等价的情形，可以取其中之一 $p\mid a$ 来进行考虑。观察 $x\pmod p$：
 
 $$
 \begin{aligned}
-x&\equiv sb^{-1}b+ta^{-1}a&(p|a)\\
+x&\equiv sb^{-1}b+ta^{-1}a&(p\mid a)\\
 &\equiv sb^{-1}b&(b^{-1}b\equiv1)\\
 &\equiv s\pmod {p}
 \end{aligned}
 $$
 
-加上 $p|x$，因此 $p|s$，所以 $(a,s)\ge p$，这跟“ $a$ 和 $s$ 互质”的前提矛盾；因此 “$(x,ab)\gt1$”的假设不能成立，换言之$x$ 和 $ab$ 互质。利用中国剩余定理可以知道，在 $(a,b)=1$ 的前提下，对于任意一个和 $a$ 互质的整数 $s$ 以及任意一个和 $b$ 互质的整数 $t$，都能找到唯一一个和 $ab$ 互质的整数 $x$。
+加上 $p\mid x$，因此 $p\mid s$，所以 $(a,s)\ge p$，这跟“ $a$ 和 $s$ 互质”的前提矛盾；因此 “$(x,ab)\gt1$”的假设不能成立，换言之$x$ 和 $ab$ 互质。利用中国剩余定理可以知道，在 $(a,b)=1$ 的前提下，对于任意一个和 $a$ 互质的整数 $s$ 以及任意一个和 $b$ 互质的整数 $t$，都能找到唯一一个和 $ab$ 互质的整数 $x$。
 
 反过来可以得到第二个推论。假如 $(x,ab)=1$，那么 $(x,a)=1$。又因为 
 
@@ -197,9 +197,9 @@ $$
 
 $$
 \begin{aligned}
-A&=\{u|1\le u\le a\text{, }u\in\mathbb{Z}\text{ and }(u,a)=1\}\text{, }&|A|&=\varphi(a)\\
-B&=\{u|1\le u\le b\text{, }u\in\mathbb{Z}\text{ and }(u,b)=1\}\text{, }&|B|&=\varphi(b)\\
-D&=\{u|1\le u\le ab\text{, }u\in\mathbb{Z}\text{ and }(u,ab)=1\}\text{, }&|D|&=\varphi(ab)\\
+A&=\{u\mid 1\le u\le a\text{, }u\in\mathbb{Z}\text{ and }(u,a)=1\}\text{, }&\mid A\mid &=\varphi(a)\\
+B&=\{u\mid 1\le u\le b\text{, }u\in\mathbb{Z}\text{ and }(u,b)=1\}\text{, }&\mid B\mid &=\varphi(b)\\
+D&=\{u\mid 1\le u\le ab\text{, }u\in\mathbb{Z}\text{ and }(u,ab)=1\}\text{, }&\mid D\mid &=\varphi(ab)\\
 \end{aligned}\\
 $$
 
@@ -209,7 +209,7 @@ $$
 f:A\times B\to D
 $$
 
-第一个推论表示 $f$ 是单射，第二个推论表示 $f$ 是满射，这两个结果说明 $f$ 是双射，因此 $|A\times B|=|D|$，即 $\varphi(ab)=\varphi(a)\varphi(b)$. Q.E.D
+第一个推论表示 $f$ 是单射，第二个推论表示 $f$ 是满射，这两个结果说明 $f$ 是双射，因此 $\mid A\times B\mid =\mid D\mid $，即 $\varphi(ab)=\varphi(a)\varphi(b)$. Q.E.D
 
 ## 欧拉定理
 在欧拉函数定义的基础上，对于任意跟 $n$ 互质的正整数 $a$，也就是 $\gcd(n,a)=1$，都有
