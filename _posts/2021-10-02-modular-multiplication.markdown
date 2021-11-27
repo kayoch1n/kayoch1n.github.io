@@ -135,7 +135,7 @@ $c'$ 就是 $a$ 模 $m$ 的最小非负剩余。Q.E.D
 
 $$
 \begin{aligned}
-s&\equiv am'\pmod r\tag{1}\\
+s&\equiv am'\pmod r\\
 z&=\frac{a+sm}{r}\\
 c&=\begin{cases}
 z&(z\lt m)\\
@@ -148,7 +148,7 @@ $$
 
 $$
 \begin{aligned}
-s'&\equiv wcm'\pmod r\tag{2}\\
+s'&\equiv wcm'\pmod r\\
 z'&=\frac{wc+s'm}{r}\\
 c'&=\begin{cases}
 z'&(z'\lt m)\\
