@@ -3,7 +3,7 @@ layout: "post"
 title:  "Buuoj冲分过程-vn_pwn_simpleHeap"
 subtitle: "一个glibc堆利用的例子 🍺明けましておめでとうございます😆"
 date:   2021-01-02 21:15:38 +0800
-header-img: "sz-talent-park-bg.jpg"
+header-img: "img/sz-talent-park-bg.jpg"
 categories:
   - blog
 tags:
