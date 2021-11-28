@@ -1,5 +1,5 @@
 ---
-layout: "page"
+layout: "post"
 title:  "Buuoj冲分过程（指俯冲）その１"
 subtitle: "一些PWN"
 catalog: true

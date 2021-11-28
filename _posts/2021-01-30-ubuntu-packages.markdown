@@ -1,8 +1,10 @@
 ---
-layout: page
+layout: post
 title:  "Ubuntu 安装各种程序"
 date:   2021-01-30 12:15:38 +0800
 subtitle: "[]~(￣▽￣)~*🍻"
+catalog: true
+toc: true
 categories:
   - blog 
 tags: 

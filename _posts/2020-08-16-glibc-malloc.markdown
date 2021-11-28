@@ -4,6 +4,8 @@ subtitle: "本文是关于glibc的堆内存分配源代码malloc.c的学习笔�
 title:  "glibc 堆内存分配学习笔记"
 date:   2020-08-15 12:15:38 +0800
 header-img: "img/sz-transmission-tower-2.jpg"
+catalog: true
+toc: true
 categories: 
   - blog
 tags:
