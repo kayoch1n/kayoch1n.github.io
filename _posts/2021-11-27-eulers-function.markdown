@@ -113,7 +113,7 @@ x&\equiv k\cdot0+\sum a_iM_i^{-1}M_i\\
 \end{aligned}
 $$
 
-所以 $(3)$ 式是同余方程组的解，充分性得证。实际上方程组的解就是$(3)$ 式。
+所以 $(3)$ 式是同余方程组的解，充分性得证。
 
 #### 必要性
 
@@ -210,7 +210,9 @@ $$
 f:A\times B\to D
 $$
 
-第一个推论表示 $f$ 是单射，第二个推论表示 $f$ 是满射，这两个结果说明 $f$ 是双射，因此 $\mid A\times B\mid =\mid D\mid $，即 $\varphi(ab)=\varphi(a)\varphi(b)$. Q.E.D
+第一个推论表示 $f$ 是单射，第二个推论表示 $f$ 是满射，这两个结果说明 $f$ 是双射，因此 $\mid A\times B\mid =\mid D\mid $，即 
+
+$$\varphi(ab)=\varphi(a)\varphi(b)\tag{Q.E.D}$$
 
 ## 欧拉定理
 在欧拉函数定义的基础上，对于任意跟 $n$ 互质的正整数 $a$，也就是 $\gcd(n,a)=1$，都有
@@ -225,15 +227,74 @@ $$a^{\varphi(n)}\equiv1\pmod n$$
 
 $$a^{p-1}\equiv1\pmod p$$
 
-费马小定理的证明非常容易，这里就不赘述。而对于所有整数 $a$ （包括被 $p$ 整除）都有
+费马小定理的证明非常容易，这里就不赘述。这个定理有另一个形式：对于所有整数 $a$ （包括被 $p$ 整除）都有
 
 $$a^p\equiv a\pmod p$$
 
 
-<!-- ### 底数推广到任意整数
-不对！！！
-当 $(a,n)\ne 1$ 时，欧拉函数也有类似的情形
+### 底数的特殊情形
+
+当 $(a,n)\ne 1$ 时，欧拉函数也有类似的结果：如果 $n=st$ 且 $\gcd(s,t)=1$，那么对于 $x=s$ 或者 $x=t$
 
 $$
-a^{\varphi(n)+1}\equiv a\pmod n
-$$ -->
+x^{\varphi(n)+1}\equiv x\pmod n\tag{1}
+$$
+
+证明如下。因为 $\gcd(s, t)=1$，所以可以利用欧拉定理得到
+
+$$
+s^{\varphi(t)}\equiv 1\pmod t\implies t\mid {s^{\varphi(t)}-1}\tag{2}
+$$
+
+观察到 
+
+$$
+\begin{aligned}
+s^{\varphi(n)}-1&=s^{\varphi(s)\varphi(t)}-1\\
+&=\big(s^{\varphi(t)}\big)^{\varphi(s)}-1\\
+&=(s^{\varphi(t)}-1)Q
+\end{aligned}
+$$
+
+其中 $Q$ 是某个整数多项式。然后$(2)$ 式可以进一步得到
+
+$$
+\begin{aligned}
+t\mid {(s^{\varphi(t)}-1)Q}&\implies t\mid s^{\varphi(n)}-1\\
+&\implies t\mid s^{\varphi(n)+1}-s\\
+\end{aligned}
+$$
+
+另外，一个显而易见的事实是 $s\mid s^{\varphi(n)+1}-s$，加上 $(s,t)=1$，所以
+
+$$
+\begin{aligned}
+st\mid s^{\varphi(n)+1}-s&\implies n\mid s^{\varphi(n)+1}-s\\
+&\implies s^{\varphi(n)+1}\equiv s\pmod n
+\end{aligned}
+$$
+
+这表示如果 $n$ 能够分解成两个互质的因数 $s$ 和 $t$ ，那么 $x=s$ 和 $x=t$ 都分别能满足 $x^{\varphi(n)+1}\equiv x\pmod n$ 。实际上，如果 $n$ 分解为两个以上互质的因数，这些因数也分别能满足这个同余关系。
+
+需要注意的是，$(1)$ 式的底数并不能像费马小定理一样推广到所有正整数，对于部分$x$，$x^{\varphi(n)+1}$ 可能和 $0$ 同余；不过，如果 $(a,n)=s$，$x=a$ 也能满足 $(1)$ 式。这是因为 $a=\frac{a}{s}\cdot s$ 且 $\frac{a}{s}\in\mathbb{Z^+}$，而且 $(\frac{a}{s}, n)=1$，对 $\frac{a}{s}$ 使用欧拉定理可知
+
+$$
+(\frac{a}{s})^{\varphi(n)}\equiv1\pmod n\implies(\frac{a}{s})^{\varphi(n)+1}\equiv\frac{a}{s}\pmod n\tag{3}
+$$
+
+加上 $(1)$ 中 $x=s$ 的结果
+
+$$
+s^{\varphi(n)+1}\equiv s\pmod n\tag{4}
+$$
+
+$(3)\times(4)$ 可以得到
+
+$$
+\begin{aligned}
+(\frac{a}{s}\cdot s)^{\varphi(n)+1}&\equiv\frac{a}{s}\cdot s\pmod n\\
+a^{\varphi(n)+1}&\equiv a\pmod n
+\end{aligned}\tag{Q.E.D}
+$$
+
+这个结果保证了RSA算法在底数为任意整数的加解密过程中的正确性。
