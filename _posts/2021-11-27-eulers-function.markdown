@@ -4,6 +4,7 @@ layout: "post"
 catalog: true
 title:  "高等代数导论 - 欧拉函数"
 date:   2021-11-27 11:51:38 +0800
+subtitle: "今日の空は青いですね。"
 header-img: "img/hn-wuzhizhou.jpg"
 mathjax: true
 categories: 
