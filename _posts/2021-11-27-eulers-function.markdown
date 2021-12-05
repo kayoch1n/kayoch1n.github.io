@@ -33,7 +33,7 @@ p^{t}-p^{t-1}&(n=p^t\text{ and }p\text{ is prime})\\
 \end{cases}
 $$
 
-举个栗子，$200=2^3\cdot5^2$，那么 $\varphi(200)=\varphi(2^3)\varphi(5^2)=(2^3-2^2)(5^2-5)=4\times20=80$，这表示在 $1\ge n\ge 200\text{,} n\in\mathbb{Z}$ 之间有80个整数和 $200$ 互质。
+举个栗子，$200=2^3\cdot5^2$，那么 $\varphi(200)=\varphi(2^3)\varphi(5^2)=(2^3-2^2)(5^2-5)=4\times20=80$，这表示在 $1\le n\le 200\text{,} n\in\mathbb{Z}$ 之间有80个整数和 $200$ 互质。
 
 ## 证明
 
