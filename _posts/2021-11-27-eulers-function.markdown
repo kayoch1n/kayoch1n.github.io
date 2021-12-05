@@ -267,7 +267,7 @@ t\mid {(s^{\varphi(t)}-1)Q}&\implies t\mid s^{\varphi(n)}-1\\
 \end{aligned}
 $$
 
-另外，一个显而易见的事实是 $s\mid s^{\varphi(n)+1}-s$，加上 $(s,t)=1$，所以
+另外，一个显而易见的事实是 $s\mid s^{\varphi(n)+1}-s$。如果两个互质的整数能分别整除第三个整数，那么可以证明这两个整数的积能整除第三个整数（Hint:[贝祖定理]({{ site.url }}/blog/euclids-algo/#贝祖定理)）。所以加上 $(s,t)=1$，可知
 
 $$
 \begin{aligned}
