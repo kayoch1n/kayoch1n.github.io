@@ -4,8 +4,8 @@ layout: "post"
 catalog: true
 title:  "数论学习笔记 - 欧几里得算法"
 date:   2021-11-27 11:51:38 +0800
-subtitle: "今日の空は青いですね☀"
-header-img: "img/hn-wuzhizhou.jpg"
+subtitle: "ちいさなそんざいだけど、大きな夢があるから"
+header-img: "img/sz-talent-park-bg.jpg"
 mathjax: true
 categories: 
   - blog
