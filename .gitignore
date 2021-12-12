@@ -7,3 +7,4 @@ node_modules/
 .vscode/
 temp*
 buuoj/
+debug.py
