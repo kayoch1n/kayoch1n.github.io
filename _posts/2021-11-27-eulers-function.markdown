@@ -278,7 +278,7 @@ st\mid s^{\varphi(n)+1}-s&\implies n\mid s^{\varphi(n)+1}-s\\
 \end{aligned}
 $$
 
-这表示如果 $n$ 能够分解成两个互质的因数 $s$ 和 $t$ ，那么 $x=s$ 和 $x=t$ 都分别能满足 $x^{\varphi(n)+1}\equiv x\pmod n$ 。实际上，如果 $n$ 分解为两个以上互质的因数，这些因数也分别能满足这个同余关系。
+这表示如果 $n$ 能够分解成两个互质的因数 $s$ 和 $t$ ，那么 $x=s$ 和 $x=t$ 都分别能满足 $x^{\varphi(n)+1}\equiv x\pmod n$ 。实际上，如果 $n$ 分解为两个以上互质的因数，这些因数的 $\varphi(n)+1$ 次幂也分别能满足这个同余关系。
 
 需要注意的是，$(1)$ 式的底数并不能像费马小定理一样推广到所有正整数，对于部分$x$，$x^{\varphi(n)+1}$ 可能和 $0$ 同余；不过，如果 $(a,n)=s$，$x=a$ 也能满足 $(1)$ 式。这是因为 $a=\frac{a}{s}\cdot s$ 且 $\frac{a}{s}\in\mathbb{Z^+}$，而且 $(\frac{a}{s}, n)=1$，对 $\frac{a}{s}$ 使用欧拉定理可知
 
@@ -299,6 +299,18 @@ $$
 (\frac{a}{s}\cdot s)^{\varphi(n)+1}&\equiv\frac{a}{s}\cdot s\pmod n\\
 a^{\varphi(n)+1}&\equiv a\pmod n
 \end{aligned}\tag{Q.E.D}
+$$
+
+进一步地，
+
+$$
+\begin{aligned}
+a^{\varphi(n)+1}&\equiv a^{\varphi(n)}\times a\\
+&\equiv a^{\varphi(n)}\times a^{\varphi(n)+1}\\
+&\equiv a^{2\varphi(n)}\times a\\
+&\cdots\\
+&\equiv a^{k\varphi(m)+1}\pmod m
+\end{aligned}
 $$
 
 这个结果保证了RSA算法在底数为任意整数的加解密过程中的正确性。
