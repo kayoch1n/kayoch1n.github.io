@@ -19,7 +19,7 @@ tags:
 本文使用了腾讯云CVM（ubuntu）作为服务器，SSL证书同样来自腾讯云。
 
 实现目标如下：
-- 在80端口启动一个没有HTTPS的httpd作为后台服务，但是不让外部访问80（可以）；
+- 在80端口启动一个没有HTTPS的httpd作为后台服务，但是不让外部访问80（可以通过腾讯云安全组限制）；
 - 在443端口启动nginx反向代理，将外部请求导流到本地80端口的httpd。
 
 ## Prerequisite
@@ -28,10 +28,10 @@ tags:
 
 一般来说需要三个文件：证书(.crt)、私钥(.key)和 root_bundle.crt(也不知道中文该叫啥)。可以用腾讯云上面免费的（虽然只有一年）。
 
-先把上面三个文件通过scp命令传输到ubuntu上的用户目录。
+先把上面三个文件通过scp命令传输到ubuntu上的用户目录并且解压。
 
 ```shell
-scp *.crt *.key ubuntu@xxx.xxx.xxx.xxx:~/
+scp *.zip ubuntu@xxx.xxx.xxx.xxx:~/
 # 输入密码就可以
 ```
 
@@ -136,18 +136,18 @@ http {
 	error_log /var/log/nginx/error.log;
 
 	gzip on;
-    server {
-        listen 443 ssl;
-        # 证书文件路径
-       	ssl_certificate PATH_TO_YOUR_CERT;
-        # 私钥文件路径
-       	ssl_certificate_key PATH_TO_YOUR_KEY;
+    	server {
+		listen 443 ssl;
+		# 证书文件路径
+		ssl_certificate PATH_TO_YOUR_CERT;
+		# 私钥文件路径
+		ssl_certificate_key PATH_TO_YOUR_KEY;
 		ssl_session_timeout 5m;
                 # SSL 版本
 		ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
 		ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;
 		ssl_prefer_server_ciphers on;
-        server_name YOUR_DOMAIN_NAME;
+        	server_name YOUR_DOMAIN_NAME;
 		
 		location / {
 			proxy_pass http://localhost;
