@@ -210,6 +210,42 @@ proxy_pass http://my-flask-service
 - 让容器[使用宿主机的网络](https://stackoverflow.com/a/48547074/8706476)。docker run的时候给一个参数 `--net=host`，nginx.conf 直接使用 localhost，也不需要加端口映射（亲测好用）；
 - 对于mac/win的docker，或者是[20.01以后版本的docker](https://github.com/moby/moby/pull/40007#issue-499875390)，可以使用域名`http://host.docker.internal`访问宿主机（没试过）。20.01版本以前的linux docker没有这个功能
 
+## 自签证书
+
+有时候基于开发测试原因、我们需要弄一个自己签发的证书，比如需要给IP签发证书，但是腾讯云的免费套餐并不支持～ 关于如何生成自签证书的详细步骤，可以参考台湾网友写的[这篇文章](https://blog.miniasp.com/post/2019/02/25/Creating-Self-signed-Certificate-using-OpenSSL)，我这里简单记录一下操作步骤。
+
+首先编写配置文件
+
+```conf
+[req]
+prompt = no
+default_md = sha256
+default_bits = 2048
+distinguished_name = dn
+x509_extensions = v3_req
+
+[dn]
+C = CN
+O = Test Inc.
+OU = Test Department
+CN = localhost
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.localhost
+DNS.2 = localhost
+IP.1 = 192.168.2.100 # 重要！如果要给IP签发证书就要改这个
+```
+
+dn小节里的内容都不重要，主要是alt_names里的东西要写对。然后通过openssl生成证书和私钥
+
+```shell
+openssl req -x509 -new -nodes -sha256 -utf8 -days 3650 -newkey rsa:2048 -keyout server.key -out server.crt -config ssl.conf
+```
+
+除非将该证书导入到OS、正常的浏览器都不会信任证书～所以如果要出现小锁头还得手动导入一下。
 
 ## MISC
 
