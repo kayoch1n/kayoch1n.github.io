@@ -186,6 +186,31 @@ sudo nginx -c /usr/share/nginx/nginx.conf
 
 最后通过浏览器访问https，可以看到左上角出现一个小锁头了，真是可喜可贺，可喜可贺。
 
+### docker
+
+除了直接在服务器上部署nginx以外，还可以通过容器部署反向代理。具体的操作方法跟上面提到的流程差不多，需要在Dockerfile里把证书和nginx.conf[拷贝到镜像里](https://hub.docker.com/_/nginx)：
+
+
+```Dockerfile
+FROM nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+# 还有证书
+```
+
+如果被代理的服务也是容器化的，建议用docker-compose管理。这个方式有个好处就是可以利用docker自带的DNS，在nginx.conf的`proxy_pass` directive里可以直接用服务的名字作为域名，举个例子，假如被代理的是一个flask服务，名字是`my-flask-service`，在nginx.conf里可以直接写
+
+```
+proxy_pass http://my-flask-service
+```
+
+然后在docker-compose.yml里，nginx的部分需要depends_on `my-flask-service`。为了能让外部访问、记得在docker-compose.yml给nginx加端口映射。
+
+如果被代理的服务是在宿主机上，有以下办法可以让nginx容器能访问宿主机的服务：
+
+- 让容器[使用宿主机的网络](https://stackoverflow.com/a/48547074/8706476)。docker run的时候给一个参数 `--net=host`，nginx.conf 直接使用 localhost，也不需要加端口映射（亲测好用）；
+- 对于mac/win的docker，或者是[20.01以后版本的docker](https://github.com/moby/moby/pull/40007#issue-499875390)，可以使用域名`http://host.docker.internal`访问宿主机（没试过）。20.01版本以前的linux docker没有这个功能
+
+
 ## MISC
 
 - https://www.supereasy.com/how-to-configure-nginx-as-a-https-reverse-proxy-easily/
