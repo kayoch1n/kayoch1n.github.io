@@ -44,12 +44,12 @@ sudo apt-get install apache2 -y
 # 这个时候访问80端口会发现是HTTP
 ```
 
-ubuntu httpd 的配置文件在 /etc/apache2/apache2.conf 默认情况下SSL模块是没有开启的，可以 ls mods-enabled 看到下面没有ssl.conf
-。实际上SSL模块的配置文件在 mods-available 下面
+ubuntu httpd 的配置文件在 /etc/apache2/apache2.conf 。
 
 ### (番外篇)单独使用HTTPS的httpd
 
-在说明如何配置nginx之前，先来看下不使用nginx的https反代、怎么单独使用httpd的https功能。在ubuntu上对httpd启用/关闭功能需要通过 `a2enmod/a2ensite`、`a2dismod/a2dissite`来执行。
+在说明如何配置nginx之前，先来看下不使用nginx的https反代、怎么单独使用httpd的https功能。默认情况下SSL模块是没有开启的，可以 ls mods-enabled 看到下面没有ssl.conf
+。实际上SSL模块的配置文件在 mods-available 下面。在ubuntu上对httpd启用/关闭功能需要通过 `a2enmod/a2ensite`、`a2dismod/a2dissite`来执行。
 
 ```shell
 sudo a2enmod ssl # 启用SSL模块。之后 ls mods-enabled 就可以看到新增的 ssl.conf
