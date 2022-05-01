@@ -5,6 +5,7 @@ catalog: true
 title:  "数论学习笔记 - RSA算法的数学原理"
 date:   2022-05-01 21:00:00 +0800
 header-img: "img/hn-wuzhihou.jpg"
+mathjax: true
 categories: 
   - blog
 tags:
