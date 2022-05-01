@@ -3,6 +3,7 @@ toc: true
 layout: "post"
 catalog: true
 title:  "数论学习笔记 - RSA算法的数学原理"
+subtitle: "己を信じ、貫け"
 date:   2022-05-01 21:00:00 +0800
 header-img: "img/hn-wuzhizhou.jpg"
 mathjax: true
@@ -45,7 +46,7 @@ $$
 
 这是[贝祖定理]({{ site.url }}/blog/euclids-algo/#贝祖定理)的结果：如果两个整数 $a$ 和 $b$ 互质，那么存在两个整数 $s$ 和 $t$ 使得 $as+bt=1$；转换一下就是 $as'=1+bt'$。在这里，$a=e$ 就是公钥之一的指数，而 $s'=d$ 是私钥；为了计算出 $s$ 的值，需要使用[扩展欧几里得算法]({{ site.url }}/blog/euclids-algo/#扩展欧几里得算法)。
 
-### 加解密的正确性
+### 加解密证明
 
 对密文 $y$ 进行解密也就是计算 $y$ 的 $d$ 次幂模 $m$ 剩余。代入贝祖定理的结果 $ed=1+k\varphi(m)$
 
@@ -75,7 +76,7 @@ $$
 
 因此 $y^d\equiv x^{k\varphi(m)+1}\equiv x\pmod m$，加解密的正确性成立。
 
-## 快速幂运算
+## 快速幂取余运算
 
 RSA算法的加解密过程都需要对一个整数计算高次幂模 $m$ 剩余。$d$ 可能是一个二进制长度超过2000位的整数，使用循环进行乘法计算是不现实的。有一种名为快速幂的高效算法可以计算高次幂。快速幂(repeated squaring,或者叫successive squaring)的主要思路利用幂指数的二进制表示形式，将 $d$ 次乘法转化为 $\log_{2}{d}$ 个指数为 $2^i$ 的幂的乘法，能够将时间复杂度从 $O(n)$ 下降至 $O(\log{n})$。
 
@@ -104,9 +105,7 @@ def func(base, exp):
     return ret
 ```
 
-然而这个实现并不能通过 [leetcode](https://leetcode.com/problems/powx-n/)，原因是随着 `exp` 增大、乘积`base`也在增加，需要想办法优化这个变量。
-
-同样是从指数的二进制形式入手，从MSB到第 $i$ 个bit的幂，是MSB到$i-1$个bit的幂的平方和底数的乘积，例如
+然而这个实现并不能通过 [leetcode](https://leetcode.com/problems/powx-n/)，原因是随着 `exp` 增大、乘积`base`也在增加，需要想办法优化这个变量。同样是从指数的二进制形式入手，从MSB到第 $i$ 个bit的幂，是MSB到$i-1$个bit的幂的平方和底数的乘积，例如
 
 $$5^{1011_{2}}=5^{1010_{2}}\cdot 5^{0001_{2}}$$
 
