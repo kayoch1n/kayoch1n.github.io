@@ -1,0 +1,149 @@
+---
+toc: true
+layout: "post"
+catalog: true
+title:  "数论学习笔记 - RSA算法的数学原理"
+date:   2022-05-01 21:00:00 +0800
+header-img: "img/hn-wuzhihou.jpg"
+categories: 
+  - blog
+tags:
+  - cryptography
+  - number theory
+---
+
+# RSA算法
+
+RSA是一种非对称的算法，也就是加密所用的私钥和解密的公钥不同。给定明文 $x$，公钥为 $m$ 和 $e$，密文为 $y$，那么加密过程用函数 $\text{encrypt}(x)$表示：
+
+$$y=\text{encrypt}(x)=x^{e}\pmod {m}$$ 
+
+对于公钥 $m$，用于解密的私钥为 $d$，那么解密过程用函数 $\text{decrypt}(x)$表示：
+
+$$x=\text{decrypt}(y)=y^d\pmod {m}$$
+
+加密和解密过程使用同样的运算，上边两个式子使用了同余关系，而在实际应用中应该是模运算，也就是求一个整数模 $m$ 最小非负剩余。
+
+## 数学原理
+
+模数 $m$ 和指数 $e$ 是为公钥；而指数 $d$ 是私钥，由公钥计算出来。
+
+一般来说指数 $e$ 是固定的，也可以是从多个备选值中选择（比如？）；$m$ 是两个长度相当的质数的乘积 $m=pq$。$m$ 和 $e$ 存在以下关系
+
+$$
+\gcd(e, \varphi(m))=1
+$$
+
+其中，$\varphi(m)$ 是欧拉函数，是对 $[1,m]$ 之间和 $m$ 互质的整数的计数；如果 $p$ 和 $q$ 互质，那么 $\varphi(pq)=\varphi(p)\varphi(q)=(p-1)(q-1)$。关于欧拉函数和欧拉定理更多细节，可以参考[另一篇文章]({{ site.url }}/blog/eulers-function/)。
+
+### 私钥 $d$
+
+私钥 $d$， 和 $e$ 以及 $m$ 存在以下关系
+
+$$
+ed=1+k\varphi(m)
+$$
+
+这是[贝祖定理]({{ site.url }}/blog/euclids-algo/#贝祖定理)的结果：如果两个整数 $a$ 和 $b$ 互质，那么存在两个整数 $s$ 和 $t$ 使得 $as+bt=1$；转换一下就是 $as'=1+bt'$。在这里，$a=e$ 就是公钥之一的指数，而 $s'=d$ 是私钥；为了计算出 $s$ 的值，需要使用[扩展欧几里得算法]({{ site.url }}/blog/euclids-algo/#扩展欧几里得算法)。
+
+### 加解密的正确性
+
+对密文 $y$ 进行解密也就是计算 $y$ 的 $d$ 次幂模 $m$ 剩余。代入贝祖定理的结果 $ed=1+k\varphi(m)$
+
+$$
+y^d\equiv (x^e)^d\equiv x^{1+k\varphi(m)}\pmod m\tag{1}
+$$
+
+**如果 $\gcd(x, m)=1$**，这个时候可以应用欧拉定理的结果 $x^{\varphi(m)}\equiv1\pmod m$
+
+$$
+y^d\equiv x^{1+k\varphi(m)}\equiv x\cdot \big(x^{\varphi(m)}\big)^k\equiv x\pmod m
+$$
+
+加解密的正确性成立。
+
+**如果 $\gcd(x, m)\ne 1$**，那么 $\gcd(x,m)$ 的取值只有三种情况：$p$，$q$或者$m=pq$。假如 $\gcd(x, m)=pq=m$，这表示密文 $x$ 是 $m$ 的倍数，$x\equiv0\pmod m$。那么 
+
+$$
+y^d\equiv (x^e)^d\equiv0\equiv x\pmod m
+$$
+
+假如 $\gcd(x, m)=p$ 或者 $q$，虽然欧拉定理不适用，但是仍然可以得出[一样的结果]({{ site.url }}/blog/eulers-function/#底数的特殊情形) 
+
+$$
+x^{k\varphi(m)+1}\equiv x\pmod m
+$$
+
+因此 $y^d\equiv x^{k\varphi(m)+1}\equiv x\pmod m$，加解密的正确性成立。
+
+## 快速幂运算
+
+RSA算法的加解密过程都需要对一个整数计算高次幂模 $m$ 剩余。$d$ 可能是一个二进制长度超过2000位的整数，使用循环进行乘法计算是不现实的。有一种名为快速幂的高效算法可以计算高次幂。快速幂(repeated squaring,或者叫successive squaring)的主要思路利用幂指数的二进制表示形式，将 $d$ 次乘法转化为 $\log_{2}{d}$ 个指数为 $2^i$ 的幂的乘法，能够将时间复杂度从 $O(n)$ 下降至 $O(\log{n})$。
+
+该算法首先检视幂指数的二进制表示形式。举个例子，计算 $5^11 \mod 7$$
+
+$$11_{10}=1011_{2}$$
+
+$$5^{11}=5^{1011_{2}}=5^{2^3}\cdot 5^{2^1}\cdot 5^{2^0}$$
+
+初始值为 $1$。从 $1011_{2}$ 的LSB开始执行循环，对于第$i$个bit，如果这个bit为1，就表示需要对上一轮的结果乘以 $5^{2^i}$；而由于 $5^{2^i}=5^{2^{i-1}\cdot2}=5^{2^{i-1}}\cdot 5^{2^{i-1}}$，也就是说 $5^{2^i}$ 可以根据上一次循环 $5^{2^{i-1}}$ 计算出来。因为每轮循环需要额外1次乘法，有 $\log_{2}{n}$ 次循环，所以需要 $2\log_{2}{n}$ 次乘法。
+
+python实现代码如下：
+```python
+def func(base, exp):
+    if exp < 0:
+        ret = 1/base
+        exp = -1 * exp
+    else:
+        ret = base
+
+    while exp:
+        if exp & 1:
+            ret = (ret * base)
+        exp >>= 1
+        base = (base * base)
+    return ret
+```
+
+然而这个实现并不能通过 [leetcode](https://leetcode.com/problems/powx-n/)，原因是随着 `exp` 增大、乘积`base`也在增加，需要想办法优化这个变量。
+
+同样是从指数的二进制形式入手，从MSB到第 $i$ 个bit的幂，是MSB到$i-1$个bit的幂的平方和底数的乘积，例如
+
+$$5^{1011_{2}}=5^{1010_{2}}\cdot 5^{0001_{2}}$$
+
+
+$$5^{1010_{2}}=5^{101}\cdot 5^{101}$$
+
+而MSB到$i-1$的幂又可以如法炮制。按照这个思路可以写出优雅的递归代码：
+
+```python
+def bar(base, exp):
+#def bar(base, exp, m):
+    if exp == 0:
+        return 1 if base else 0
+    elif exp < 0:
+        base = 1 / base
+        exp = -1 * exp
+    ret = bar(base, exp >> 1)
+    #ret = bar(base, exp >> 1, m)
+    if exp & 1:
+        return ret * ret * base # % m # 取余需要加上 % m
+    else:
+        return ret * ret # % m # 取余需要加上 % m
+```
+这个代码计算的是高次幂。如果要计算幂的模$m$剩余就要按照注释去修改。非递归的循环版本如下：
+
+```python
+def bar(base, exp):
+#def bar(base, exp, m):
+    ret = 1
+    if exp < 0:
+        base = 1.0 / base
+        exp = -1 * exp
+    for bit in bin(exp)[2:]:
+        ret *= ret # % m
+        if int(bit):
+            ret *= base # % m
+    return ret
+```
+
