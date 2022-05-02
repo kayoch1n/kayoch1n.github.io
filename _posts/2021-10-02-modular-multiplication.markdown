@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title:  "高等代数导论 - 蒙哥马利算法"
+title:  "数论学习笔记 - 蒙哥马利算法"
 date:   2021-10-02 12:10:38 +0800
 header-img: "img/sz-transmission-tower.jpg"
 mathjax: true
