@@ -33,11 +33,11 @@ tags:
 
 如果没有其他网关或者代理，浏览器和nginx、nginx和httpd之间将会各自建立一个TCP连接；其中浏览器和nginx的HTTPS在TLS隧道上进行。
 
-## 建立HTTPS会话的过程
+## HTTPS 建立会话
 简单描述一下建立HTTPS会话(TLS1.2)的过程，IBM有[一篇文章详细描述了这个过程](https://www.ibm.com/docs/en/sdk-java-technology/7.1?topic=handshake-tls-12-protocol)，同时也可以用wireshark抓包来对比观察这个过程。
 
 ```
-浏览器 |-------client hello----->| 服务器
+Client |-------client hello----->| Server
        |                         |
        |<------server hello------|
        |<------certificate-------|
@@ -46,6 +46,7 @@ tags:
        |<---server hello done----|
        |                         |
        |---client key exchange-->|
+       |----client hello done--->|(我没观测到-_-|||)
        |                         |
        |<-----encrypted data---->|
 ```
@@ -54,13 +55,13 @@ tags:
 3. 浏览器发送用于产生对成加密密钥的信息。
 4. 交换密钥信息完成后，TLS隧道建立完成。浏览器和服务器在这个隧道上进行HTTP会话。
 
-在这之后，wireshark只能看到加密之后的、看似杂乱无章TCP数据，无法看到任何有意义的明文。有意思的事，chrome控制台和fiddler可以抓到解密之后的明文，不过这两个的原理不同：fiddler会在本地启动一个代理，要求PC信任fiddler的证书；在建立HTTPS之前还会有一个 HTTP CONNECT 到代理，所有经由浏览器发出的请求都会先经过fiddler的代理，然后由fiddler进行解密展示。也就是说，浏览器和fiddler、fiddler和服务器之间各自有一个HTTPS回话：
+在这之后，wireshark只能看到加密之后的、看似杂乱无章TCP数据，无法看到任何有意义的明文。有意思的是，chrome控制台和fiddler可以抓到解密之后的明文，不过这两个的原理不同：fiddler会在本地启动一个代理，要求PC信任fiddler的证书；在建立HTTPS之前还会有一个 HTTP CONNECT 到代理，所有经由浏览器发出的请求都会先经过fiddler的代理，然后由fiddler进行解密展示。也就是说，浏览器和fiddler、fiddler和服务器之间各自有一个HTTPS回话：
 
 ```
 浏览器 <--HTTPS 会话1--> fiddler <--HTTPS 会话2--> 服务器
 ```
 
-## 搭建过程
+## 搭建反向代理
 
 从上面描述的过程来看HTTPS少不了证书。证书是有对应的存储到硬盘的文件的，其文件有两种存储方式：文本和二进制。
 
