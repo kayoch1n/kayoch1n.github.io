@@ -3,7 +3,7 @@ toc: true
 layout: "post"
 catalog: true
 title:  "数论学习笔记 - RSA算法的数学原理"
-subtitle: "己を信じ、貫け"
+subtitle: "誰かを救う光でありたい"
 date:   2022-05-01 21:00:00 +0800
 header-img: "img/hn-wuzhizhou.jpg"
 mathjax: true
