@@ -154,7 +154,7 @@ $$
 
 ## Lagrange's Theorem
 
-有限 group $G$ 的任意一个 subgroup $H$ 都满足 $|H|\mid |G|$。
+有限 group $G$ 的任意一个 subgroup $H$ 都满足 $\mid H\mid$ 整除 $\mid G\mid$。
 
 <!-- Abstract Fermat's theorem 是 Lagrange's theorem 在质数长度的group上的推论。 -->
 
