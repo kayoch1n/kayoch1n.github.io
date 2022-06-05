@@ -1,0 +1,162 @@
+---
+toc: true
+layout: "post"
+catalog: true
+title:  "数论学习笔记 - Group"
+date:   2022-06-05 12:40:38 +0800
+header-img: "img/gz-canton-tower-haixinqiao.jpg"
+categories: 
+  - blog
+tags:
+  - cryptography
+  - number theory
+---
+
+
+## Group
+定义：
+1. a set with an operation $*:G\times G\to G$
+2. associativity
+3. (1893)_cancellation_ and _solvability_,
+4. (现代的定义)or existence of _identity_ and _inverses_
+
+group 的定义不要求运算具有可交换性，
+
+> 如果group 的运算满足可交换性，就将这个group称作 _abelian group_.
+
+定义中存在冗余，第三点和第四点是等价的；可以利用 identity 和 inverses 证明 cancellation 和 solvability。要注意定义并没有要求运算满足可交换性：
+
+**证明 cancellation**
+
+$$
+\begin{aligned}
+&a*b=a*c\\
+\implies&a'*(a*b)=a'*(a*c)&\text{(inverse)}\\
+\implies&(a'*a)*b=(a'*a)*c&\text{(associativity)}\\
+\implies&1*b=1*c&\text{(identity)}\\
+\implies&b=c&\text{(identity again)}&\square\\
+\end{aligned}
+$$
+
+**证明 solvability** $\forall a,b \in G$ ，令 $c=a'*b$。现在要证明 $k=c$ 就是满足 $ak=b$的值。首先，$a',b\in G\implies c\in G\text{(closure)}$，也就是存在性。
+
+$$
+\begin{aligned}
+&a*c=a*(a'*b))\\
+\implies&(a'*a)*b&\text{(associativity)}\\
+\implies&1*b&\text{(identity)}\\
+\implies&b&\text{(identity again)}&\square\\
+\end{aligned}
+$$
+
+反过来，可以利用 cancellation 和 solvability 来证明 identity 和 inverse：
+
+**证明 identity** 
+
+$$
+\begin{aligned}
+&\forall a\in G, \exists e\in G\to ae=a&\text{(solvability)}\\
+\implies&aea=aa\\
+\implies&ea=a&\text{(cancellation)}&\square
+\end{aligned}
+$$
+
+
+**证明 inverse** 首先根据 solvability 可知$\forall a\in G, \exists b\in G\to ab=e$ 以及 $\exists c\in G\to bc=e$。然后需要证明 $ab=ba=e$：
+
+
+$$
+\begin{aligned}
+\implies&a*(bc)=a*e\\
+\implies&(a*b)*c=a*e&\text{(associativity)}\\
+\implies&ec=ae\\
+\implies&ce=ae&\text{(inverse)}\\
+\implies&c=a&\text{(cancellation)}&\square
+\end{aligned}
+$$
+
+identity以及每个元素对应的reverse也只有一个，可以用cancellation性质来证明。
+
+### Ring
+
+> A ring is an abelian group under addition
+
+根据[wiki的描述](https://en.wikipedia.org/wiki/Ring_(mathematics))，_ring_ 是有加法和乘法运算、而且在加法上是abelian group的集合，但不要求是multiplicative group。
+
+此外还存在 [_commutative ring_](https://en.wikipedia.org/wiki/Commutative_ring)，是在ring的定义的基础上增加了乘法的交换律。
+
+### Abstract Fermat Theorem
+
+对于一个长度为 $n$ 的有限abelian group $G$ 中的任意元素 $a$，都满足 $a^n=e$。
+
+## Subgroup
+
+_subgroup_ 是满足group定义的子集。
+
+对于一个group $G$，_trivial subgroup_ 是: 
+- 仅包含 identity 元素的group，或者
+- $G$ 自身。
+
+可见 trivial group 只有两个。而 _nontrivial group_ 即是除去两个 trivial subgroup 以外的其他子集。
+
+**命题** 如果一个有限 abelian group $G$ 的长度不为 $1$ 且不为质数，那么 $G$ 至少有一个nontrivial subgroup。
+
+那么如果 $G$ 的长度 $n=p$ 是质数，是不是就不存在nontrivial subgroup？答曰、是的。举个例子，$\langle7\rangle \text{ over }\mathbb{F}_9 = \{1,4,7\}$ 就是一个长度为3的group，这个group也没有nontrivial subgroup。
+
+质数长度的 group $G$ 中对所有元素的order 都是 $p$，这一点可用反证法证明。对于当中的任意一个元素 $a$，由上面的 [Abstract Fermat Theorem](#abstract-fermat-theorem
+) 可知 $a^p=1$。假设 $a$ 的 order 为 $d<p$，$p=dq+r$，$r\lt d$；加上 $p$ 是质数，所以$0\lt r\lt d$。因此利用 $a^d=1$ 得到 $a^p=a^{dq+r}=a^{r}=1$，这跟order的定义——“$d$ 是满足 $a^n=1$ 的最小正整数”矛盾，因此假设不成立；也就是说长度为质数 $p$ 的group中、所有元素的order都是 $p$；不存在小于 $p$ 且 $a^r=1$ 的整数 $r$，也就不存在nontrivial subgroup。
+
+这么看来质数长度的group跟质数挺像的，都是无法继续分解为更小的group（整数）。
+
+## Cyclic subgroup
+
+固定来自 $G$ 的一个元素$a$，定义 _cyclic subgroup_ 为 $a$ 的所有正整数 $n$ 次幂 $a^n$ 的集合，用 $\langle a \rangle$ 表示；当 $n>0$，$a^n=a*a*\cdots*a$，$a^{-n}=a^{-1}*a^{-1}*\cdots*a^{-1}$。
+
+如果一个group $G$中的元素 $b$ 满足$\langle b\rangle=G$，那么称 $G$ 是 _cyclic_ 的。
+
+是不是存在非cyclic的subgroup呢？首先，由于group的运算的closure性质，一个group必然包含cyclic subgroup，所以可以通过把多个cyclic subgroup合并一起、然后用closure性质把不在subgroup的元素加进去。举个例子，在$\mathbb{Z}/15\mathbb{Z}$中，用以下代码计算
+```python
+for i in range(15):
+    print(f'<{i}>={set([i**j%15 for j in range(15) if j > 0])}')
+```
+去掉不满足group定义的结果、剩余下面 8个cyclic group
+```
+<1>={1}
+<2>={8, 1, 2, 4}
+<4>={1, 4}
+<7>={1, 4, 13, 7}
+<8>={8, 1, 2, 4}
+<11>={1, 11}
+<13>={1, 4, 13, 7}
+<14>={1, 14}
+```
+
+把$\langle4\rangle$、$\langle11\rangle$和$\langle 14\rangle$合并得到 $\{1,4,11,14\}$，这是一个subgroup却不是一个cyclic subgroup。
+
+**命题** 任意一个来自有限 group $G$的元素 $a$ 的order等于cyclic group $\langle a\rangle$的元素的数量。
+
+先复习一下[order的定义](https://en.wikipedia.org/wiki/Multiplicative_order): 在 group 中，元素 $a$ 的_order_ 是满足 $a^d=1$ 的**最小正整数**。
+
+证明这个命题的思路就是证明以下两个集合相等
+
+$$
+A=\{a,a^1,a^2,...,a^d\}
+$$
+
+$$
+\langle a\rangle=\{a,a^1,a^2,...,a^n\}
+$$
+首先证明 $d\le n$、因此$A$中的每个元素都存在于 $\langle a\rangle$中；然后反过来，利用 $n=dq+r\text{,}(r\lt d)$证明 $\langle a\rangle$ 中的每个元素都存在于 $A$ 中；最后证明 $A$ 的元素两两不同。
+
+如果 $a$ 的order $d=rs$ 是一个合数，$a^d=a^{rs}={a^r}^s$，这说明 $a^r$ 的order 为 $s$，而且这也是 cyclic group $\langle a^r\rangle$ 的长度。
+
+## Lagrange's Theorem
+
+有限 group $G$ 的任意一个 subgroup $H$ 都满足 $|H|\mid |G|$。
+
+<!-- Abstract Fermat's theorem 是 Lagrange's theorem 在质数长度的group上的推论。 -->
+
+### coset
+
+证明上述定理需要用到 coset 的概念。
+
