@@ -112,7 +112,7 @@ _subgroup_ 是满足group定义的子集。
 
 ## Cyclic subgroup
 
-固定来自 $G$ 的一个元素$a$，定义 _cyclic subgroup_ 为 $a$ 的所有正整数 $n$ 次幂 $a^n$ 的集合，用 $\langle a \rangle$ 表示；当 $n>0$，$a^n=a*a*\cdots*a$，$a^{-n}=a^{-1}*a^{-1}*\cdots*a^{-1}$。
+固定来自 $G$ 的一个元素$a$，定义 _cyclic subgroup_ 为 $a$ 的所有正整数 $n$ 次幂 $a^n$ 的集合，用 $\langle a \rangle$ 表示；当 $n>0$，$a^n=a\cdot a\cdot\cdots\cdot a$，$a^{-n}=a^{-1}\cdot a^{-1}\cdot\cdots\cdot a^{-1}$。
 
 如果一个group $G$中的元素 $b$ 满足$\langle b\rangle=G$，那么称 $G$ 是 _cyclic_ 的。
 
