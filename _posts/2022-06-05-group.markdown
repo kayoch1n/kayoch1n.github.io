@@ -137,7 +137,7 @@ for i in range(15):
 
 **命题** 任意一个来自有限 group $G$的元素 $a$ 的order等于cyclic group $\langle a\rangle$的元素的数量。
 
-先复习一下[order的定义](https://en.wikipedia.org/wiki/Multiplicative_order): 在 group 中，元素 $a$ 的_order_ 是满足 $a^d=1$ 的**最小正整数**。
+先复习一下[order的定义](https://en.wikipedia.org/wiki/Multiplicative_order): 在 group 中，元素 $a$ 的 _order_ 是满足 $a^d=1$ 的**最小正整数**。
 
 证明这个命题的思路就是证明以下两个集合相等
 
@@ -148,6 +148,7 @@ $$
 $$
 \langle a\rangle=\{a,a^1,a^2,...,a^n\}
 $$
+
 首先证明 $d\le n$、因此$A$中的每个元素都存在于 $\langle a\rangle$中；然后反过来，利用 $n=dq+r\text{,}(r\lt d)$证明 $\langle a\rangle$ 中的每个元素都存在于 $A$ 中；最后证明 $A$ 的元素两两不同。
 
 如果 $a$ 的order $d=rs$ 是一个合数，$a^d=a^{rs}={a^r}^s$，这说明 $a^r$ 的order 为 $s$，而且这也是 cyclic group $\langle a^r\rangle$ 的长度。
