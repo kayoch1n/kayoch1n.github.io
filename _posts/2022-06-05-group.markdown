@@ -110,7 +110,7 @@ _subgroup_ 是满足group定义的子集。
 
 这么看来质数长度的group跟质数挺像的，都是无法继续分解为更小的group（整数）。
 
-## Cyclic subgroup
+### Cyclic subgroup
 
 固定来自 $G$ 的一个元素$a$，定义 _cyclic subgroup_ 为 $a$ 的所有正整数 $n$ 次幂 $a^n$ 的集合，用 $\langle a \rangle$ 表示；当 $n>0$，$a^n=a\cdot a\cdot\cdots\cdot a$，$a^{-n}=a^{-1}\cdot a^{-1}\cdot\cdots\cdot a^{-1}$。
 
@@ -153,13 +153,32 @@ $$
 
 如果 $a$ 的order $d=rs$ 是一个合数，$a^d=a^{rs}={a^r}^s$，这说明 $a^r$ 的order 为 $s$，而且这也是 cyclic group $\langle a^r\rangle$ 的长度。
 
-## Lagrange's Theorem
-
-有限 group $G$ 的任意一个 subgroup $H$ 都满足 $\mid H\mid$ 整除 $\mid G\mid$。
-
-<!-- Abstract Fermat's theorem 是 Lagrange's theorem 在质数长度的group上的推论。 -->
-
 ### coset
 
-证明上述定理需要用到 coset 的概念。
+给定运算为 $*$ 的 group $G$ 以及 subgroup $H$，对于 $G$ 当中任意一个元素 $b$ ，将集合 $\{b*h\mid h\in H\}$ 称为 $b$ 的 left coset，记作 $b*H$。
+
+coset 是一个集合，不一定是group ，因为coset不一定满足[group的定义](#group)。
+
+模 $m$ 同余类就是一种coset。$\mathbb{Z}$ 是一个加法 group，identity是 $0$，$a\in\mathbb{Z}$ 的逆是 $-a$。$m\mathbb{Z}$ 是 $\mathbb{Z}$ 的一个subgroup ，对于任意整数 $i$ 都有对应的coset $i+m\mathbb{Z}$，也就是同余类 $[i]_m$。任意两个同余类要么是相等的、要么是不相交的；类似地，两个 coset 也是要么相等要么相交。
+
+如果 $\exists t\in a*H$ 且 $t\in b*H$，就可以令 $t=ah_1=bh_2$。 $\forall a*h'\in a*H$，由于 group的 [solvability](#group)，$\exists k \to h'=h_1k$；因此 $ah'=ah_1k=bh_2k$；因为 $h_2,k\in H$， $h_2k\in H$，所以 $bh_2k\in b*H$，这说明任意 $a*H$ 中的元素都存在于 $b*H$，也就是说 $a*H\subseteq b*H$；同理，反之亦然。因此 $a*H=b*H$。
+
+除此之外，$b*H$ 的长度和 $H$ 的长度相等。
+<!-- 
+
+给定 m, a,b
+
+mi+a
+mj+b
+
+mi1+a=mj1+b
+
+mi2+a=m(i2-i1+i1)+a=m(i2-i1)+b
+ -->
+
+### Lagrange's Theorem
+
+有限 group $G$ 的任意一个 subgroup $H$ 都满足 $\mid H\mid$ 整除 $\mid G\mid$。需要利用上面 coset 的性质来证明。
+
+<!-- Abstract Fermat's theorem 是 Lagrange's theorem 在质数长度的group上的推论。 -->
 
