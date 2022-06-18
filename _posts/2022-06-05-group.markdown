@@ -165,7 +165,7 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 
 模 $m$ 同余类就是一种coset。$\mathbb{Z}$ 是一个加法 group，identity是 $0$，$a\in\mathbb{Z}$ 的逆是 $-a$。$m\mathbb{Z}$ 是 $\mathbb{Z}$ 的一个subgroup ，对于任意整数 $i$ 都有对应的coset $i+m\mathbb{Z}$，也就是同余类 $[i]_m$。任意两个同余类要么是相等的、要么是不相交的；类似地，两个 coset 也是要么相等要么相交。
 
-如果 $\exists t\in a*H\text{ and }t\in b*H$ ，就可以令 $t=ah_1=bh_2$。 $\forall a*h'\in a*H$，由于 group的 [solvability](#group)，$\exists k \to h'=h_1k$；因此 $ah'=ah_1k=bh_2k$ ；因为 $h_2,k\in H$， $h_2k\in H$ ，所以 $bh_2k\in b*H$ ，这说明任意 $a*H$ 中的元素都存在于 $b*H$ ，也就是说 $a*H\subseteq b*H$ ；同理，反之亦然。因此 $a*H=b*H$ 。
+如果存在 $t\in a*H$ 且 $t\in b*H$ ，就可以令 $t=ah_1=bh_2$。 $\forall a*h'\in a*H$，由于 group的 [solvability](#group)，$\exists k \to h'=h_1k$；因此 $ah'=ah_1k=bh_2k$ ；因为 $h_2,k\in H$， $h_2k\in H$ ，所以 $bh_2k\in b*H$ ，这说明任意 $a*H$ 中的元素都存在于 $b*H$ ，也就是说 $a*H\subseteq b*H$ ；同理，反之亦然。因此 $a*H=b*H$ 。
 
 除此之外，$b*H$ 的长度和 $H$ 的长度相等。
 
