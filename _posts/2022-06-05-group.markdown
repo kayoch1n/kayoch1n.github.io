@@ -93,7 +93,7 @@ identity以及每个元素对应的inverse也只有一个，可以用cancellatio
 
 ## Subgroup
 
-_subgroup_ 是满足group定义的子集合。前面提到 group 的有两个点：identity 和 inverse；实际上subgroup可以定义为closure under operation的 $G$ 的子集合，光是这一点就已经蕴含了 identity 以及 inverse 了。。
+_subgroup_ 是满足group定义的子集合。前面提到 group 的有两个点：identity 和 inverse；实际上subgroup可以定义为closure under operation的 $G$ 的子集合，光是这一点就已经蕴含了 identity 以及 inverse 了。给定一个group $G$ 的子集合 $H$，如果运算在 $H$ 上是闭合的，那么根据上面提到的[Abstract Fermat Theorem](#abstract-fermat-theorem)，$e$ 必存在于 $H$；又 $a^{n}=a^{1+n-1}=a\times a^{n-1}=e$，因此 inverse 也存在。所以closure under operation是subgroup的充分条件。
 
 对于一个group $G$，_trivial subgroup_ 是: 
 - 仅包含 identity 元素的group，或者
