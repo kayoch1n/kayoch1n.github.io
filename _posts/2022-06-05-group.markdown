@@ -81,16 +81,16 @@ identity以及每个元素对应的inverse也只有一个，可以用cancellatio
 
 ### $U_m$
 
-$\mathbb{Z}/m\mathbb{Z}$ 的所有 _unit_ ($\gcd(a,m)=1$) 组成的集合
+$\mathbb{Z}/m\mathbb{Z}$ 的所有 _unit_ ($\gcd([a],[m])=[1]$) 组成的集合
 
 
-$$\{a\mid a\in \mathbb{Z}\text{ and }\gcd(a,m)=1\}$$
+$$\{a\in \mathbb{Z}/m\mathbb{Z}\mid\gcd([a],[m])=[1]\}$$
 
 加上模$m$ 乘法是一个group，记为 $U_m$。
 
-- identity: 显然 $1\in U_m$。
-- closure: 模 $m$ 乘法在集合 $U_m$ 上是闭合的，这是因为两个 unit $a$ 和 $b$ 的积也是一个 unit。
-  - 分别写出$a$和$b$各自和 $m$ 的[贝祖等式的结果]({{ site.url }}/blog/euclids-algo/#贝祖定理)并且相乘，并且对乘积模 $m$，观察结果。
+- identity: 显然 $[1]\in U_m$。
+- closure: 模 $m$ 乘法在集合 $U_m$ 上是闭合的，这是因为两个 unit $[a]$ 和 $[b]$ 的积也是一个 unit。
+  - 分别写出$[a]$和$[b]$各自和 $[m]$ 的[贝祖等式的结果]({{ site.url }}/blog/euclids-algo/#贝祖定理)并且相乘，并且对乘积模 $[m]$，观察结果。
 - inverse: 由贝祖定理可知 $\forall a\in U_m\exists x',y'\in\mathbb{Z}\to ax'+my'=1\implies ax'=1\pmod{m}$，$x'\pmod{m}\in U_m$，因此inverse存在。 
 
 ### Ring
@@ -190,5 +190,7 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 
 有限group的长度也称之为 _order_，而cyclic group $\langle a\rangle$ 的 order 和 $a$ 的order是相等的。另外拉格朗日定理也可以换一种说法：有限group $G$ 的subgroup $H$ 的order整除 $G$ 的 order。而 $H$ 的 coset 的数量又称之为 _index_ 。
 
-<!-- ### $x$-th root -->
+### $x$-th root
+
+令 $U_m(m-1)=\{[a]\in U_m\mid [a]^{m-1}=[1]\}$，乘法在这个集合上也是闭合的，$U_m(m-)1$ 是 $U_m$ 的subgroup
 
