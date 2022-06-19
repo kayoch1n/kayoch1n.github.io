@@ -142,6 +142,7 @@ def bar(base, exp):
         ret *= ret # % m
         if int(bit):
             ret *= base # % m
+        #ret %= m
     return ret
 ```
 
