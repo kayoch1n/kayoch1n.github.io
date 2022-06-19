@@ -190,7 +190,14 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 
 有限group的长度也称之为 _order_，而cyclic group $\langle a\rangle$ 的 order 和 $a$ 的order是相等的。另外拉格朗日定理也可以换一种说法：有限group $G$ 的subgroup $H$ 的order整除 $G$ 的 order。而 $H$ 的 coset 的数量又称之为 _index_ 。
 
-### $x$-th root
+### $n$-th root 集合
 
-令 $U_m(m-1)=\{[a]\in U_m\mid [a]^{m-1}=[1]\}$，乘法在这个集合上也是闭合的，$U_m(m-)1$ 是 $U_m$ 的subgroup
+令 $U_m(n)=\{[a]\in U_m\mid [a]^{n}=[1]\}$ 表示$n$次方根的集合，乘法在这个集合上也是闭合的，$U_m(n)$ 是 $U_m$ 的subgroup。
+
+**命题** $d=\gcd(m-1,\varphi(m))\implies U_{m}(m-1)=U_m(d)$。由贝祖定理可知 $\exists x,y\in\mathbb{Z}\to (m-1)x+\varphi(m)y=d$
+
+$$\forall a\in U_m(m-1)\to a^{d}=a^{(m-1)x+\varphi(m)y}={(a^{m-1})}^x\cdot{(a^{\varphi(m)})}^y=1$$
+
+这说明 $m-1$ 次方根同时也是 $d$ 次方根，也就是 $U_m(m-1)\subseteq U_m(d)$。反过来由于 $d\mid {m-1}$，$d$ 次方根同时也是 $m-1$ 次方根，也就是$U_m(d)\subseteq U_m(m-1)$，因此 $U_m(m-1)=U_m(d)\square$。
+
 
