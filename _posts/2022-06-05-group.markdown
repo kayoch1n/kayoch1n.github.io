@@ -93,6 +93,7 @@ $$\{a\in \mathbb{Z}/m\mathbb{Z}\mid\gcd([a],[m])=[1]\}$$
   - 分别写出$[a]$和$[b]$各自和 $[m]$ 的[贝祖等式的结果]({{ site.url }}/blog/euclids-algo/#贝祖定理)并且相乘，并且对乘积模 $[m]$，观察结果。
 - inverse: 由贝祖定理可知 $\forall a\in U_m\exists x',y'\in\mathbb{Z}\to ax'+my'=1\implies ax'=1\pmod{m}$，$x'\pmod{m}\in U_m$，因此inverse存在。 
 
+
 ### Ring
 
 > A ring is an abelian group under addition
@@ -104,6 +105,11 @@ $$\{a\in \mathbb{Z}/m\mathbb{Z}\mid\gcd([a],[m])=[1]\}$$
 ### Abstract Fermat Theorem
 
 对于一个长度为 $n$ 的有限abelian group $G$ 中的任意元素 $a$，都满足 $a^n=e$。
+
+
+[欧拉定理]({{ site.url }}/blog/eulers-function/#欧拉定理) 是本定理的推论。
+
+<!-- $\mathbb{Z}/m\mathbb{Z}$ 的所有 _unit_ ($\gcd(a,m)=1$) 组成的集合 $U_m$ 是一个有限group，长度为 $\varphi(m)$ 。 $\forall a\in U_m$ 的 order 为 $d$，$a^d=1$。由拉格朗日定理可知 $d\mid \varphi(m)$，$\exists s\in\mathbb{Z}\to \varphi(m)=ds$，因此 $a^{\varphi(m)}=a^{ds}={a^d}^s=1\square$.-->
 
 ## Subgroup
 
@@ -186,7 +192,6 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 
 有限 group $G$ 的任意一个 subgroup $H$ 都满足 $\mid H\mid$ 整除 $\mid G\mid$。需要利用上面 coset 的性质来证明。
 
-[欧拉定理]({{ site.url }}/blog/eulers-function/#欧拉定理) 是本定理的推论。$\mathbb{Z}/m\mathbb{Z}$ 的所有 _unit_ ($\gcd(a,m)=1$) 组成的集合 $U_m$ 是一个有限group，长度为 $\varphi(m)$ 。 $\forall a\in U_m$ 的 order 为 $d$，$a^d=1$。由拉格朗日定理可知 $d\mid \varphi(m)$，$\exists s\in\mathbb{Z}\to \varphi(m)=ds$，因此 $a^{\varphi(m)}=a^{ds}={a^d}^s=1\square$.
 
 有限group的长度也称之为 _order_，而cyclic group $\langle a\rangle$ 的 order 和 $a$ 的order是相等的。另外拉格朗日定理也可以换一种说法：有限group $G$ 的subgroup $H$ 的order整除 $G$ 的 order。而 $H$ 的 coset 的数量又称之为 _index_ 。
 
