@@ -152,7 +152,7 @@ for i in range(15):
 <14>={1, 14}
 ```
 
-把$\langle4\rangle$、$\langle11\rangle$和$\langle 14\rangle$合并得到 $\{1,4,11,14\}$，这是一个subgroup却不是一个cyclic subgroup。
+把$\langle4\rangle$、$\langle11\rangle$和$\langle 14\rangle$合并得到 $\lbrace 1,4,11,14\rbrace$，这是一个subgroup却不是一个cyclic subgroup。
 
 **命题** 任意一个来自有限 group $G$的元素 $a$ 的order等于cyclic group $\langle a\rangle$的元素的数量。
 
@@ -197,7 +197,7 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 
 ### $n$-th root 集合
 
-令 $U_m(n)=\{[a]\in U_m\mid [a]^{n}=[1]\}$ 表示$n$次方根的集合，乘法在这个集合上也是闭合的，$U_m(n)$ 是 $U_m$ 的subgroup。
+令 $U_m(n)=\lbrace [a]\in U_m\mid [a]^{n}=[1]\rbrace$ 表示$n$次方根的集合，乘法在这个集合上也是闭合的，$U_m(n)$ 是 $U_m$ 的subgroup。
 
 **命题** $d=\gcd(m-1,\varphi(m))\implies U_{m}(m-1)=U_m(d)$。由贝祖定理可知 $\exists x,y\in\mathbb{Z}\to (m-1)x+\varphi(m)y=d$
 
