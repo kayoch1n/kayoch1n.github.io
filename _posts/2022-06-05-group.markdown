@@ -46,7 +46,7 @@ _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ �
 在 ring 中，如果两个非零元素相乘等于零，这两个元素就称为 _zero divisor_，而且互为 _complementary zero divisor_。比如，在 $\mathbb{Z}/4\mathbb{Z}$ 中，$2$ 就是 zero divisor。
 
 - 有限 ring 里面的任意非0元素，要么是 zero divisor 要么是 unit。
-- (cancellation) 如果非零元素 $a$ 不是 zero divisor，那么 $ab=ac\implies b=c$
+- (乘法的cancellation) 如果非零元素 $a$ 不是 zero divisor，那么 $ab=ac\implies b=c$
 
 
 ## Field
@@ -65,7 +65,7 @@ _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ �
 
 定义中存在冗余，第三点和第四点是等价的；可以利用 identity 和 inverses 证明 cancellation 和 solvability。要注意定义并没有要求运算满足可交换性：
 
-**证明 cancellation**
+**证明 cancellation** 这儿跟上边 ring 的乘法cancellation不同：
 
 $$
 \begin{aligned}
