@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title:  "数论学习笔记 - Group"
+title:  "数论学习笔记 - Group, ring and field"
 date:   2022-06-05 12:40:38 +0800
 header-img: "img/gz-canton-tower-haixinqiao.jpg"
 subtitle: "己を信じ、貫け"
@@ -13,18 +13,55 @@ tags:
   - cryptography
   - number theory
 ---
+# Group, ring and field
 
+这几个概念的条件是逐渐叠加的：
 
 ## Group
 定义：
 1. a set with an operation $*:G\times G\to G$
 2. associativity
-3. (1893)_cancellation_ and _solvability_,
-4. (现代的定义)or existence of _identity_ and _inverses_
+3. existence of _identity_ $e$ and _inverses_
 
 group 的定义不要求运算具有可交换性，
 
 > 如果group 的运算满足可交换性，就将这个group称作 _abelian group_.
+
+group 的元素的 inverse **有且只有** $1$ 个
+
+## Ring
+_Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ 的集合 $R$：
+- $R$ with $+$ 是 abelian group，除了上面列出来的4条性质以外，还满足 commutative；
+- $R$ with $\cdot$ 满足 associativity，$1$ 是该运算下的 identity，不要求是group；
+- $R$ with $+$ and $\cdot$ 满足 distributive。
+
+此外，在ring的定义的基础上增加乘法的交换律，是为[_commutative ring_](https://en.wikipedia.org/wiki/Commutative_ring)，比如整数$\mathbb{Z}$，有理数$\mathbb{Q}$，实数$\mathbb{R}$，复数$\mathbb{C}$和整数同余类 $\mathbb{Z}/m\mathbb{Z}$。
+
+### Unit
+
+在 _commutative ring_ 中，如果一个元素 $a$ 满足存在对应的元素 $b$ 使得 $a\cdot b=b\cdot a=1$ 就称之为 _unit_。注意 unit 是乘法运算的inverse
+
+### Zero divisor
+
+在 ring 中，如果两个非零元素相乘等于零，这两个元素就称为 _zero divisor_，而且互为 _complementary zero divisor_。比如，在 $\mathbb{Z}/4\mathbb{Z}$ 中，$2$ 就是 zero divisor。
+
+- 有限 ring 里面的任意非0元素，要么是 zero divisor 要么是 unit。
+- (cancellation) 如果非零元素 $a$ 不是 zero divisor，那么 $ab=ac\implies b=c$
+
+
+## Field
+
+在 commutative ring 的基础上，如果满足以下就称之为 field:
+- inverses: 非零元素以外所有的元素都是 unit；
+- non-triviality: 至少有两个元素
+
+## More on _Group_
+
+重新来看定义：
+1. a set with an operation $*:G\times G\to G$
+2. associativity
+3. (1893)_cancellation_ and _solvability_,
+4. (现代的定义)or existence of _identity_ and _inverses_
 
 定义中存在冗余，第三点和第四点是等价的；可以利用 identity 和 inverses 证明 cancellation 和 solvability。要注意定义并没有要求运算满足可交换性：
 
@@ -94,13 +131,6 @@ $$\{a\in \mathbb{Z}/m\mathbb{Z}\mid\gcd([a],[m])=[1]\}$$
 - inverse: 由贝祖定理可知 $\forall a\in U_m\exists x',y'\in\mathbb{Z}\to ax'+my'=1\implies ax'=1\pmod{m}$，$x'\pmod{m}\in U_m$，因此inverse存在。 
 
 
-### Ring
-
-> A ring is an abelian group under addition
-
-根据[wiki的描述](https://en.wikipedia.org/wiki/Ring_(mathematics))，_ring_ 是有加法和乘法运算、而且在加法上是abelian group的集合，但不要求是multiplicative group。
-
-此外还存在 [_commutative ring_](https://en.wikipedia.org/wiki/Commutative_ring)，是在ring的定义的基础上增加了乘法的交换律。
 
 ### Abstract Fermat Theorem
 
@@ -204,5 +234,4 @@ coset 是一个集合，不一定是group ，因为coset不一定满足[group的
 $$\forall a\in U_m(m-1)\to a^{d}=a^{(m-1)x+\varphi(m)y}={(a^{m-1})}^x\cdot{(a^{\varphi(m)})}^y=1$$
 
 这说明 $m-1$ 次方根同时也是 $d$ 次方根，也就是 $U_m(m-1)\subseteq U_m(d)$。反过来由于 $d\mid {m-1}$，$d$ 次方根同时也是 $m-1$ 次方根，也就是$U_m(d)\subseteq U_m(m-1)$，因此 $U_m(m-1)=U_m(d)\square$。
-
 
