@@ -35,7 +35,7 @@ $$
 &a\cdot b_1=a\cdot b_2\\
 \implies&b_1\cdot(a\cdot b_1)=b_1\cdot(a\cdot b_2)\\
 \implies&(b_1\cdot a)\cdot b_1=(b_1\cdot a)\cdot b_2&\text{(associativity)}\\
-\implies&1\cdot b_1=1\cdot b_2&\text{(identity)}\\
+\implies&e\cdot b_1=e\cdot b_2&\text{(identity)}\\
 \implies&b_1=b_2&\text{(identity again)}&\square\\
 \end{aligned}
 $$
@@ -83,7 +83,7 @@ $$
 &a*b=a*c\\
 \implies&a'*(a*b)=a'*(a*c)&\text{(inverse)}\\
 \implies&(a'*a)*b=(a'*a)*c&\text{(associativity)}\\
-\implies&1*b=1*c&\text{(identity)}\\
+\implies&e*b=e*c&\text{(identity)}\\
 \implies&b=c&\text{(identity again)}&\square\\
 \end{aligned}
 $$
@@ -94,7 +94,7 @@ $$
 \begin{aligned}
 &a*c=a*(a'*b))\\
 \implies&(a'*a)*b&\text{(associativity)}\\
-\implies&1*b&\text{(identity)}\\
+\implies&e*b&\text{(identity)}\\
 \implies&b&\text{(identity again)}&\square\\
 \end{aligned}
 $$
