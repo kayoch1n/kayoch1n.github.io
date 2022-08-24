@@ -21,17 +21,28 @@ tags:
 定义：
 1. a set with an operation $*:G\times G\to G$
 2. associativity
-3. existence of _identity_ $e$ and _inverses_
+3. _identity_ $e$: $\exists e\in G\forall a\in G\implies a*e=e*a=a$
+4. _inverses_: $\forall a\in G\exists b\in G\to a*b=b*a=e$
 
 group 的定义不要求运算具有可交换性，
 
 > 如果group 的运算满足可交换性，就将这个group称作 _abelian group_.
 
-group 的元素的 inverse **有且只有** $1$ 个
+group 的元素的 inverse **有且只有** $1$ 个。否则，令 $a\in G$，两个inverse $b_1$ and $b_2$，$ab_1=ab_2=e$，
+
+$$
+\begin{aligned}
+&a*b_1=a*b_2\\
+\implies&b_1*(a*b_1)=b_1*(a*b_2)\\
+\implies&(b_1*a)*b_1=(b_1*a)*b_2&\text{(associativity)}\\
+\implies&1*b_1=1*b_2&\text{(identity)}\\
+\implies&b_1=b_2&\text{(identity again)}&\square\\
+\end{aligned}
+$$
 
 ## Ring
 _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ 的集合 $R$：
-- $R$ with $+$ 是 abelian group，除了上面列出来的4条性质以外，还满足 commutative；
+- $R$ with $+$ 是 abelian group。也就是说除了上面列出来的4条性质以外，还满足 commutative；
 - $R$ with $\cdot$ 满足 associativity，$1$ 是该运算下的 identity，不要求是group；
 - $R$ with $+$ and $\cdot$ 满足 distributive。
 
@@ -39,7 +50,7 @@ _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ �
 
 ### Unit
 
-在 _commutative ring_ 中，如果一个元素 $a$ 满足存在对应的元素 $b$ 使得 $a\cdot b=b\cdot a=1$ 就称之为 _unit_。注意 unit 是乘法运算的inverse
+在 _commutative ring_ 中，如果一个元素 $a$ 满足存在对应的元素 $b$ 使得 $a\cdot b=b\cdot a=1$ 就称之为 _unit_。严格来说 unit 也不能说是乘法运算的inverse，因为这儿没要求满足乘法group；但是 $a$ 对应的 unit $b$ 如果存在，就必然是唯一的，可以用上边group inverse类似的方法得到这个结论。
 
 ### Zero divisor
 
