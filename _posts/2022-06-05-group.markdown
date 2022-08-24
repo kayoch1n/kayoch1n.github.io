@@ -19,10 +19,10 @@ tags:
 
 ## Group
 定义：
-1. a set with an operation $*:G\times G\to G$
+1. a set with an operation $\cdot:G\times G\to G$
 2. associativity
-3. _identity_ $e$: $\exists e\in G\forall a\in G\implies a*e=e*a=a$
-4. _inverses_: $\forall a\in G\exists b\in G\to a*b=b*a=e$
+3. _identity_ $e$: $\exists e\in G\forall a\in G\implies a\cdot e=e\cdot a=a$
+4. _inverses_: $\forall a\in G\exists b\in G\to a\cdot b=b\cdot a=e$
 
 group 的定义不要求运算具有可交换性，
 
@@ -32,10 +32,10 @@ group 的元素的 inverse **有且只有** $1$ 个。否则，令 $a\in G$，�
 
 $$
 \begin{aligned}
-&a*b_1=a*b_2\\
-\implies&b_1*(a*b_1)=b_1*(a*b_2)\\
-\implies&(b_1*a)*b_1=(b_1*a)*b_2&\text{(associativity)}\\
-\implies&1*b_1=1*b_2&\text{(identity)}\\
+&a\cdot b_1=a\cdot b_2\\
+\implies&b_1\cdot(a\cdot b_1)=b_1\cdot(a\cdot b_2)\\
+\implies&(b_1\cdot a)\cdot b_1=(b_1\cdot a)\cdot b_2&\text{(associativity)}\\
+\implies&1\cdot b_1=1\cdot b_2&\text{(identity)}\\
 \implies&b_1=b_2&\text{(identity again)}&\square\\
 \end{aligned}
 $$
