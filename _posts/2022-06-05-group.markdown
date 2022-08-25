@@ -42,7 +42,7 @@ $$
 
 ## Ring
 _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ 的集合 $R$：
-- $R$ with $+$ 是 abelian group。也就是说除了上面列出来的4条性质以外，还满足 commutative；
+- $R$ with $+$ 是 abelian group，identity 是 $0$ 。也就是说除了上面列出来的4条性质以外，还满足 commutative；
 - $R$ with $\cdot$ 满足 associativity，$1$ 是该运算下的 identity，不要求是group；
 - $R$ with $+$ and $\cdot$ 满足 distributive。
 
@@ -59,6 +59,14 @@ _Ring_ 是有两个运算 $+$ 和 $\cdot$ 以及两个特殊元素 $0$ 和 $1$ �
 - 有限 ring 里面的任意非0元素，要么是 zero divisor 要么是 unit。
 - (乘法的cancellation) 如果非零元素 $a$ 不是 zero divisor，那么 $ab=ac\implies b=c$
 
+### Ring homomorphism
+
+定义从 $f: R\to S$，$R$ 和 $S$ 均为 ring。如果 $f$ 满足：
+1. $\forall r,r'\in R\to f(r+r')=f(r)+f(r')$
+2. $\forall r,r'\in R\to f(r\cdot r')=f(r)\cdot f(r')$
+3. $f(1)=1$
+
+就称 $f$ 为 _ring homomorphism_ 。虽然有点绕口，但是还得说明一下在上述三个条件中，等号左边的 $+$，$\cdot$ 和 $1$ 分别是 $R$ 的两个运算和 $R$ 的乘法运算的identity；等号右边的 $+$，$\cdot$ 和 $1$ 分别是 $S$ 的两个运算和 $S$ 的乘法运算的identity。。
 
 ## Field
 
