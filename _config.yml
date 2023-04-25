@@ -88,3 +88,6 @@ service-worker: true
 
 # Friends
 # friends: []
+
+utteranc: true
+
