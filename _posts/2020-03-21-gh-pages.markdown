@@ -117,4 +117,4 @@ git remote add origin https://github.com/kayoch1n/kayoch1n.github.io.git
 git push origin master
 ```
 
-推送完成之后，就可以到 https://kayoch1n.github.io 看到个人主页了。
+推送完成之后，就可以到 https://kayoch1n.github.io 看到个人主页了。关于如何使用 utterances 添加issue评论功能，可以参考[👉官方指引](https://utteranc.es/)
