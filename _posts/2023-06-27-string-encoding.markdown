@@ -4,7 +4,7 @@ layout: "post"
 catalog: true
 title: "String Encoding"
 date:   2023-06-27 21:40:38 +0800
-header-img: "img/gz-canton-tower-haixinqiao.jpg"
+header-img: "img/sz-baoan-mangrove.jpg"
 categories:
   - blog
 tags:
@@ -70,7 +70,7 @@ hexdump -C gb2312.properties
 
 0x23 是 `#` 的ascii值，后面跟着的若干个值就是 gb2312 编码之后的内容。在gb2312中，
 
-- 按照**区码**和**位码**（合成区位码）来区分不同的中文字符
+- 按照**区码**和**位码**（合称为“区位码”）来区分不同的中文字符
 - 双字节
 - 编码方式：字节1=区码+0xa0，字节2=位码+0xa0
 
@@ -90,20 +90,10 @@ hexdump -C gb2312.properties
 
 ### utf8 
 
+UTF-8的全称是 8-bit Unicode Transformation Format。
 
-```bash
-%%bash
-hexdump -C utf8.properties
-```
-
-    00000000  23 e6 b5 8b e8 af 95 e7  bc 96 e7 a0 81 0a 74 65  |#.............te|
-    00000010  73 74 2e 70 61 73 73 77  6f 72 64 3d 61 64 6d 69  |st.password=admi|
-    00000020  6e 0a                                             |n.|
-    00000022
-
-
+- 按照code point区分不同的字符。实际上这里的code point就是 Unicode 的字符集。
 - 多字节（1~4）
-- 按照code point区分不同的字符。
 
 |First code point|Last code point|Byte 1|Byte 2|Byte 3|Byte 4|数量
 |-|-|-|-|-|-|-|
@@ -123,6 +113,17 @@ print(hex(b1), hex(b2), hex(b3))
 ```
 
     0xe6 0xb5 0x8b
+
+```bash
+%%bash
+hexdump -C utf8.properties
+```
+
+    00000000  23 e6 b5 8b e8 af 95 e7  bc 96 e7 a0 81 0a 74 65  |#.............te|
+    00000010  73 74 2e 70 61 73 73 77  6f 72 64 3d 61 64 6d 69  |st.password=admi|
+    00000020  6e 0a                                             |n.|
+    00000022
+
 
 
 
@@ -185,5 +186,5 @@ with open('gb2312.properties', encoding='gb2312') as f:
     
 
 
-至于经典 “烫烫烫” 梗，其实就是编码格式搞错了，通过某种编码格式得到的字节的值正好可以被另一种编码格式解码而已。
+至于经典 “烫烫烫” 梗，其实就是编码格式搞错了，只是通过某种编码格式得到的字节的值正好可以被另一种编码格式解码而已。
 
