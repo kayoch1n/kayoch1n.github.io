@@ -93,7 +93,9 @@ hexdump -C gb2312.properties
 UTF-8的全称是 8-bit Unicode Transformation Format。
 
 - 按照code point区分不同的字符。实际上这里的code point就是 Unicode 的字符集。
-- 多字节（1~4）
+- 多字节
+
+unicode code point 和 UTF-8 字节的对应关系如下：
 
 |First code point|Last code point|Byte 1|Byte 2|Byte 3|Byte 4|数量
 |-|-|-|-|-|-|-|
@@ -102,17 +104,9 @@ UTF-8的全称是 8-bit Unicode Transformation Format。
 |U+0800|U+FFFF|1110xxxx|10xxxxxx|10xxxxxx||65536|
 |U+10000|U+10FFFF|11110xxx|10xxxxxx|10xxxxxx|10xxxxxx|2Mi|
 
-所有中文字符的code point都在U+0800~U+FFFF这个范围。utf8编码一个中文需要三个字节。“测” 的 code point 是U+6D4B，所以 测 在 utf-8 编码下的字节是 0xe6, 0xb5, 0x8b。可以用以下代码加深理解：
 
+回过头来看前面的样本：
 
-```python
-bits = bin(0x6d4b)[2:].rjust(16, '0')
-b1, b2, b3=bits[:4], bits[4:10], bits[10:]
-b1, b2, b3=int(f'1110{b1}', 2), int(f'10{b2}', 2), int(f'10{b3}', 2)
-print(hex(b1), hex(b2), hex(b3))
-```
-
-    0xe6 0xb5 0x8b
 
 ```bash
 %%bash
@@ -126,12 +120,23 @@ hexdump -C utf8.properties
 
 
 
+所有中文字符的code point都在U+0800~U+FFFF这个范围。utf8编码一个中文需要三个字节。“测” 的 code point 是U+6D4B，所以 测 在 utf-8 编码下的字节是 0xe6, 0xb5, 0x8b。可以用以下代码加深理解：
+
+```python
+bits = bin(0x6d4b)[2:].rjust(16, '0')
+b1, b2, b3=bits[:4], bits[4:10], bits[10:]
+b1, b2, b3=int(f'1110{b1}', 2), int(f'10{b2}', 2), int(f'10{b3}', 2)
+print(hex(b1), hex(b2), hex(b3))
+```
+
+    0xe6 0xb5 0x8b
+
+稍微验证一下：
+
 
 ```python
 '测'.encode('utf8')
 ```
-
-
 
 
     b'\xe6\xb5\x8b'
