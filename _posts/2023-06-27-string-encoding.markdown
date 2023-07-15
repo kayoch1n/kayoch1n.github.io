@@ -4,7 +4,7 @@ layout: "post"
 catalog: true
 title: "String Encoding"
 date:   2023-06-27 21:40:38 +0800
-header-img: "img/sz-baoan-mangrove.jpg"
+header-img: "img/gz-canton-tower.jpg"
 categories:
   - blog
 tags:
@@ -170,7 +170,7 @@ with open('gb2312.properties', encoding='utf8') as f:
     UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb2 in position 1: invalid start byte
 
 
-这个算是我刚学计算机的时候坠常遇见的和坠头痛的问题了。。。上班之后快四年的今天才搞明白，真的惭愧-_-|||。
+这个算是我刚学计算机的时候坠常遇见的和坠头痛的问题了。。。上班之后快四年的今天才搞明白，真的惭愧-_-||。
 
 从上面的UTF-8的表格可以看出来，每个字符串编码之后的第一个字节的范围只能落在：
 - 0~0x7F (0xxxxxxx)
