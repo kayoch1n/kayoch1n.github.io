@@ -5,6 +5,7 @@ catalog: true
 title: "测试一下jekyll支持不支持 mermaid"
 date:   2023-09-23 15:40:38 +0800
 header-img: "img/gz-canton-tower.jpg"
+mermaid: true
 categories:
   - blog
 tags:
