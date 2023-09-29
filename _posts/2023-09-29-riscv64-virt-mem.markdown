@@ -5,6 +5,7 @@ catalog: true
 title: "RISCV64 Virtual Memory"
 date:   2023-09-29 15:40:38 +0800
 header-img: "img/sz-transmission-tower-2.jpg"
+mermaid: true
 categories:
   - blog
 tags:
