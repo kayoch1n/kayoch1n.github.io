@@ -172,7 +172,9 @@ flowchart LR
 
 除此之外，在rcore中，内核还用到一种恒等映射：在这种映射方式中，虚拟地址等于物理地址，例如从 `0x80200000` 开始的内核的虚拟内存就被完整映射到从 `0x80200000` 开始的物理内存。
 
-使用恒等映射的原因是，内核需要读写页表。前面提到页表是由内核维护的，加上内核本身也运行于虚拟地址之上，但是页表项存储的是下一级页的**物理地址**(否则MMU的地址翻译就会陷入无限递归)，内核需要读取该物理地址所在的页表节点、写入页表项数据；使用恒等映射之后，这个处理过程就方便很多了，内核可以直接将该物理地址当作虚拟地址使用。
+rcore使用恒等映射的原因是内核需要读写物理地址。至少有两个场景需要读写物理地址，第一个是维护页表。前面提到页表是由内核维护的，而且内核本身也运行于虚拟地址之上，但页表项存储的是下一级页的**物理地址**(否则MMU的地址翻译就会陷入无限递归)，内核需要读取该物理地址所在的页表节点、写入页表项数据；使用恒等映射之后，这个处理过程就方便很多了，内核可以直接将该物理地址当作虚拟地址使用。
+
+第二个场景是第五章的 syscall fork，fork需要内核完整地复制parent的地址空间。parent和child的虚拟地址完全一致，不能根据虚拟地址复制，换言之需要分别获取物理地址，对物理地址进行读写。
 
 ### Recursive Page Tables
 
@@ -191,26 +193,34 @@ Recursive Page Table 会在页表中设置一个特殊的index，比如511，并
 
 ### Address Space Layout
 
+应用程序的地址空间可以划分为各个segment，每个segment包含至少一个虚拟页。下表是rcore其中一个应用程序的layout
+
 |备注|内容|
 |-|-|
-|起始：0x10000|ELF各个段|
+|0x10000|.text|
+|0x12000|.rodata|
+|0x13000|.data,.bss|
 |...|...|
-||END of ELF|
 |不映射|Guard Page|
 ||User stack|
 ||...|
-|起始：0x80200000<br/>U级不可访问|内核|
+|0x80200000<br/>U级不可访问|内核|
 ||...|
-|U级不可访问|Trap Context|
+|0xFFFFFFFFFFFFF000<br/>U级不可访问|Trap Context|
 
-应用程序的地址空间如上所示，主要是4个part：
+主要是4个part：
 
-1. ELF各个段使用随机映射方式、被映射到 `0x10000` 开始的虚拟地址。通过 linker 脚本使得 .text 段的第一条指令放在了 `0x10000`；
-2. 在ELF的段和user stack之间空出来一个 guard page，guard page不会映射到物理地址。一般来说栈从高地址向低地址生长，高地址的一端称为栈底、低地址的另一端称为栈顶，当栈顶因为无限递归等原因触及到guard page时（也就是所谓的“爆栈”），CPU会产生fault，内核得以发现并结束掉应用程序；
+1. ELF各个section使用随机映射方式、被映射到 `0x10000` 开始的虚拟地址。通过 linker 脚本使得 .text 段的第一条指令放在了 `0x10000`；
+2. 在ELF和user stack之间空出来一个 guard page，这个页不会映射到物理地址。一般来说栈从高地址向低地址生长，高地址的一端称为**栈底**、低地址的另一端称为**栈顶**，当栈顶因为无限递归等原因触及到guard page时（也就是所谓的“爆栈”），CPU会产生fault，内核得以发现问题并结束掉应用程序；
 3. 内核的所有代码及数据均使用恒等映射，地址都是 `0x80200000`。所有应用程序的内核part都映射到同一个物理地址，使用同一份数据；
     - 页表项的权限不包含U，也就是U级不可读写这部分内存；
     - trap handler 也是U级。发生trap的时候，权限已经切换到S，trap handler 得以执行
 4. Trap Context 跟内核一样，U级不可读写，由内核用以存储当trap发生时各个寄存器的值。
+
+<!-- 
+用这个命令dump出program headers（what is the difference between program headers and section headers）
+readelf -l user/target/riscv64gc-unknown-none-elf/release/initproc | grep .data | awk '{print "0x"$5}'
+ -->
 
 ### Context switching
 
