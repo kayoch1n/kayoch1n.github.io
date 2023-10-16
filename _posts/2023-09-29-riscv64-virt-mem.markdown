@@ -13,27 +13,25 @@ tags:
   - os 
 ---
 
-在RISCV64 RCORE OS 的虚拟内存之前的章节中，程序需要考虑以下问题：
+在RISCV64 RCORE OS 的虚拟内存之前的章节中，rcore存在以下问题：
 
 1. 程序内存大小受限制。程序数量越多，单个程序能使用的内存就越少；
-2. 无法保证数据安全。假如一个程序的读写逻辑存在BUG或者安全漏洞，可能破坏另一个程序甚至是内核的内存区域。
+2. 无法保证数据安全。假如一个程序存在BUG或者安全漏洞，可能破坏另一个程序甚至是内核的内存区域。
 
-虚拟内存的意义在于将上述问题“转嫁”到内核：由**内核**在运行时为程序提供一个大小远远超过物理内存的、读写相互隔离的地址空间，禁止直接读写物理内存，可以减轻程序作者的编码负担，使其可以专注于业务逻辑。这篇文章[RCORE OS 课程的虚拟内存章节](https://rcore-os.cn/rCore-Tutorial-Book-v3/chapter4/index.html)的学习笔记，对应代码在[post/ch4-os-app-pagetable 分支](https://github.com/kayoch1n/rcore-course/tree/post/ch4-os-app-pagetable)。
+虚拟内存的意义在于将上述问题“转嫁”到内核：由**内核**为程序提供一个大小远超物理内存的、不同程序的读写相互隔离的地址空间，同时禁止程序直接读写物理内存。这样可以减轻程序作者的编码负担，使其可专注于业务逻辑。本文[RCORE OS 课程的虚拟内存章节](https://rcore-os.cn/rCore-Tutorial-Book-v3/chapter4/index.html)的学习笔记，对应代码在[post/ch4-os-app-pagetable 分支](https://github.com/kayoch1n/rcore-course/tree/post/ch4-os-app-pagetable)。
 
 
 # Virtual Memory 
 
-在虚拟内存机制下，任何对于内存地址的读写都会被视为对虚拟地址的读写；但是最终都会落到硬件上变成对应的物理地址的读写操作，这一过程称为地址翻译（Address translation）。由软硬件——内核和MMU共同完成：
-
-一个很常见的sd指令：
+在虚拟内存机制下，任何对于内存地址的读写都会被视为对虚拟地址的读写，这些操作最终都会落到硬件上，变成对应的物理地址的读写操作，这一过程称为地址翻译（Address translation）。由软硬件——内核和MMU共同完成。一个很常见的sd指令：
 
 ```
    0x0000000000010068 <+2>:     sd      ra,88(sp)
 ```
 
-该指令的作用是将ra的值写入从sp+88处开始的连续的8个字节。当sp+88所代表的内存地址通过地址总线传输到CPU，MMU 查找页表（Page Table）、将虚拟地址翻译成物理地址，最终再写入该物理地址。MMU(Memory management unit) 是**CPU**的一部分。
+作用是将ra的值写入从sp+88处开始的连续的8个字节。MMU(Memory management unit) 是**CPU**的一部分。当sp+88所代表的内存地址通过地址总线传输到CPU，MMU 会根据页表（Page Table）将虚拟地址翻译成物理地址，最终再写入该物理地址。
 
-而 Page table(页表)存储了虚拟页(page)和物理页(frame)的映射关系，由**内核**进行管理，是存储于内存的一个数据结构，所以页表本身也是要占内存的。页表的管理的粒度是页（page），常见大小为 4KB（4096B），也有的OS提供更大的大页。页表是一个树结构，页是其中的中间节点，物理页是叶子节点，而根节点所在的地址会存储在CPU中（比如某个寄存器）。地址翻译说白了就是MMU从根节点出发、遍历页表树、到达叶子节点的过程，至于选择哪个中间节点、则是跟具体的架构或具体的实现机制有关。通常在现代的CPU中，MMU还会集成一个TLB(Translation Lookaside Buffer)，用以缓存页表的结果来减少查页表的次数。
+而 Page table(页表)存储了虚拟页(page)和物理页(frame)的映射关系，由**内核**进行管理，是存储于内存的一个数据结构，因此页表本身也是要占内存的。页表的管理的粒度是页（page），常见大小为 4KB（4096B），也有的内核提供更大的大页的特性。页表是一个树结构，页是其中的中间节点，物理页是叶子节点，而根节点所在的地址通常存储在CPU中（比如某个寄存器）。地址翻译说白了就是MMU从根节点出发、遍历页表树、到达叶子节点的过程，至于选择哪个中间节点、则是跟具体的架构或具体的实现机制有关。通常在现代的CPU中，MMU还会集成一个TLB(Translation Lookaside Buffer)，用以缓存页表的结果来减少查页表的次数。
 
 ```mermaid
 graph LR
@@ -49,12 +47,12 @@ graph LR
 
 ## RISCV64 SV39
 
-SV39是RISCV64下的一个虚拟内存机制，因其64-bit的虚拟地址仅使用39个bit而得名，总共能够寻址$2^39=512\text{GiB}$的地址空间。每个虚拟地址的高位64~40需要跟第39个bit保持一致，换言之，整个寻址空间可以分成两个部分：
+SV39是RISCV64下的一个虚拟内存机制，因其64-bit的虚拟地址仅使用39个bit而得名，总共能够寻址$2^39=512\text{GiB}$的地址空间。每个虚拟地址的高位64~40需要跟第39个bit保持一致，整个寻址空间可以分成两个部分：
 
-- 0 ~ 0x3F FFFF FFFF
-- 0xFFFF FFC0 0000 0000 ~ 0xFFFF FFFF FFFF FFFF
+- 低地址部分 0 ~ 0x3F FFFF FFFF
+- 高地址部分 0xFFFF FFC0 0000 0000 ~ 0xFFFF FFFF FFFF FFFF
 
-每个部分大小都是 256 GiB，只有这两个部分的地址能通过MMU，其他地址将会引起异常（什么异常）。在SV39机制中，每个4K页表包含512个页表项（Page Table Entry，每个8字节），对应地可以用9个bit来定位这个页表中的页表项。页表项的8个字节包含了指向下一级页的物理地址的信息，以及指示MMU其是否可读可写等等权限信息。
+每个部分大小都是 256 GiB，只有这两个部分的地址能通过MMU，其他地址将会引起异常（具体什么异常？）。在SV39机制中，每个4K页表包含512个页表项（Page Table Entry，每个8字节），对应地可以用9个bit来定位这个页表中的页表项。页表项的8个字节包含了指向下一级页的物理地址的信息，以及指示MMU其是否可读可写等等权限信息。
 
 
 |Physical Page Number|RSW|D|A|G|U|X|W|R|V|
@@ -193,7 +191,7 @@ Recursive Page Table 会在页表中设置一个特殊的index，比如511，并
 
 ### Address Space Layout
 
-应用程序的地址空间可以划分为各个segment，每个segment包含至少一个虚拟页。下表是rcore其中一个应用程序的layout
+应用程序的地址空间可以划分为各个segment，每个segment包含至少一个虚拟页。segment对应ELF的program header，是section在内存中的体现；而section本身是数据在文件中的体现。下表是rcore其中一个应用程序的layout
 
 |备注|内容|
 |-|-|
