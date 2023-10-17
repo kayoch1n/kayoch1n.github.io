@@ -211,18 +211,21 @@ Recursive Page Table 会在页表中设置一个特殊的index，比如511，并
 
 应用程序的地址空间可以划分为各个segment，每个segment包含至少一个虚拟页。segment对应ELF的program header，是section在内存中的体现；而section本身是数据在文件中的体现。下表是rcore其中一个应用程序的layout
 
-|备注|内容|
-|-|-|
-|0x10000|.text|
-|0x12000|.rodata|
-|0x13000|.data,.bss|
+|地址|内容|映射方式|
+|-|-|-|
+|0x10000|.text|随机
+|0x12000|.rodata|随机
+|0x13000|.data,.bss|随机
 |...|...|
-|不映射|Guard Page|
-||User stack|
+||Guard Page|不映射
+||User stack|随机
 ||...|
-|0x80200000<br/>U级不可访问|内核|
-||...|
-|0xFFFFFFFFFFFFF000<br/>U级不可访问|Trap Context|
+|0x80200000|kernel|identical 开始
+|0x80800000|kernel|identical 结束|
+||...|不映射|
+|0xFFFFFFFFFFFFC000|kernel stack|随机
+||Guard Page|不映射|
+|0xFFFFFFFFFFFFF000|Trap Context|随机
 
 主要是4个part：
 
