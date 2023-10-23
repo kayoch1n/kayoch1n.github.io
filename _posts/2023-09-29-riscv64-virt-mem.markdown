@@ -6,6 +6,7 @@ title: "RISCV64 Virtual Memory"
 date:   2023-09-29 15:40:38 +0800
 header-img: "img/sz-transmission-tower-2.jpg"
 mermaid: true
+mathjax: true
 categories:
   - blog
 tags:
@@ -69,7 +70,21 @@ SV39是RISCV64下的一个虚拟内存机制，因其64-bit的虚拟地址仅使
 |9|9|9|12|
 |0x2|0x1|0x14E|0xEB8|
 
-虚拟地址的39bits分成两部分：3个页表index（3x9 bits）和页内offset（12 bits）。第i个页表index值n，用于告诉MMU在第i-1级页表的第n个页表项存储了i级页表的物理地址。根据页表index的长度，
+虚拟地址的39bits分成两部分：3个页表index（3x9 bits）和页内offset（12 bits）。以 `0x8034eeb8` 为例，这个地址的三个页表index分别是`0x2`, `0x1`, `0x14E`，页内offset为`0xEB8`。可以用以下简单代码提取出来：
+
+```python
+def sv39_virt_destruct(addr):
+    addr = addr & (1<<39) - 1
+    offset = addr & (1<<12)-1
+    addr >>= 12
+    i1 = addr & (1<<9)-1
+    addr >>= 9
+    return (addr >> 9, addr & (1<<9)-1, i1, offset)
+
+list(map(hex, sv39_virt_destruct(0x8034eeb8)))
+```
+
+第i个页表index值n，用于告诉MMU在第i-1级页表的第n个页表项存储了i级页表的物理地址。根据页表index的长度，
 
 1. 页表的根节点，也就是1级页表，数量只有1个，所在的物理地址存在**SATP**寄存器中；
 2. 2级页表最多有512个，
@@ -94,25 +109,9 @@ def sv39_pt_cost(mem):
 print(sv39_pt_cost(4*1024*1024*1024))
 ```
 
-
-
 ### Address Translation
 
-以一个例子来说明SV39机制下虚拟地址翻译物理地址的过程。在这个例子中，虚拟地址为 `0x8034eeb8`，可以用一个简单的脚本对这个地址拆分
-
-```python
-def sv39_virt_destruct(addr):
-    addr = addr & (1<<39) - 1
-    offset = addr & (1<<12)-1
-    addr >>= 12
-    i1 = addr & (1<<9)-1
-    addr >>= 9
-    return (addr >> 9, addr & (1<<9)-1, i1, offset)
-
-list(map(hex, sv39_virt_destruct(0x8034eeb8)))
-```
-
-可以得到3个页表index+1个页内offset：`0x2`, `0x1`, `0x14E` 和 `0xEB8`。翻译过程如下：
+以 `0x8034eeb8` 为例来说明SV39机制下虚拟地址翻译物理地址的过程，三个页表索引分别是 `0x2`, `0x1`, `0x14E`，页内offset为 `0xEB8`。翻译过程如下：
 
 1. MMU首先根据SATP的值访问1级页表，找到第0x2个页表项，得到2级页表的物理地址；
 2. 访问2级页表，找到第0x1个页表项，得到3级页表的物理地址；
@@ -162,7 +161,7 @@ scause         0xf      0xf
 
 一个特殊的现象是，对于一块连续的虚拟内存来说，其底下的物理内存却不一定是连续的，这取决于内核映射内存的方式。
 
-页表存储了虚拟内存和物理内存的映射关系。MMU利用这个映射关系读写内存，但是如何管理这个映射关系，比如虚拟地址 `0x10000` 要映射到哪个物理地址，是内核需要考虑的事情。最简单的是随机映射，虚拟地址和物理地址并无必然关系。内核可以选择将所有空闲物理页统一管理起来；对于应用程序要用到的虚拟页，内核可以找一个任意的、空闲的物理页形成映射并记录在页表中。在rcore中，内核就是用的随机映射处理应用程序的内存空间，将从 `0x10000` 开始的虚拟内存映射到任意可以用的物理页，比如`0xdead0000`。
+页表存储了虚拟内存和物理内存的映射关系。MMU利用这个映射关系执行地址翻译，但是如何管理这个映射关系，比如虚拟地址 `0x10000` 要映射到哪个物理地址，是内核需要考虑的事情。最简单的是随机映射，虚拟地址和物理地址并无必然关系。内核可以选择将所有空闲物理页统一管理起来；对于应用程序要用到的虚拟页，内核可以找一个任意的、空闲的物理页形成映射并记录在页表中。在rcore中，内核就是用的随机映射处理应用程序的内存空间，将从 `0x10000` 开始的虚拟内存映射到任意可以用的物理页，比如`0xdead0000`。
 
 ### Identify Mapping
 
@@ -194,7 +193,7 @@ rcore使用恒等映射的原因是内核需要读写物理地址。至少有两
 
 ### Recursive Page Tables
 
-实际上，为了让内核能够读写页表，恒等映射只是其中一种实现方式；[blog_os](https://os.phil-opp.com/paging-implementation/#map-at-a-fixed-offset)还提到了另外两种方式：Map at a Fixed Offset 和 Recursive Page Tables。Map at a Fixed Offset 和恒等映射类似，虚拟地址和物理地址的值相差了一个固定的值，并且由 bootloader 进行初始化，内核在启动的时候就已经开始使用虚拟内存了。这一点跟rcore不同，因为rcore的内核在启动的时候使用的是物理内存，并且完全靠内核初始化虚拟内存。
+恒等映射只是其中一种实现读写物理地址的方式。[blog_os](https://os.phil-opp.com/paging-implementation/#map-at-a-fixed-offset)还提到了另外两种方式：Map at a Fixed Offset 和 Recursive Page Tables。Map at a Fixed Offset 和恒等映射类似，虚拟地址和物理地址的值相差了一个固定的值，并且由 bootloader 将这个信息写入到x86的寄存器中并初始化页表，内核在启动的时候就已经开始使用虚拟内存了。这一点跟rcore不同，因为rcore的内核在启动的时候使用的是物理内存，并且完全靠内核初始化虚拟内存。
 
 Recursive Page Table 会在页表中设置一个特殊的index，比如511，并且将该index的页表项设置为当前页的物理地址。在访问特定的虚拟地址时，这个特殊的 index 能够缩短MMU实际遍历不同节点的数量。
 
@@ -211,21 +210,21 @@ Recursive Page Table 会在页表中设置一个特殊的index，比如511，并
 
 应用程序的地址空间可以划分为各个segment，每个segment包含至少一个虚拟页。segment对应ELF的program header，是section在内存中的体现；而section本身是数据在文件中的体现。下表是rcore其中一个应用程序的layout
 
-|地址|内容|映射方式|
-|-|-|-|
-|0x10000|.text|随机
-|0x12000|.rodata|随机
-|0x13000|.data,.bss|随机
+|地址|内容|映射方式|权限|
+|-|-|-|-|
+|0x10000|.text|随机|UR-X|
+|0x12000|.rodata|随机|UR--|
+|0x13000|.data,.bss|随机|URW-|
 |...|...|
-||Guard Page|不映射
-||User stack|随机
-||...|
-|0x80200000|kernel|identical 开始
-|0x80800000|kernel|identical 结束|
-||...|不映射|
-|0xFFFFFFFFFFFFC000|kernel stack|随机
 ||Guard Page|不映射|
-|0xFFFFFFFFFFFFF000|Trap Context|随机
+||User stack|随机|URW-|
+||...|
+|0x80200000|kernel|identical 开始|不含U|
+|0x80800000|kernel|identical 结束|不含U|
+||...|不映射|
+|0xFFFFFFFFFFFFC000|kernel stack|随机|RW|
+||Guard Page|不映射|
+|0xFFFFFFFFFFFFF000|Trap Context|随机|RW|
 
 主要是4个part：
 
