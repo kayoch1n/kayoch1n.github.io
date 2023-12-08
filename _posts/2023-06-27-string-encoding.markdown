@@ -99,10 +99,10 @@ unicode code point 和 UTF-8 字节的对应关系如下：
 
 |First code point|Last code point|Byte 1|Byte 2|Byte 3|Byte 4|数量
 |-|-|-|-|-|-|-|
-|U+0000|U+007F|0xxxxxxx||||128|
-|U+0080|U+07FF|110xxxxx|10xxxxxx|||2048|
-|U+0800|U+FFFF|1110xxxx|10xxxxxx|10xxxxxx||65536|
-|U+10000|U+10FFFF|11110xxx|10xxxxxx|10xxxxxx|10xxxxxx|2Mi|
+|U+0000|U+007F|0xxxxxxx(0~127)||||128|
+|U+0080|U+07FF|110xxxxx(192~223)|10xxxxxx|||2048|
+|U+0800|U+FFFF|1110xxxx(224~239)|10xxxxxx|10xxxxxx||65536|
+|U+10000|U+10FFFF|11110xxx(240~247)|10xxxxxx|10xxxxxx|10xxxxxx|2Mi|
 
 
 回过头来看前面的样本：
@@ -143,7 +143,7 @@ print(hex(b1), hex(b2), hex(b3))
 
 
 
-## FAQ
+## The notorious `UnicodeDecodeError`
 
 用 utf-8 方式打开 gb2312 编码的文件会报错：
 
@@ -170,7 +170,7 @@ with open('gb2312.properties', encoding='utf8') as f:
     UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb2 in position 1: invalid start byte
 
 
-这个算是我刚学计算机的时候坠常遇见的和坠头痛的问题了。。。上班之后快四年的今天才搞明白，真的惭愧-_-||。
+这个算是我刚学计算机的时候坠常遇见的和坠头痛的问题了。。。上班之后快四年的今天才搞明白，真的离谱Orz
 
 从上面的UTF-8的表格可以看出来，每个字符串编码之后的第一个字节的范围只能落在：
 - 0~0x7F (0xxxxxxx)
@@ -193,3 +193,22 @@ with open('gb2312.properties', encoding='gb2312') as f:
 
 至于经典 “烫烫烫” 梗，其实就是编码格式搞错了，只是通过某种编码格式得到的字节的值正好可以被另一种编码格式解码而已。
 
+## UTF-8 in JSON
+
+有时候REST API可能会返回以下内容：
+
+```JSON
+{"code":0,"status":"502 Bad Gateway","desc":"\346\234\252\347\237\245\351\224\231\350\257\257"}
+```
+
+desc 字段对应的内容并非乱码，而是一段中文经过UTF编码之后塞进JSON结构的结果。这里的JSON用八进制表示每个字符，实际上用16进制也是ok的；如果用16进制，desc字段对应的内容就会是 `\xe6\x9c\xaa\xe7\x9f\xa5\xe9\x94\x99\xe8\xaf\xaf`。可以用下面的代码来还原内容：
+
+
+```python
+b = bytearray()
+# https://stackoverflow.com/a/29169004/8706476
+b.extend(map(ord, '\346\234\252\347\237\245\351\224\231\350\257\257'))
+b.decode()
+```
+
+输出内容为 “未知错误”。
