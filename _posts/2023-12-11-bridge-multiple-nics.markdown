@@ -37,17 +37,18 @@ tags:
 
 总的来说，配置多网卡需要做三个事情，我们可以用 iproute2 工具包来操作：
 
-1. 为网卡创建单独的路由表。这个需要用文本编辑器编辑 `/etc/iproute2/rt_tables`；
-2. 使用`ip route`在每个路由表中增加路由
+1. 将网卡的dhcp关掉，转而静态配置网卡的IP、子网掩码和网关。这是因为后面的手动配置需要hard-code使用到这信息；
+2. 为网卡创建单独的路由表。这个需要用文本编辑器编辑 `/etc/iproute2/rt_tables`；
+3. 使用`ip route`在每个路由表中增加路由
     - e.g., `ip route add default via 172.16.0.1 dev eth0 metric 100 table 10`，
-    - 这表示添加一个往table 10中添加发往eth0、经过网关172.16.0.1的默认路由；
-3. 使用`ip rule`在RPDB中为每个路由表增加routing policy，
-    - e.g.，`ip rulee add from 172.16.0.5 table 10`，
+    - 这表示往table 10中添加发往eth0、经过网关172.16.0.1的默认路由；
+4. 使用`ip rule`在RPDB中为每个路由表增加routing policy，
+    - e.g.，`ip rule add from 172.16.0.5 table 10`，
     - 这表示添加一个当源地址是172.16.0.5时选择table 10的路由策略。
 
 ### 使用 netplan 配置路由
 
-iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，使用固定的配置文件更能适应配置下发、云主机初始化和容器部署等场景下的网络控制策略。个人觉得这应该算是linux发行版所带来的便利。netplan就是使用yaml文件配置网络的工具。
+iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，这种方式更能适应配置下发、云主机初始化和容器部署等场景下的网络控制策略。个人觉得这应该算是linux发行版所带来的便利。
 
 在 /etc/netplan 下面新建一个yaml文件。文件名不能太随意。程序将这里头的文件按照字典序进行配置，在yaml 中同样的key，字典序靠后的文件会覆盖前面的文件。往yaml文件写入以下内容。
 
@@ -91,7 +92,7 @@ network:
                   table: 20
 ```
 
-routes对应写入路由表的内容，routing-policy对应写入RPDB的内容。使用者需要在这两部分分别用table字段标识出来关联哪一个routing table。如果整数对应的路由表不存在、将创建对应的路由表，无需手动编辑 `/etc/iproute2/rt_tables`。其他需要注意的内容需要参考`man netplan`。
+routes对应写入路由表的内容，routing-policy对应写入RPDB的内容。使用者需要在这两部分分别用table字段标识出来关联哪一个routing table。如果整数对应的路由表不存在、将创建对应的路由表，也无需手动编辑 `/etc/iproute2/rt_tables`。其他需要注意的内容需要参考`man netplan`。
 
 写好配置文件之后执行 `sudo netplan apply` 使配置生效。完了之后可以通过指定网卡执行 cURL 看下是否都能通网(`ping -I`也提供类似的功能)：
 
