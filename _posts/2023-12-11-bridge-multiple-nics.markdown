@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title: "Ubuntu桥接多网卡"
+title: "软件桥接多网卡"
 date:   2023-12-10 21:40:38 +0800
 header-img: "img/hn-wuzhizhou.jpg"
 categories:
