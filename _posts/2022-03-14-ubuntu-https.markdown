@@ -12,6 +12,8 @@ tags:
   - ubuntu 
   - https
   - nginx
+  - proxy
+  - openssl
 ---
 
 # HTTPS 反向代理

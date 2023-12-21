@@ -11,6 +11,9 @@ tags:
   - ubuntu
   - docker
   - perl
+  - gdb
+  - glibc
+  - radare2
 ---
 
 # 正文

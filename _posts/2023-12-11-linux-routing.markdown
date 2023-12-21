@@ -13,17 +13,17 @@ tags:
   - RPDB
   - routing
   - ubuntu
+  - centos
   - bridge
   - systemd-networkd
   - netplan 
 ---
 
 
-# 从多网卡看 Linux routing
 
 给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。
 
-## Linux route selection
+# Linux route selection
 
 所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
 
@@ -45,13 +45,13 @@ else
             if packet.routeLookupKey in routeTable :
                 route = route_table[ packet.routeLookup_key ]
 ```
-## 多网卡
+# 多网卡
 
 有一点值得注意：在路由表中，源地址src并不参与到路由决策；src只在路由缓存和RPDB中起作用。总的来说，为了实现多网卡分别都能发包，我们需要正确配置RPDB和路由表，让系统首先通过src在RPDB找到路由表，再根据dst在路由表中找到路由。
 
-### 配置 DNS
+## 配置 DNS
 
-涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。在`/{lib,run,etc}/systemd/network` 目录下找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。
+涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。正常来说linux的DNS设置位于 `/etc/resolv.conf`，但是具体到 Ubuntu 而言，DHCP per-link settings 是由 `/{lib,run,etc}/systemd/network` 目录下的一系列文件控制的。切换到 `/{lib,run,etc}/systemd/network` 目录，找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。
 
 ```ini
 [Match]
@@ -66,9 +66,20 @@ UseMTU=true
 RouteMetric=100
 ```
 
-`/{lib,run,etc}/systemd/network` 是 ubuntu 下用于存放网络配置的目录(`man -s 5 systemd.network`，5表示文件格式)。后台服务 systemd-networkd 将会读取这里的文件使配置生效(`man -s 8 systemd-networkd`, 8 表示 root级别的命令)。systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的。其中 `/run` 表示“volatile”的运行时目录，`/etc` 表示系统配置目录，`/etc/systemd/network`下的文件会覆盖`/run/systemd/network`的同名文件，更多内容可以参考 `man`。注意 `/etc/sysconfig/network-scripts/` 是CentOS上的，Ubuntu是没有这个目录的。总是有很多人不明就里地拿着一个发行版的指引去操作另一个发行版，云里雾里搞不清也是醉了。
+### Networking on Ubuntu/CentOS
 
-### 使用 iproute2 配置路由
+`/{lib,run,etc}/systemd/network` 是 ubuntu 下用于存放网络配置的目录(`man -s 5 systemd.network`，5表示文件格式)。后台服务 systemd-networkd 将会读取这里的文件使配置生效(`man -s 8 systemd-networkd`, 8 表示 root级别的命令)。其中 `/run` 表示“volatile”的运行时目录，`/etc` 表示系统配置目录，`/etc/systemd/network`下的文件会覆盖`/run/systemd/network`的同名文件，更多内容可以参考 `man`。
+
+systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的，在CentOS上的对位应该是 NetworkManager。同理，NetworkManager 在 CentOS 上的配置目录是 `/etc/NetworkManager/dispatcher.d/`，NetworkManager 会执行这个目录下的executable；而这个目录下通常会有一个脚本，最终又会执行 `/etc/sysconfig/network-scripts` 目录下的脚本(见于RHEL)
+
+```bash
+[ -f /etc/sysconfig/network-scripts/ifcfg-"${interface}" ] && \
+    . /etc/sysconfig/network-scripts/ifcfg-"${interface}"
+```
+
+这两个目录 `/etc/sysconfig/network-scripts/` 和 `/etc/NetworkManager/dispatcher.d/` 是CentOS上的，Ubuntu是没有这个目录的。总是有很多人不明就里地拿着一个发行版的指引去操作另一个发行版，云里雾里搞不清也是醉了。
+
+## 使用 iproute2 配置路由
 
 接下来需要对每个网卡单独配置IPv4、路由表和RPDB。这里选择用 iproute2 而不是继续使用 systemd.network，原因是我觉得直接使用内核工具包可以对路由选择产生更加直观的认识。为网卡添加 IPv4 地址、子网掩码和广播地址：
 
@@ -101,9 +112,9 @@ curl qq.com --interface eth0
 curl qq.com --interface eth1
 ```
 
-### 使用 netplan 配置网络
+## 使用 netplan 配置网络
 
-iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。
+iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。By the way，CentOS 提供了命令工具 nmcli 来操作 NetworkManager，不过就不是通过配置文件形式的了，日常鄙视一下 CentOS。
 
 netplan会使用`/{lib,etc,run}/netplan/` 目录下的yaml文件。yaml的文件名不能太随意。程序将这里头的文件按照文件名字典序进行配置，在yaml 中同样的key，文件名字典序靠后的文件会**覆盖**字典序靠前的文件。往yaml文件写入以下内容。
 
@@ -154,7 +165,7 @@ routes对应写入路由表的内容，routing-policy对应写入RPDB的内容�
 P.S. 使用netplan配置unreachable的时候，在对应的route里需要加上 `via: 0.0.0.0` ，否则不生效，而且[netplan也不会报告出来，坑的一批](https://askubuntu.com/a/1082839/925210)。
 
 
-## 桥接
+# 桥接
 
 将多个物理网卡桥接到一起作为一个网卡使用可以提升带宽(存疑)。相较于多网卡配置路由，配置桥接就简单多了，省去了折腾路由表和RPDB的步骤，而且两个物理网卡也不需要配置IP地址。
 
@@ -204,7 +215,7 @@ sudo ip link set dev br0 down
 sudo ip link delete br0 type bridge
 ```
 
-### 提升带宽(存疑)
+## 提升带宽(存疑)
 
 实验环境是腾讯云上的两个CVM，两个CVM放置在同一个子网中 172.16.0.0/16；一个CVM作为iperf3的服务端，另一个作为iperf3客户端，均绑定内网地址、使用TCP进行实验。桥接前单个网卡的实验结果如下：
 
@@ -221,39 +232,8 @@ sudo ip link delete br0 type bridge
 
 提升效果就这么点，我都怀疑到底有没有起作用，还是说这就是腾讯云内网带宽的上限？可以考虑走公网IP测试一下。
 
-<!--
-桥接实验结束之后通过iproute2手动恢复多网卡。发现原先的 DNS 不管用了
+# Reference
 
-```
-ubuntu@VM-0-5-ubuntu:~/project$ curl qq.com
-curl: (6) Could not resolve host: qq.com
-```
-
-众所周知DNS用的端口是53，所以用tcpdump[任意网卡(>=2.2内核)](https://serverfault.com/a/805008/599288)并过滤53端口，结果显示DNS查询默认情况下发往127.0.0.53:53，这是一个本地地址。
-
-```
-ubuntu@VM-0-5-ubuntu:~/project/ssh$ sudo tcpdump -i any port 53 -n
-tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
-listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
-16:08:56.985152 IP 127.0.0.1.44529 > 127.0.0.53.53: 40036+ [1au] A? qq.com. (35)
-16:08:56.985158 IP 127.0.0.1.44529 > 127.0.0.53.53: 16493+ [1au] AAAA? qq.com. (35)
-```
-
-好怪哦，再看一下[是哪个进程在用这个端口](https://www.ibm.com/support/pages/how-can-i-check-if-application-listening-port-and-applications-name)(ubuntu下需要使用sudo否则不显示无权限的进程)：
-
-```
-ubuntu@VM-0-5-ubuntu:~$ sudo netstat -anpel | grep 127.0.0.53
-tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      101        18158      1147/systemd-resolv
-udp        0      0 127.0.0.53:53           0.0.0.0:*                           101        18157      1147/systemd-resolv
-```
-
-这个进程的名字是 systemd-resolved。
--->
-<!-- ## VMWare 模拟 -->
-<!-- 在 VMWare 的NAT模式中，宿主机是第一个IP，网关是第二个IP，虚拟机可以用剩下的除开broadcast以外的IP，e.g.，windows宿主机的IP是192.168.172.1，NAT网关的IP是192.168.172.2 .-->
-
-## Reference
-
-- 路由表 http://linux-ip.net/html/routing-tables.html
-- RPDB http://linux-ip.net/html/routing-rpdb.html
-- linux route selection http://linux-ip.net/html/routing-selection.html
+- [路由表](http://linux-ip.net/html/routing-tables.html)
+- [RPDB](http://linux-ip.net/html/routing-rpdb.html)
+- [Linux route selection](http://linux-ip.net/html/routing-selection.html)
