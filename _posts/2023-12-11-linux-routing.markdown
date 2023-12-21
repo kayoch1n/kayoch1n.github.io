@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title: "从多网卡看linux routing"
+title: "从多网卡看 Linux routing"
 date:   2023-12-10 21:40:38 +0800
 header-img: "img/hn-wuzhizhou.jpg"
 categories:
@@ -19,7 +19,7 @@ tags:
 ---
 
 
-# 从多网卡看linux routing
+# 从多网卡看 Linux routing
 
 给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。
 
@@ -49,34 +49,52 @@ else
 
 有一点值得注意：在路由表中，源地址src并不参与到路由决策；src只在路由缓存和RPDB中起作用。总的来说，为了实现多网卡分别都能发包，我们需要正确配置RPDB和路由表，让系统首先通过src在RPDB找到路由表，再根据dst在路由表中找到路由。
 
+### 配置 DNS
+
+涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。在`/{lib,run,etc}/systemd/network` 目录下找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。
+
+```ini
+[Match]
+MACAddress=52:54:00:d4:5a:48
+Name=eth0
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+```
+
+`/{lib,run,etc}/systemd/network` 是 ubuntu 下用于存放网络配置的目录(`man -s 5 systemd.network`，5表示文件格式)。后台服务 systemd-networkd 将会读取这里的文件使配置生效(`man -s 8 systemd-networkd`, 8 表示 root级别的命令)。systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的。其中 `/run` 表示“volatile”的运行时目录，`/etc` 表示系统配置目录，`/etc/systemd/network`下的文件会覆盖`/run/systemd/network`的同名文件，更多内容可以参考 `man`。注意 `/etc/sysconfig/network-scripts/` 是CentOS上的，Ubuntu是没有这个目录的。总是有很多人不明就里地拿着一个发行版的指引去操作另一个发行版，云里雾里搞不清也是醉了。
+
 ### 使用 iproute2 配置路由
 
-多网卡需要对每个网卡单独配置IPv4、路由表和RPDB，我们可以用 iproute2 工具包来操作：
+接下来需要对每个网卡单独配置IPv4、路由表和RPDB。这里选择用 iproute2 而不是继续使用 systemd.network，原因是我觉得直接使用内核工具包可以对路由选择产生更加直观的认识。为网卡添加 IPv4 地址、子网掩码和广播地址：
 
 ```bash
-
-# 1. 将网卡的DHCP关掉。编辑 `/etc/sysconfig/network-scripts/` 目录下网卡对应的配置文件，将BOOTPROTO 的值改成 static
-# 2. 手动配置网卡的IP、子网掩码和网关。这是因为后面的手动配置需要hard-code使用到这信息
 ip address add 172.16.0.5/20 dev eth0 broadcast 172.16.15.255
+```
 
-# 3. 为网卡创建单独的路由表。编辑 `/etc/iproute2/rt_tables`，每个路由表由一个整数ID和字符串组成，占一行，
-# 整数ID用来标识出一个路由表，在操作 iproute2 的过程中需要用到这个ID，e.g.，新的路由表为 10
+为网卡创建单独的路由表。编辑 `/etc/iproute2/rt_tables`，每个路由表由一个整数ID和字符串组成，占一行，整数ID用来标识出一个路由表，小于255（估计内核只用了8个bit存这个数据），ID 255已经被使用了，对应路由表local。在操作 iproute2 的过程中需要用到这个整数ID，名称倒不重要，e.g.，新的路由表为 10
+
+```bash
 echo "10 t1" >> /etc/iproute2/rt_tables
+```
 
-# 4. 往路由表(table 10)中添加发往当前网卡(eth0的)、经过网关(172.16.0.1)的默认路由；
+往路由表(table 10)中添加发往当前网卡(eth0的)、经过网关(172.16.0.1)的默认路由
+
+```bash
 ip route add default via 172.16.0.1 dev eth0 metric 100 table 10
+```
 
-# 5. 往RPDB中添加一个针对特定源地址(172.16.0.5)、选择路由表(table 10)的路由策略。
+往RPDB中添加一个针对特定源地址(172.16.0.5)、选择路由表(table 10)的路由策略
+
+```bash
 ip rule add from 172.16.0.5 table 10
 ```
 
-### More on DNS
-
-完了之后，系统就可以知道哪个IP packet应该发到哪个网卡了。但是都2024年了、程序总不能老是使用IP地址吧，DNS啥的得安排上，不过iproute2对于DNS就无能为力了。
-
-
-
-可以通过指定网卡执行 cURL 看下是否都能通网(`ping -I`也提供类似的功能)：
+然后为另一个网卡也执行上述相同的操作。完了之后，可以通过指定网卡执行 cURL 看下是否都能通网(`ping -I`也提供类似的功能)：
 
 ```bash
 curl qq.com --interface eth0
@@ -85,7 +103,7 @@ curl qq.com --interface eth1
 
 ### 使用 netplan 配置网络
 
-iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置。更能适应配置下发、云主机初始化和容器部署等场景下。个人觉得这应该算是linux发行版所带来的便利。
+iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。
 
 netplan会使用`/{lib,etc,run}/netplan/` 目录下的yaml文件。yaml的文件名不能太随意。程序将这里头的文件按照文件名字典序进行配置，在yaml 中同样的key，文件名字典序靠后的文件会**覆盖**字典序靠前的文件。往yaml文件写入以下内容。
 
@@ -131,9 +149,9 @@ network:
 
 routes对应写入路由表的内容，routing-policy对应写入RPDB的内容。使用者需要在这两部分分别用table字段标识出来关联哪一个routing table。整数ID对应的路由表如果不存在将会被创建，使用者无需手动编辑 `/etc/iproute2/rt_tables`。其他需要注意的内容需要参考`man netplan`。
 
-写好配置文件之后执行 `sudo netplan apply`，netplan会在运行时目录 `/run/systemd/network/`下为每个网卡生成 *.link 和 *.network 文件(`man -s 5 systemd.network`)，后台服务 systemd-networkd 将会读取这里的文件使配置生效(`man -s 8 systemd-networkd`)。systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的。总是有很多人不明就里地拿着 Ubuntu 的指引去操作 CentOS，比如配置网络，这就是发行版带来麻烦的证据之一。
+写好配置文件之后执行 `sudo netplan apply`，netplan会在运行时目录 `/run/systemd/network/`下为每个网卡生成 `*.link` 和 `*.network` 文件，systemd-networkd就能使用这些配置文件了。
 
-P.S. 使用netplan配置unreachable的时候，在对应的route里需要加上 `via: 0.0.0.0` ，否则不生效，而且[netplan也不会报告出来](https://askubuntu.com/a/1082839/925210)。
+P.S. 使用netplan配置unreachable的时候，在对应的route里需要加上 `via: 0.0.0.0` ，否则不生效，而且[netplan也不会报告出来，坑的一批](https://askubuntu.com/a/1082839/925210)。
 
 
 ## 桥接
@@ -202,10 +220,6 @@ sudo ip link delete br0 type bridge
 ```
 
 提升效果就这么点，我都怀疑到底有没有起作用，还是说这就是腾讯云内网带宽的上限？可以考虑走公网IP测试一下。
-
-### 默认 DNS 失效
-
-TODO:
 
 <!--
 桥接实验结束之后通过iproute2手动恢复多网卡。发现原先的 DNS 不管用了
