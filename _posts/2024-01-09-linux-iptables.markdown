@@ -20,7 +20,7 @@ tags:
 这篇笔记要从一个使用 tun 进行 ping 的程序说起，原来的程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)。在事先配置好 iptables 之后，该程序可以使用 tun 设备进行ping。因为我对tun设备以及iptables的了解几乎是零，所以就有了这篇笔记。
 
 
-# Python example
+## Python example
 
 用 Python 改写了下这个 example
 
@@ -88,28 +88,28 @@ sudo sysctl net.ipv4.ip_forward=1
 
 接下来讲述这个过程涉及到的一些概念。
 
-## tun interface
+### tun interface
 
 打开 `/dev/net/tun` 并通过 ioctl 关联上一个名字之后，内核就会创建一个虚拟的网络接口，这个接口并无对应的物理网卡，默认情况下同一时刻只能有一个进程打开 `/dev/net/tun` 并关联上同样的名称，当另一个进程尝试打开`/dev/net/tun` 并关联一样的名称时，系统会报一个错误 EBUSY(device or resource busy)。
 
 tunping就是从这样一个虚拟接口中获得一个fd，用这个fd通过read/write进行收发packet。这可跟 Linux `ping` 不一样：Linux `ping` 的传统做法是创建一个 raw socket 并且绑定一个物理网卡对应的接口，ICMP packet 将会**从接口被发送**出去，dmesg体现为 OUT=eth0，无 IN。使用tunping的时候，ICMP packet 是**从tun0接>口进入** netfilter，在dmesg中体现为 IN=tun0，无OUT。Linux `ping` 和 `tunping` 在 netfilter 中所经过的路径是不一样的，见后文。
 
 
-# netfilter iptables
+## netfilter iptables
 
 netfilter 是一个由 Linux 内核提供的、用于[管理网络数据包的框架](https://en.wikipedia.org/wiki/Netfilter)，包括 `ip_tables`, `ip6_tables`, `arp_tables`和`ebtables`四个内核模块，使用者可以通过 `iptables` 命令干预 netfilter 的 IP packet 的处理方式。在 netfilter 中，IP packet 的处理过程被分割成若干个用 table 和 chain 共同标识的节点，如下图所示：
 
-[IP packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
+![IP packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
 
 说个题外话，我觉得这个对处理粒度的命名方式是有误导性的（指“table”和“chain”）。“table”容易让人联想到DB的table，并且觉得table以及table里的内容可以任意添加的；实际上，“table”是固定的，用户无法创建 table，不过chain倒是可以添加or删除。IP packet的处理过程只有5个table，其中4个分别是上图的`filter`(默认),`raw`,`filter`,`mangle`，外加一个我在Wikipedia和archlinux wiki上面都找不到图的`security`。与其说是“table”，不如说是对处理节点的标签 tag~
 
 以下三个场景的IP packet 在netfilter中会经历不同的路径，这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES):
 
-1. source localhost: 进程往接口发送了一个 IP packet。在[上一篇文章]({{ site.url }}/blog/linux-routing))中跟多网卡相关的路由配置，其实就是发生在此处的第一个Routing Decision 节点起作用；
+1. source localhost: 进程往接口发送了一个 IP packet。在[上一篇文章]({{ site.url }}/blog/linux-routing)中跟多网卡相关的路由配置，其实就是发生在此处的第一个Routing Decision 节点起作用；
 2. destination localhost: 进程从接口接收到IP packet；
 3. forwarded packets: 内核从一个接口接收到IP packet，并发送到另一个接口。
 
-# Track packets in kernel 
+## Track packets in kernel 
 
 为了更好地理解内核处理packet流程，我使用 iptables 在所有处理节点配置 log 并且通过查看内核日志来追踪 IP packet 是如何在内核中流动的。由于iptables涉及4个table共13个chain，为了方便起见使用以下脚本：
 
@@ -170,7 +170,7 @@ done
 2. 执行 `sudo ./logpkt teardown 119.29.29.29` 则会删除按照上一步骤添加的 rule；
 3. 执行 `./logpkt show` ，使用 dmesg 输出对应规则产生的log。
 
-## Packets from `ping -I tun0`
+### Packets from `ping -I tun0`
 
 先看下传统的ping命令在指定发包接口之后的日志
 
@@ -199,7 +199,7 @@ Local Process -> Routing Decision -> raw OUTPUT -> mangle OUTPUT -> nat OUTPUT -
 sudo tcpdump -n -i any 'icmp and (dst 119.29.29.29 or src 119.29.29.29)'
 ```
 
-## Packets from `tunping`
+### Packets from `tunping`
 
 再来对比看下 `tunping` 的日志：
 
@@ -217,16 +217,19 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 [  +0.000003] filter-FORWARD [240114-3]IN=tun0 OUT=eth0 MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=63 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
 [  +0.000003] mangle-POSTROUTING [240114-3]IN= OUT=eth0 SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=63 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
 [  +0.000002] nat-POSTROUTING [240114-3]IN= OUT=eth0 SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=63 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
+```
+
+`tunping` 实际上走的是forwarded packets路径，也就是转发(IN=tun0)。首先，相较于 `ping -I tun0` 将 packet 从tun0**发出**，程序写入fd的ICMP packet会从tun0**进入**到netfilter。然后，packet 经历mangle FORWARD和filter FORWARD节点，可以看见TTL的值减少了1。假如 `net.ipv4.ip_forward=0`，packet的命运在第一次 Routing Decision就会结束，根本不会有两个FORWARD以及后续的所有日志。由此可知 `net.ipv4.ip_forward` 起作用的地方是第一次 Routing Decision，这一点可以通过关闭 `net.ipv4.ip_forward`之后再执行并观察日志来验证。
+
+之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，也就看不到这条日志了。
+
+```
 [  +0.004704] raw-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 [  +0.000005] mangle-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 [  +0.000005] mangle-FORWARD [240114-3]IN=eth0 OUT=tun0 MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 TTL=55 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 [  +0.000002] filter-FORWARD [240114-3]IN=eth0 OUT=tun0 MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 TTL=55 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 [  +0.000002] mangle-POSTROUTING [240114-3]IN= OUT=tun0 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 TTL=55 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 ```
-
-`tunping` 实际上走的是forwarded packets路径，也就是转发(IN=tun0)。首先，相较于 `ping -I tun0` 将 packet 从tun0**发出**，程序写入fd的ICMP packet会从tun0**进入**到netfilter。然后，packet 经历mangle FORWARD和filter FORWARD节点，可以看见TTL的值减少了1。假如 `net.ipv4.ip_forward=0`，packet的命运在第一次 Routing Decision就会结束，根本不会有两个FORWARD以及后续的所有日志。由此可知 `net.ipv4.ip_forward` 起作用的地方是第一次 Routing Decision，这一点可以通过关闭 `net.ipv4.ip_forward`之后再执行并观察日志来验证。
-
-之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。决定使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，也就看不到这条日志了。
 
 后续来自119.29.29.29的回包间接证明了发包的源地址被成了eth0的地址 172.16.16.15（本地和远程之间至少还有一层NAT）。回包的OUT=tun0，将会被dispatch到使用tun0的进程，跟发包的时候IN=tun0相对。在整个过程中，tcpdump能抓到两个ICMP发包，分别是进入到tun0的和从eth0发出去的：
 
