@@ -1,6 +1,6 @@
 ---
 toc: true
-layout: "keynote"
+layout: "post"
 catalog: true
 title: "从一次DNS失效看 Ubuntu DNS 机制"
 date:   2023-12-20 21:40:38 +0800

@@ -17,7 +17,7 @@ tags:
   - tun
 ---
 
-这篇笔记要从一个使用 tun 进行 ping 的程序说起，原来的程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)。在事先配置好 iptables 之后，该程序可以使用 tun 设备进行ping。因为我对tun设备以及iptables的了解几乎是零，所以就有了这篇笔记。
+这篇笔记要从一个使用 tun 进行 ping 的程序说起，原来的程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)。在事先配置好 iptables 之后，该程序可以使用 tun 设备进行ping。因为我对tun设备以及iptables的了解几乎是零，所以想学习一下相关知识，于是就有了这篇笔记。
 
 
 ## Python example
@@ -101,7 +101,7 @@ netfilter 是一个由 Linux 内核提供的、用于[管理网络数据包的�
 
 ![IP packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
 
-说个题外话，我觉得这个对处理粒度的命名方式是有误导性的（指“table”和“chain”）。“table”容易让人联想到DB的table，并且觉得table以及table里的内容可以任意添加的；实际上，“table”是固定的，用户无法创建 table，不过chain倒是可以添加or删除。IP packet的处理过程只有5个table，其中4个分别是上图的`filter`(默认),`raw`,`filter`,`mangle`，外加一个我在Wikipedia和archlinux wiki上面都找不到图的`security`。与其说是“table”，不如说是对处理节点的标签 tag~
+说个题外话，我觉得这个对处理粒度的命名方式是有误导性的（指“table”和“chain”）。“table”容易让人联想到DB的table，并且觉得table以及table里的内容可以任意添加的；实际上，“table”是固定的，[用户无法创建 table](https://askubuntu.com/q/316990/925210)，不过chain倒是可以添加or删除。IP packet的处理过程只有5个table，其中4个分别是上图的`filter`(默认),`raw`,`filter`,`mangle`，外加一个我在Wikipedia和archlinux wiki上面都找不到图的`security`。与其说是“table”，不如说是对处理节点的标签 tag~
 
 以下三个场景的IP packet 在netfilter中会经历不同的路径，这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES):
 
@@ -246,3 +246,8 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 
 不过我有一点不明白：回包的目的地址在 mangle PREROUTING 之后变成了 192.168.69.1，但是没出现 nat PREROUTING 的日志，而且TTL的值也减少了1。暂时没找到关于 MASQUERADE 在回包何时起作用的资料，记录一下问题先。
 
+## Reference
+
+- [iptables遍历过程](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES):
+  - [过程图](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
+- [Linux tuntap driver](https://docs.kernel.org/networking/tuntap.html)

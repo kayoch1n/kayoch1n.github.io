@@ -4,7 +4,7 @@ layout: "post"
 catalog: true
 title: "从多网卡看 Linux routing"
 date:   2023-12-10 21:40:38 +0800
-header-img: "img/hn-wuzhizhou.jpg"
+header-img: "img/tag-bg.jpg"
 categories:
   - blog
 tags:
@@ -21,11 +21,9 @@ tags:
 
 
 
-给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。
+## Linux route selection
 
-# Linux route selection
-
-所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
+给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
 
 1. 路由缓存 (route cache)；
 2. RPDB(routing policy database) 存储 `src, dst, tos, fwmark, iif` 和路由表的关系。有的资料把这个叫做路由策略；
@@ -45,11 +43,11 @@ else
             if packet.routeLookupKey in routeTable :
                 route = route_table[ packet.routeLookup_key ]
 ```
-# 多网卡
+## 多网卡
 
 有一点值得注意：在路由表中，源地址src并不参与到路由决策；src只在路由缓存和RPDB中起作用。总的来说，为了实现多网卡分别都能发包，我们需要正确配置RPDB和路由表，让系统首先通过src在RPDB找到路由表，再根据dst在路由表中找到路由。
 
-## 配置 DNS
+### 配置 DNS
 
 涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。具体到 Ubuntu 而言，DHCP per-link settings 是由 `/{lib,run,etc}/systemd/network` 目录下的一系列文件控制的。切换到 `/{lib,run,etc}/systemd/network` 目录，找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。正常来说linux的DNS设置位于 `/etc/resolv.conf`，但是在Ubuntu上可以单独给link设置DNS。
 
@@ -79,7 +77,7 @@ systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的�
 
 这两个目录 `/etc/sysconfig/network-scripts/` 和 `/etc/NetworkManager/dispatcher.d/` 是CentOS上的，Ubuntu是没有这个目录的。总是有很多人不明就里地拿着一个发行版的指引去操作另一个发行版，云里雾里搞不清也是醉了。
 
-## 使用 iproute2 配置路由
+### 使用 iproute2 配置路由
 
 接下来需要对每个网卡单独配置IPv4、路由表和RPDB。这里选择用 iproute2 而不是继续使用 systemd.network，原因是我觉得直接使用内核工具包可以对路由选择产生更加直观的认识。为网卡添加 IPv4 地址、子网掩码和广播地址：
 
@@ -112,7 +110,7 @@ curl qq.com --interface eth0
 curl qq.com --interface eth1
 ```
 
-## 使用 netplan 配置网络
+### 使用 netplan 配置网络
 
 iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。By the way，CentOS 提供了命令工具 nmcli 来操作 NetworkManager，不过就不是通过配置文件形式的了。
 
@@ -165,7 +163,7 @@ routes对应写入路由表的内容，routing-policy对应写入RPDB的内容�
 P.S. 使用netplan配置unreachable的时候，在对应的route里需要加上 `via: 0.0.0.0` ，否则不生效，而且[netplan也不会报告出来，坑的一批](https://askubuntu.com/a/1082839/925210)。
 
 
-# 桥接
+## 桥接
 
 将多个物理网卡桥接到一起作为一个网卡使用可以提升带宽(存疑)。相较于多网卡配置路由，配置桥接就简单多了，省去了折腾路由表和RPDB的步骤，而且两个物理网卡也不需要配置IP地址。
 
@@ -215,7 +213,7 @@ sudo ip link set dev br0 down
 sudo ip link delete br0 type bridge
 ```
 
-## 提升带宽(存疑)
+### 提升带宽(存疑)
 
 实验环境是腾讯云上的两个CVM，两个CVM放置在同一个子网中 172.16.0.0/16；一个CVM作为iperf3的服务端，另一个作为iperf3客户端，均绑定内网地址、使用TCP进行实验。桥接前单个网卡的实验结果如下：
 
@@ -232,7 +230,7 @@ sudo ip link delete br0 type bridge
 
 提升效果就这么点，我都怀疑到底有没有起作用，还是说这就是腾讯云内网带宽的上限？可以考虑走公网IP测试一下。
 
-# Reference
+## Reference
 
 - [路由表](http://linux-ip.net/html/routing-tables.html)
 - [RPDB](http://linux-ip.net/html/routing-rpdb.html)
