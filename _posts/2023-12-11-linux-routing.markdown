@@ -51,7 +51,7 @@ else
 
 ## 配置 DNS
 
-涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。正常来说linux的DNS设置位于 `/etc/resolv.conf`，但是具体到 Ubuntu 而言，DHCP per-link settings 是由 `/{lib,run,etc}/systemd/network` 目录下的一系列文件控制的。切换到 `/{lib,run,etc}/systemd/network` 目录，找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。
+涉及DNS的内容需要修改配置文件。首先，因为后面的手动配置需要hard-code使用到网卡的IP和网关，所以需要将网卡的DHCP关掉。具体到 Ubuntu 而言，DHCP per-link settings 是由 `/{lib,run,etc}/systemd/network` 目录下的一系列文件控制的。切换到 `/{lib,run,etc}/systemd/network` 目录，找到网卡对应的配置文件`*.network`，将`DHCP=`改成no或者去掉，并且把`[DHCP]`小节删掉；同时为了能让DNS正常工作，需要添加正确的DNS服务器地址，比如使用腾讯的公共DNS`DNS=119.29.29.29`。正常来说linux的DNS设置位于 `/etc/resolv.conf`，但是在Ubuntu上可以单独给link设置DNS。
 
 ```ini
 [Match]
@@ -114,7 +114,7 @@ curl qq.com --interface eth1
 
 ## 使用 netplan 配置网络
 
-iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。By the way，CentOS 提供了命令工具 nmcli 来操作 NetworkManager，不过就不是通过配置文件形式的了，日常鄙视一下 CentOS。
+iproute2 是集成到linux内核的，所有linux发行版都会有这个工具包。相较于使用命令，我们也可以使用netplan通过配置文件对网络进行配置，使用这种方式主机在重启之后不会丢失配置，更能适应批量配置下发、云主机初始化和容器部署等使用场景，这应该算是linux发行版所带来的便利了。By the way，CentOS 提供了命令工具 nmcli 来操作 NetworkManager，不过就不是通过配置文件形式的了。
 
 netplan会使用`/{lib,etc,run}/netplan/` 目录下的yaml文件。yaml的文件名不能太随意。程序将这里头的文件按照文件名字典序进行配置，在yaml 中同样的key，文件名字典序靠后的文件会**覆盖**字典序靠前的文件。往yaml文件写入以下内容。
 
