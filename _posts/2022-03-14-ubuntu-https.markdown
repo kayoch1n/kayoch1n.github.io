@@ -16,9 +16,7 @@ tags:
   - openssl
 ---
 
-# HTTPS 反向代理
-
-我想啊，现在的码农，不用框架的话估计搞不出来一个能用的后台web服务吧（心虚）；但是既然有轮子可以用那用也无妨。流行的框架给予了码农极大的便利能够集中精力编写业务逻辑，HTTPS什么的当然是有内建支持的啦，毕竟你已经是一个成熟的框架了，需要学会自己上HTTPS（bushi）。
+现在的牛马不用框架的话估计搞不出来一个能用的后台web服务吧（心虚）；但是既然有轮子可以用那用也无妨。流行的框架给予了码农极大的便利能够集中精力编写业务逻辑，HTTPS什么的当然是有内建支持的啦，毕竟你已经是一个成熟的框架了，需要学会自己上HTTPS（bushi）。
 
 无奈最近出于测试需要用docker搞了一个服务，但是没有挂载目录，也没有外接DB，数据什么的直接就在容器里，一重启就gg。为了自测HTTPS场景而且也不想要重新部署，决定不动原来的服务，用nginx搞一下HTTPS反向代理。
 
@@ -36,6 +34,7 @@ tags:
 如果没有其他网关或者代理，浏览器和nginx、nginx和httpd之间将会各自建立一个TCP连接；其中浏览器和nginx的HTTPS在TLS隧道上进行。
 
 ## HTTPS 建立会话
+
 简单描述一下建立HTTPS会话(TLS1.2)的过程，IBM有[一篇文章详细描述了这个过程](https://www.ibm.com/docs/en/sdk-java-technology/7.1?topic=handshake-tls-12-protocol)，同时也可以用wireshark抓包来对比观察这个过程。
 
 ```
@@ -52,6 +51,7 @@ Client |-------client hello----->| Server
        |                         |
        |<-----encrypted data---->|
 ```
+
 1. 浏览器发送一些初始参数，其中包含TLS的版本（1.2）和若干个支持的[密码suite](https://en.wikipedia.org/wiki/Cipher_suite)，供服务器选择，每个suite都包含key exchange算法、身份验证算法和bulk exchange算法在内的若干个信息。以[TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384](https://ciphersuite.info/cs/TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384/)为例，这个suite将使用ECDHE交换密钥，用RSA进行身份验证，用AES256GCM对数据流进行对称加密，以及用SHA384进行数字签名。
 2. 服务器发送已选择的密码suite以及证书。server key exchange 还会交换一段信息，通常是因为客户端无法通过证书的公钥获取足够信息来产生密钥。
 3. 浏览器发送用于产生对成加密密钥的信息。
@@ -71,7 +71,8 @@ Client |-------client hello----->| Server
 
 二进制存储用的是ASN.1 格式，无法直接用文本编辑器打开，这种文件扩展名一般是 `*.der`。从 chrome 的小锁头导出来的证书就是用的这个格式。
 
-### 1. 证书
+### 证书
+
 搭建反向代理之前首先得有一个有效的证书，为了说明效果、先不要用自己签的；我用的是腾讯云上面免费签1年的。一般来说需要三个文件：证书(.crt)、私钥(.key)和 root_bundle.crt(也不知道中文该叫啥)。
 
 先把上面三个文件通过scp命令传输到ubuntu上的用户目录并且解压。
@@ -81,7 +82,45 @@ scp *.zip ubuntu@xxx.xxx.xxx.xxx:~/
 # 输入密码就可以
 ```
 
-### 2. httpd
+#### 自签证书
+
+有时候基于开发测试原因、我们需要弄一个自己签发的证书，比如需要给IP签发证书，但是腾讯云的免费套餐并不支持～ 关于如何生成自签证书的详细步骤，可以参考台湾网友写的[这篇文章](https://blog.miniasp.com/post/2019/02/25/Creating-Self-signed-Certificate-using-OpenSSL)，我这里简单记录一下操作步骤。
+
+首先编写配置文件
+
+```conf
+[req]
+prompt = no
+default_md = sha256
+default_bits = 2048
+distinguished_name = dn
+x509_extensions = v3_req
+
+[dn]
+C = CN
+O = Test Inc.
+OU = Test Department
+CN = localhost
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.localhost
+DNS.2 = localhost
+IP.1 = 192.168.2.100 # 重要！如果要给IP签发证书就要改这个
+```
+
+dn小节里的内容都不重要，主要是alt_names里的东西要写对。然后通过openssl生成证书和私钥
+
+```shell
+openssl req -x509 -new -nodes -sha256 -utf8 -days 3650 -newkey rsa:2048 -keyout server.key -out server.crt -config ssl.conf
+```
+
+除非将该证书导入到OS、正常的浏览器都不会信任证书～所以如果要出现小锁头还得手动导入一下。
+
+### httpd 模拟后台
+
 然后用一个httpd模拟无加密的后台服务。安装httpd，在ubuntu上其实是叫apache2。
 
 ```shell
@@ -91,7 +130,7 @@ sudo apt-get install apache2 -y
 
 ubuntu httpd 的配置文件在 /etc/apache2/apache2.conf 。
 
-#### (番外篇)单独使用HTTPS的httpd
+#### 单独使用HTTPS的httpd
 
 在说明如何配置nginx之前，先来看下不使用nginx的https反代、怎么单独使用httpd的https功能。默认情况下SSL模块是没有开启的，可以 ls mods-enabled 看到下面没有ssl.conf
 。实际上SSL模块的配置文件在 mods-available 下面。在ubuntu上对httpd启用/关闭功能需要通过 `a2enmod/a2ensite`、`a2dismod/a2dissite`来执行。
@@ -135,7 +174,7 @@ SSLCertificateChainFile PATH_TO_YOUR_CERT_CHAIN # bundle.crt的路径
 sudo systemctl restart apache2
 ```
 
-### 3. nginx
+### 配置 nginx HTTPS
 
 如果跟着前面启用了httpd的https功能，到这里为了说明效果得先把httpd的https关掉
 
@@ -231,7 +270,7 @@ sudo nginx -c /usr/share/nginx/nginx.conf
 
 最后通过浏览器访问https，可以看到左上角出现一个小锁头了，真是可喜可贺，可喜可贺。
 
-### 4. docker(optional)
+### 使用 nginx 容器
 
 除了直接在服务器上部署nginx以外，还可以通过容器部署反向代理。具体的操作方法跟上面提到的流程差不多，需要在Dockerfile里把证书和nginx.conf[拷贝到镜像里](https://hub.docker.com/_/nginx)：
 
@@ -254,41 +293,4 @@ proxy_pass http://my-flask-service
 
 - 让容器[使用宿主机的网络](https://stackoverflow.com/a/48547074/8706476)。docker run的时候给一个参数 `--net=host`，nginx.conf 直接使用 localhost，也不需要加端口映射（亲测好用）；
 - 对于mac/win的docker，或者是[20.01以后版本的docker](https://github.com/moby/moby/pull/40007#issue-499875390)，可以使用域名`http://host.docker.internal`访问宿主机（没试过）。20.01版本以前的linux docker没有这个功能
-
-### 5. 自签证书
-
-有时候基于开发测试原因、我们需要弄一个自己签发的证书，比如需要给IP签发证书，但是腾讯云的免费套餐并不支持～ 关于如何生成自签证书的详细步骤，可以参考台湾网友写的[这篇文章](https://blog.miniasp.com/post/2019/02/25/Creating-Self-signed-Certificate-using-OpenSSL)，我这里简单记录一下操作步骤。
-
-首先编写配置文件
-
-```conf
-[req]
-prompt = no
-default_md = sha256
-default_bits = 2048
-distinguished_name = dn
-x509_extensions = v3_req
-
-[dn]
-C = CN
-O = Test Inc.
-OU = Test Department
-CN = localhost
-
-[v3_req]
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = *.localhost
-DNS.2 = localhost
-IP.1 = 192.168.2.100 # 重要！如果要给IP签发证书就要改这个
-```
-
-dn小节里的内容都不重要，主要是alt_names里的东西要写对。然后通过openssl生成证书和私钥
-
-```shell
-openssl req -x509 -new -nodes -sha256 -utf8 -days 3650 -newkey rsa:2048 -keyout server.key -out server.crt -config ssl.conf
-```
-
-除非将该证书导入到OS、正常的浏览器都不会信任证书～所以如果要出现小锁头还得手动导入一下。
 

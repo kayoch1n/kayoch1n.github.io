@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title: "从 tun ping 看 Linux netfilter(iptables) 机制"
+title: "从 tun ping 看 Linux netfilter 框架"
 date:   2024-01-09 21:40:38 +0800
 header-img: "img/gz-SCNBC.jpg"
 categories:
@@ -92,12 +92,12 @@ sudo sysctl net.ipv4.ip_forward=1
 
 打开 `/dev/net/tun` 并通过 ioctl 关联上一个名字之后，内核就会创建一个虚拟的网络接口，这个接口并无对应的物理网卡，默认情况下同一时刻只能有一个进程打开 `/dev/net/tun` 并关联上同样的名称，当另一个进程尝试打开`/dev/net/tun` 并关联一样的名称时，系统会报一个错误 EBUSY(device or resource busy)。
 
-tunping就是从这样一个虚拟接口中获得一个fd，用这个fd通过read/write进行收发packet。这可跟 Linux `ping` 不一样：Linux `ping` 的传统做法是创建一个 raw socket 并且绑定一个物理网卡对应的接口，ICMP packet 将会**从接口被发送**出去，dmesg体现为 OUT=eth0，无 IN。使用tunping的时候，ICMP packet 是**从tun0接>口进入** netfilter，在dmesg中体现为 IN=tun0，无OUT。Linux `ping` 和 `tunping` 在 netfilter 中所经过的路径是不一样的，见后文。
+tunping就是从这样一个虚拟接口中获得一个fd，用这个fd通过read/write进行收发packet。这可跟 Linux `ping` 不一样：Linux `ping` 的传统做法是创建一个 raw socket 并且绑定一个物理网卡对应的接口，ICMP packet 将会**从接口被发送**出去，dmesg体现为 OUT=eth0，无 IN。使用tunping的时候，ICMP packet 是**从tun0接口进入** netfilter，在dmesg中体现为 IN=tun0，无OUT。Linux `ping` 和 `tunping` 在 netfilter 中所经过的路径是不一样的，见后文。
 
 
 ## netfilter iptables
 
-netfilter 是一个由 Linux 内核提供的、用于[管理网络数据包的框架](https://en.wikipedia.org/wiki/Netfilter)，包括 `ip_tables`, `ip6_tables`, `arp_tables`和`ebtables`四个内核模块，使用者可以通过 `iptables` 命令干预 netfilter 的 IP packet 的处理方式。在 netfilter 中，IP packet 的处理过程被分割成若干个用 table 和 chain 共同标识的节点，如下图所示：
+netfilter 是一个由 Linux 内核提供的、用于[管理网络数据包的框架](https://en.wikipedia.org/wiki/Netfilter)，包括 `ip_tables`, `ip6_tables`, `arp_tables`和`ebtables`四个内核模块，以及对应的4个能运行在用户态的工具`iptables`, `ip6tables`, `arptables` 和 `ebtables`。使用者可以分别使用这四个工具操作 IPv4/IPv6、ARP packets和Ethernet frames。在 netfilter 中，IP packet 的处理过程被分割成若干个用 table 和 chain 共同标识的节点，如下图所示：
 
 ![IP packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
 
@@ -105,7 +105,7 @@ netfilter 是一个由 Linux 内核提供的、用于[管理网络数据包的�
 
 以下三个场景的IP packet 在netfilter中会经历不同的路径，这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES):
 
-1. source localhost: 进程往接口发送了一个 IP packet。在[上一篇文章]({{ site.url }}/blog/linux-routing)中跟多网卡相关的路由配置，其实就是发生在此处的第一个Routing Decision 节点起作用；
+1. source localhost: 进程往接口发送了一个 IP packet。在[上一篇文章]({{ site.url }}/blog/linux-routing)中跟多网卡相关的路由配置，其实就是发生在此处的第一个Routing Decision 节点；
 2. destination localhost: 进程从接口接收到IP packet；
 3. forwarded packets: 内核从一个接口接收到IP packet，并发送到另一个接口。
 
@@ -191,7 +191,16 @@ ping -c1 119.29.29.29 -I tun0
 
 ping 实际上走的是source localhost路径，也就是发包(OUT=tun0)，在netfilter中依次经过以下节点：
 
-Local Process -> Routing Decision -> raw OUTPUT -> mangle OUTPUT -> nat OUTPUT -> filter OUTPUT -> Routing Decision -> mangle POSTROUTING -> nat POSTROUTING -> NETWORK
+- Local Process
+- Routing Decision
+- raw OUTPUT
+- mangle OUTPUT
+- nat OUTPUT
+- filter OUTPUT 
+- Routing Decision
+- mangle POSTROUTING
+- nat POSTROUTING
+- NETWORK
 
 由于tun0并不对应真正的物理网卡，以此法发出去的包自然是不会被发到物理介质上的，即使在任意接口上使用 tcpdump 也不会被抓到。
 
@@ -221,7 +230,7 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 
 `tunping` 实际上走的是forwarded packets路径，也就是转发(IN=tun0)。首先，相较于 `ping -I tun0` 将 packet 从tun0**发出**，程序写入fd的ICMP packet会从tun0**进入**到netfilter。然后，packet 经历mangle FORWARD和filter FORWARD节点，可以看见TTL的值减少了1。假如 `net.ipv4.ip_forward=0`，packet的命运在第一次 Routing Decision就会结束，根本不会有两个FORWARD以及后续的所有日志。由此可知 `net.ipv4.ip_forward` 起作用的地方是第一次 Routing Decision，这一点可以通过关闭 `net.ipv4.ip_forward`之后再执行并观察日志来验证。
 
-之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，也就看不到这条日志了。
+之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，就会看不到这条日志。
 
 ```
 [  +0.004704] raw-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
