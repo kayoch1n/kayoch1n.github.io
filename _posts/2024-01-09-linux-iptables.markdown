@@ -170,47 +170,9 @@ done
 2. 执行 `sudo ./logpkt teardown 119.29.29.29` 则会删除按照上一步骤添加的 rule；
 3. 执行 `./logpkt show` ，使用 dmesg 输出对应规则产生的log。
 
-### Packets from `ping -I tun0`
 
-先看下传统的ping命令在指定发包接口之后的日志
+观察执行 tunping 之后的日志：
 
-```bash
-sudo ./logpkt setup 119.29.29.29
-ping -c1 119.29.29.29 -I tun0
-./logpkt show
-```
-
-```
-[Jan14 11:54] raw-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-[  +0.000005] mangle-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-[  +0.000003] nat-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-[  +0.000002] filter-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-[  +0.000002] mangle-POSTROUTING [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-[  +0.000001] nat-POSTROUTING [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
-```
-
-ping 实际上走的是source localhost路径，也就是发包(OUT=tun0)，在netfilter中依次经过以下节点：
-
-- Local Process
-- Routing Decision
-- raw OUTPUT
-- mangle OUTPUT
-- nat OUTPUT
-- filter OUTPUT 
-- Routing Decision
-- mangle POSTROUTING
-- nat POSTROUTING
-- NETWORK
-
-由于tun0并不对应真正的物理网卡，以此法发出去的包自然是不会被发到物理介质上的，即使在任意接口上使用 tcpdump 也不会被抓到。
-
-```bash
-sudo tcpdump -n -i any 'icmp and (dst 119.29.29.29 or src 119.29.29.29)'
-```
-
-### Packets from `tunping`
-
-再来对比看下 `tunping` 的日志：
 
 ```bash
 sudo ./logpkt setup 119.29.29.29
@@ -218,6 +180,7 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 ./logpkt show
 ```
 
+发包：
 ```
 [Jan14 11:48] raw-PREROUTING [240114-3]IN=tun0 OUT= MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=64 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
 [  +0.000011] mangle-PREROUTING [240114-3]IN=tun0 OUT= MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=64 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
@@ -228,10 +191,7 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 [  +0.000002] nat-POSTROUTING [240114-3]IN= OUT=eth0 SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=63 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
 ```
 
-`tunping` 实际上走的是forwarded packets路径，也就是转发(IN=tun0)。首先，相较于 `ping -I tun0` 将 packet 从tun0**发出**，程序写入fd的ICMP packet会从tun0**进入**到netfilter。然后，packet 经历mangle FORWARD和filter FORWARD节点，可以看见TTL的值减少了1。假如 `net.ipv4.ip_forward=0`，packet的命运在第一次 Routing Decision就会结束，根本不会有两个FORWARD以及后续的所有日志。由此可知 `net.ipv4.ip_forward` 起作用的地方是第一次 Routing Decision，这一点可以通过关闭 `net.ipv4.ip_forward`之后再执行并观察日志来验证。
-
-之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，就会看不到这条日志。
-
+回包：
 ```
 [  +0.004704] raw-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 [  +0.000005] mangle-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
@@ -240,7 +200,56 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 [  +0.000002] mangle-POSTROUTING [240114-3]IN= OUT=tun0 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 TTL=55 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
 ```
 
-后续来自119.29.29.29的回包间接证明了发包的源地址被成了eth0的地址 172.16.16.15（本地和远程之间至少还有一层NAT）。回包的OUT=tun0，将会被dispatch到使用tun0的进程，跟发包的时候IN=tun0相对。在整个过程中，tcpdump能抓到两个ICMP发包，分别是进入到tun0的和从eth0发出去的：
+### packet sent from tun0
+
+> [Jan14 11:48] raw-PREROUTING [240114-3]**IN=tun0** OUT= MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=64 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
+
+
+首先，从第一条日志可以看出程序写入tun fd的ICMP packet会从tun0**进入**到netfilter(IN=tun0)，而且此时还未决定packet从哪里发出。这一点跟 `ping -I tun0` 存在很大不同。执行 `ping -c1 119.29.29.29 -I tun0` 对比看一下日志，可以知道 `ping -I tun0` 是从local process进入、打算从 OUT=tun0 发出
+
+
+```
+[Jan14 11:54] raw-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+[  +0.000005] mangle-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+[  +0.000003] nat-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+[  +0.000002] filter-OUTPUT [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+[  +0.000002] mangle-POSTROUTING [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+[  +0.000001] nat-POSTROUTING [240114-4]IN= OUT=tun0 SRC=192.168.69.100 DST=119.29.29.29 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54074 DF PROTO=ICMP TYPE=8 CODE=0 ID=24112 SEQ=1
+```
+
+ping 实际上走的是source localhost路径。由于tun0并不对应真正的物理网卡，以此法发出去的包自然是不会被发到物理介质上的，即使在任意接口上使用 tcpdump 也不会被抓到。
+
+### packet forwarded to eth0
+
+> [  +0.000010] mangle-FORWARD [240114-3]IN=tun0 **OUT=eth0** MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 **TTL=63** ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
+>
+> [  +0.000003] filter-FORWARD [240114-3]IN=tun0 **OUT=eth0** MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 **TTL=63** ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
+>
+
+回到 tunping的日志。packet 经历mangle FORWARD和filter FORWARD节点，可以看见TTL的值减少1，从64变成63，而且OUT从空字符串变成 eth0。到这里可以看出来 `tunping` 实际上走的是forwarded packets路径，从一个网卡 IN=tun0 被转发到 OUT=eth0。
+
+假如 `net.ipv4.ip_forward=0`，packet的命运在第一次 Routing Decision就会结束，根本不会有两个FORWARD以及后续的所有日志。由此可知 `net.ipv4.ip_forward` 起作用的地方是第一次 Routing Decision，这一点可以通过关闭 `net.ipv4.ip_forward`之后再执行并观察日志来验证。
+
+### MASQUERADE and reply
+
+之后 packet 来到 nat POSTROUTING。tun0 只是让packet进入到netfilter，如果没有对应的规则处理的话也还是发不出去的，而先前配置的 MASQUERADE 规则在这里就起作用了。MASQUERADE 类似于 SNAT，能够修正出包的源地址，同时也能根据conntrack自动修正后续回包(reply)的目的地址。使用 MASQUERADE 还是 SNAT 取决于[源地址是否会发生变化](https://unix.stackexchange.com/a/264540/325365)。这里我先配置的LOG、后配置 MASQUERADE，因此打出来的LOG的源地址是修改之前；否则如果配置顺序反过来，由于 MASQUERADE 是一个 terminating target，packet在命中MASQUERADE之后就不会再命中同一chain中的LOG，就会看不到这条日志。
+
+> [  +0.004704] raw-PREROUTING [240114-3]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 **DST=172.16.16.15** LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
+
+
+后续来自119.29.29.29的回包（IN=eth0）间接证明了发包的源地址被成了eth0的地址 172.16.16.15（本地和远程之间至少还有一层NAT）。
+
+> [  +0.000005] mangle-FORWARD [240114-3]IN=eth0 **OUT=tun0** MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 **TTL=55** ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
+>
+> [  +0.000002] filter-FORWARD [240114-3]IN=eth0 **OUT=tun0** MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 **TTL=55** ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
+> 
+> [  +0.000002] mangle-POSTROUTING [240114-3]IN= OUT=tun0 SRC=119.29.29.29 DST=192.168.69.1 LEN=41 TOS=0x08 PREC=0x60 TTL=55 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
+
+回包(IN=eth0)同样要走forwarded packets路径。经过两个 FORWARD chains 之后 TTL 减少 1，从56变成55，而且 OUT变成 tun0，表示从 eth0 转发到 tun0。回包(IN= OUT=tun0)将会被dispatch到使用tun0的进程，跟发包的时候IN=tun0相对。在整个过程中，tcpdump能抓到两个ICMP发包，分别是进入到tun0的和从eth0发出去的：
+
+```bash
+sudo tcpdump -n -i any 'icmp and (dst 119.29.29.29 or src 119.29.29.29)'
+```
 
 ```
 16:50:51.458202 IP 192.168.69.1 > 119.29.29.29: ICMP echo request, id 0, seq 0, length 21
@@ -253,7 +262,7 @@ python3 tunping.py -s 192.168.69.1 -d 119.29.29.29
 0 packets dropped by kernel
 ```
 
-不过我有一点不明白：回包的目的地址在 mangle PREROUTING 之后变成了 192.168.69.1，但是没出现 nat PREROUTING 的日志，而且TTL的值也减少了1。暂时没找到关于 MASQUERADE 在回包何时起作用的资料，记录一下问题先。
+不过我有一点不明白：回包的目的地址在 mangle PREROUTING 之后变成了 192.168.69.1，但是没出现 nat PREROUTING 的日志。暂时没找到关于 MASQUERADE 在回包何时起作用的资料，记录一下问题先。
 
 ## Reference
 
