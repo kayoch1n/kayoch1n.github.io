@@ -79,7 +79,7 @@ systemd-networkd 是见于 Arch 和 Ubuntu 的组件，在CentOS上是没有的�
 
 ### 使用 iproute2 配置路由
 
-接下来需要对每个网卡单独配置IPv4、路由表和RPDB。这里选择用 iproute2 而不是继续使用 systemd.network，原因是我觉得直接使用内核工具包可以对路由选择产生更加直观的认识。为网卡添加 IPv4 地址、子网掩码和广播地址：
+接下来需要对每个网卡单独配置IPv4、路由表和RPDB。这里选择用 iproute2 而不是继续使用 systemd.network。[iproute2](https://en.wikipedia.org/wiki/Iproute2) 是一套运行于用户态的、用于控制 Linux 内核 networking的工具。为网卡添加 IPv4 地址、子网掩码和广播地址：
 
 ```bash
 ip address add 172.16.0.5/20 dev eth0 broadcast 172.16.15.255
@@ -96,6 +96,8 @@ echo "10 t1" >> /etc/iproute2/rt_tables
 ```bash
 ip route add default via 172.16.0.1 dev eth0 metric 100 table 10
 ```
+
+> P.S. 默认路由`default` 用[CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#IPv4_CIDR_blocks)来说就是`0/0`。顺便说一句，CIDR采用[最长前缀匹配](https://en.wikipedia.org/wiki/Longest_prefix_match)。
 
 往RPDB中添加一个针对特定源地址(172.16.0.5)、选择路由表(table 10)的路由策略
 
