@@ -3,6 +3,7 @@ toc: true
 layout: "post"
 catalog: true
 title: "从多网卡看 Linux routing"
+subtitle: "食答辩了，大人.jpg"
 date:   2023-12-10 21:40:38 +0800
 header-img: "img/tag-bg.jpg"
 categories:
@@ -29,9 +30,11 @@ tags:
 2. RPDB(routing policy database) 存储 `src, dst, tos, fwmark, iif` 和路由表的关系。有的资料把这个叫做路由策略；
 3. 路由表(routing table)。
 
-首先，系统会以`(dst, src, tos, fwmark, iif)`为key，尝试从路由缓存中找一条路由。路由缓存可以通过输入`ip route show cache`查看。>=3.6的linux内核不再支持IPv4 route cache，输入该命令查看ipv4路由缓存将永远返回空，[有的参考资料比较老](https://serverfault.com/q/1091128/599288)，并没有记录这一点。如果路由缓存里有对应的路由，就直接使用这条路由并结束查找；
+首先，系统会以`(dst, src, tos, fwmark, iif)`为key，尝试从路由缓存中找一条路由。路由缓存可以通过输入`ip route show cache`查看。如果路由缓存里有对应的路由，就直接使用这条路由并结束查找。
 
-否则，系统遍历 RPDB ，检查每一项是否跟当前key匹配，如果可以匹配，就会进一步遍历该项对应的路由表。在路由表中以`(dst, tops, scope, oif)`为key查找是否有对应的路由，有的话就直接使用这条路由并结束查找；否则，遍历 RPDB 的下一项，继续执行这个操作，这个过程可以用以下python伪代码来表示：
+> 比较新的linux内核(>=3.6)不再支持IPv4 route cache，输入该命令查看 IPv4 路由缓存将永远返回空，[有的参考资料比较老](https://serverfault.com/q/1091128/599288)，并没有记录这一点。
+
+否则，系统遍历 RPDB ，检查每一项是否跟当前key匹配，如果可以匹配，就会进一步遍历该项对应的路由表。在路由表中以`(dst, tops, scope, oif)`为key查找是否有对应的路由，有的话就直接使用这条路由并结束查找；否则，遍历 RPDB 的下一项，继续执行这个操作，这个过程可以用以下[python伪代码](http://linux-ip.net/html/routing-selection.html#:~:text=Example%C2%A04.4.%C2%A0Routing%20Selection%20Algorithm%20in%20Pseudo%2Dcode)来表示：
 
 ```python
 if packet.routeCacheLookupKey in routeCache :
@@ -208,7 +211,7 @@ network:
 
 完了之后可以通过ifconfig的结果看到只有桥接设备 br0 有IPv4地址，两个物理网卡 eth0和eth1 没有IPv4地址，并且通过 `curl qq.com --interface br0` 可以验证配置成功。顺便说一下，因为配置涉及到down掉网卡，如果是云上主机，会导致SSH登录连接被断开，所以在配置之前最好通过VNC登录而不是SSH登录。
 
-值得一提的是，通过netplan创建的bridge，不能指望能被自动删除掉。需要手动先down再删掉bridge
+值得一提的是，你可不能指望通过 netplan 创建的 bridge 在重新 apply 之后能被自动删除掉。需要手动先down再删掉bridge
 
 ```bash
 sudo ip link set dev br0 down
