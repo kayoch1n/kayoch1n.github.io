@@ -15,9 +15,6 @@ future: true
 RSS: false
 
 github_username:  kayoch1n
-twitter_username:   knylaw
-stackoverflow_username: 8706476/kayochin
-
 
 # Build settings
 # from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
