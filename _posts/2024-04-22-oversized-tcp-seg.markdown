@@ -2,8 +2,8 @@
 toc: true
 layout: "post"
 catalog: true
-title: "IP包的长度超过MTU？"
-subtitle: ""
+title: "关于IP包长度超过MTU这件事"
+subtitle: "IPパケットのサイズがMTUを超えた件"
 date:   2024-04-22 21:40:38 +0800
 header-img: "img/sz-transmission-tower.jpg"
 categories:
@@ -14,23 +14,15 @@ tags:
   - mtu 
 ---
 
+## 缘起
 
-`ip link show eth0` 查看 eth0 
-
-```
-2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 52:54:00:d4:4b:49 brd ff:ff:ff:ff:ff:ff
-    altname enp0s5
-    altname ens5
-```
-
-MTU 只有1500字节。而tcpdump的结果：
-
+某日想看一下 tls handshake 的过程
 ```bash
 sudo tcpdump -n -v -i eth0 'tcp port 443 and (tcp[((tcp[12] & 0xf0) >> 2)] = 0x16)'
 ```
 
 > 抓取 _tls handshake_ message。这条filter的解释可以见[这里](https://stackoverflow.com/a/39644735/8706476)
+
 
 ```
 tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
@@ -42,11 +34,22 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
     172.16.16.15.44834 > 109.244.236.76.443: Flags [P.], cksum 0x07d9 (correct), seq 517:610, ack 3778, win 501, length 93
 ```
 
-第二条记录是一个收包，IP包的长度3817字节，超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
+在这个过程中发现了一个问题：第二条记录是一个收包，IP包的长度3817字节，超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
 
-## 关于 tcpdump 的 _length_
 
-首先，IP那一行的 3817 是整个 IP packet的长度(total length)，下一行的 3777 是 TCP payload的长度。tcp header里没有payload长度这个字段，估计是tcpdump根据ip total length减去tcp header length算出来的。
+```
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 52:54:00:d4:4b:49 brd ff:ff:ff:ff:ff:ff
+    altname enp0s5
+    altname ens5
+```
+
+> `ip link show eth0` 查看 eth0。MTU 只有**1500**字节。
+
+
+## tcpdump 的 _length_ 是啥
+
+首先，IP那一行的 3817 是整个 IP packet的长度(total length)，下一行的 3777 是 TCP payload的长度。tcp header里没有用来表示长度的字段；估计这个是tcpdump根据ip total length减去tcp header length算出来的。
 
 在这里，3817=20(ip header)+20(tcp header)+3777(tcp payload)，已经超过了MTU。
 
@@ -110,8 +113,13 @@ curl ${simple_server}:8080 -d @data.dat
 14:54:56.527436 IP localhost.51608 > simple-server.webcache: Flags [P.], seq 2825:2886, ack 1, win 251, options [nop,nop,TS val 991739090 ecr 3767925926], length 61: HTTP
 ```
 
-> 根据这一差别，我猜 tcpdump 抓包的时机在于内核协议栈到网卡之间
+根据这一差别，我猜 tcpdump 抓包的时机在于syscall之后、网卡之前：如果tcpdump抓包的时机在syscall，则无论tso开启与否，都应该抓到一个大packet而不是三个小packet。
 
+## ICMP Code 3 Type 4
+
+PMTUD 是一个用于探测通往目标的链路的 MTU的方法，在linux上可以通过使用 ping `-s` 参数指定 payload 大小来实现。wiki 描述到当一个主机收到一个长度超过 MTU 的包时会回复ICMP Code3 Type4；一方可以多次发送payload长度逐渐增加的packet，直到接收到ICMP Code3 Type4，此时就能得知这个链路上的MTU。
+
+但是要再现这个行为是挺困难的：一方面要让超长的packet真正从网卡发送出去：调整网卡的mtu使其大于实际链路的mtu，但使用 setsockopt 设置 DF + sendto 长 packet 的时候会返回 message too long，packet 其实未被发送出去，这个可能跟操作系统有关？另一方面，不同的目标对于超长的packet的处理方式不一样，像 github.com, stackoverflow.com 确实能支持很大的 MTU，而有的目标貌似对于超过1500的ip包直接不返回任何东西，疑似通过 iptables drop 掉了，比如国内的网站 baidu.com，zhihu.com。
 
 ## P.S. `AF_NETLINK` socket
 
