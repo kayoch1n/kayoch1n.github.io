@@ -16,7 +16,7 @@ tags:
 
 ## 缘起
 
-某日想看一下 tls handshake 的过程
+在抓包 tls handshake 的时候
 ```bash
 sudo tcpdump -n -v -i eth0 'tcp port 443 and (tcp[((tcp[12] & 0xf0) >> 2)] = 0x16)'
 ```
@@ -34,8 +34,7 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
     172.16.16.15.44834 > 109.244.236.76.443: Flags [P.], cksum 0x07d9 (correct), seq 517:610, ack 3778, win 501, length 93
 ```
 
-在这个过程中发现了一个问题：第二条记录是一个收包，IP包的长度3817字节，超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
-
+发现了一个问题：第二条记录是一个收包，IP包的长度3817字节超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
 
 ```
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
@@ -47,7 +46,7 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
 > `ip link show eth0` 查看 eth0。MTU 只有**1500**字节。
 
 
-## tcpdump 的 _length_ 是啥
+## tcpdump 的 _length_ 
 
 首先，IP那一行的 3817 是整个 IP packet的长度(total length)，下一行的 3777 是 TCP payload的长度。tcp header里没有用来表示长度的字段；估计这个是tcpdump根据ip total length减去tcp header length算出来的。
 
@@ -55,11 +54,14 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
 
 ## `generic-receive-offload`
 
-网卡有一些[offloading features](https://docs.kernel.org/networking/segmentation-offloads.html)，可以用 `ethtool` 查看是否启用了。其中，generic-receive-offload 会使**网卡**先将一些小的IP 包组装成更大的包再传递给内核。
+查资料发现内核存在[跟网卡offloading有关的参数](https://docs.kernel.org/networking/segmentation-offloads.html)，可以用 `ethtool` 查看是否启用
+
 
 ```bash
 ethtool -k eth0 | grep offload
 ```
+
+其中，generic-receive-offload 会使**网卡**先将一些小的IP 包组装成更大的包再传递给内核
 
 ```
 tcp-segmentation-offload: off
@@ -123,7 +125,7 @@ PMTUD 是一个用于探测通往目标的链路的 MTU的方法，在linux上�
 
 ## P.S. `AF_NETLINK` socket
 
-通过 strace 观察syscall，可以知道这个操作网卡feature的工具是通过给 AF_NETLINK socket 发消息来完成的。
+通过 strace 观察syscall，可以知道这个操作网卡feature的工具是通过给 `AF_NETLINK` socket 发消息来完成的。
 
 ```
 socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) = 3

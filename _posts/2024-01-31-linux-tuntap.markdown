@@ -30,7 +30,7 @@ tags:
 
 [打开 `/dev/net/tun` 并通过关联上一个名字之后](https://docs.kernel.org/networking/tuntap.html#network-device-allocation)，内核就会创建一个虚拟的网络接口，这个接口并无对应的物理网卡。默认情况下，同一时刻只能有一个进程打开 `/dev/net/tun` 并关联上同样的名称，比如说 `tun0`，此时如果另一个进程尝试打开`/dev/net/tun` 并关联`tun0`时，系统就会报告一个错误 EBUSY(device or resource busy)。当进程结束后，`tun0`就会被删除。
 
-凡事有例外。有一种使用场景是，先用`ip`命令创建、配置并启动 `tun0`，然后在程序中用 API 打开并读写 `tun0`。因为命令本身是一个单独的进程， `tun0` 如果是被进程独占的话结束之后就会被删除，这种使用场景就无从实现了。那实际上 iproute2 是怎么做的呢？可以用 `strace ip tuntap add dev `tun0` mode tun`观察一下
+凡事有例外。有一种使用场景是，先用`ip`命令创建、配置并启动 `tun0`，然后在程序中用 API 打开并读写 `tun0`。因为命令本身是一个单独的进程，按照上面的说法进程退出之后 `tun0` 就会被删除，那这种使用场景就无从实现了。实际上 iproute2 用了一个叫做 `TUNSETPERSIST` 的request code，[这个值](https://www.gabriel.urdhr.fr/2021/05/08/tuntap/#persistent)可以使虚拟接口在进程退出之后避免被操作系统删除。可以用 `strace ip tuntap add dev tun0 mode tun`观察一下
 
 ```c
 // ...
@@ -41,25 +41,10 @@ close(4)                                = 0
 // ...
 ```
 
-第三个 syscall 用了一个叫做 `TUNSETPERSIST` 的request code，根据[网上的资料](https://www.gabriel.urdhr.fr/2021/05/08/tuntap/#persistent)，这个值可以使虚拟接口在进程退出之后避免被操作系统删除。
 
 ### See resolved macros
 
-用 Python 创建 tun 接口需要使用一些宏作为参数，但是这些宏在 CPython 中并未定义，得用点代码把这些值打出来：
-
-```c
-void dump_hex(void* mem, size_t size) {
-    printf("dump %lu bytes starting from %p:\n", size, mem);
-    const char* ptr = (const char*)mem;
-    for (size_t i = 0; i < size; i++)
-    {
-        printf("%02X", ptr[i]);
-    }
-    printf("\n");
-}
-```
-
-顺便提一个找出头文件在文件系统中实际位置的方法，方便查找本地的头文件源代码：
+宏 TUNSETPERSIST 和 TUNSETIFF 在 python 中并未定义，得写一段C代码把这些具体的值打出来。顺便提一个找出头文件在文件系统中实际位置的方法，方便查找本地的头文件源代码：
 
 ```bash
 gcc cmem.cc -H -fsyntax-only 2>&1 | grep tun.h
@@ -67,7 +52,7 @@ gcc cmem.cc -H -fsyntax-only 2>&1 | grep tun.h
 
 ## VPN demo
 
-tun 虚拟接口常被用来实现 VPN。这个 VPN demo 是我基于[这篇文章](https://lxd.me/a-simple-vpn-tunnel-with-tun-device-demo-and-some-basic-concepts)、用 Python 改写而成，Python 版的源代码在[这里](https://github.com/kayoch1n/vpndemo-azuna)。这个 demo 涉及到的 IP 地址如下：
+tun 虚拟接口常被用来实现 VPN。基于[这篇文章](https://lxd.me/a-simple-vpn-tunnel-with-tun-device-demo-and-some-basic-concepts) 我用 Python 改写了[一个实验demo](https://github.com/kayoch1n/netwlabs/tree/master/lab-vpn/src)。这个 demo 涉及到的 IP 地址如下：
 
 - VPN client: 
   - `eth0` 192.168.96.2/24
@@ -77,15 +62,11 @@ tun 虚拟接口常被用来实现 VPN。这个 VPN demo 是我基于[这篇文�
   - `tun0` 10.8.0.1/16
 - 网关 192.168.96.1
 
-### Docker container
+### 用容器组网
 
-因为涉及到修改 netfilter 和路由表，我怕把主机搞坏，所以用容器模拟一下；而且容器可以默认用户是root，敲命令可以不需要 sudo，用完之后整个容器删掉即可。话说自己以前傻乎乎的还以为容器就是虚拟机，现在了解到容器其实是一个用户态进程。可以用 `docker inspect` 命令查看容器对应的进程的 pid
+比起直接修改机器的网络设置，用容器组网可以避免一些麻烦，比如配置错了可以直接删掉容器，对宿主机没有影响。
 
-```bash
-docker inspect setsuna | grep -i PID
-```
-
-执行 iptables 修改 netfilter 需要 root 特权，容器在默认情况下无法使用。根据 `man capabilities` 的描述，传统上 Unix 将进程分成特权进程(euid=0, root/superuser)和非特权进程，通过 euid 和 egid 等方式检查权限；而 Linux 则是将root的特权划分成更小的单元，称为 capability ，可以为进程单独设置一个或多个 capabilities。为了能够修改 netfilter ，需要在 `docker-compose.yml` 中加入名为 `NET_ADMIN` 的 capabilities；此外，还需要[映射 `/dev/net/tun` 设备](https://stackoverflow.com/a/68071527/8706476)，否则 demo 打开该设备会失败：
+不过，执行 iptables 修改 netfilter 需要 root 特权，容器在默认情况下无法使用。根据 `man capabilities` 的描述，传统上 Unix 将进程分成特权进程(euid=0, root/superuser)和非特权进程，通过 euid 和 egid 等方式检查权限；而 Linux 则是将root的特权划分成更小的单元，称为 capability ，可以为进程单独设置一个或多个 capabilities。为了能够修改 netfilter ，需要在 `docker-compose.yml` 中加入名为 `NET_ADMIN` 的 capabilities；此外，还需要[映射 `/dev/net/tun` 设备](https://stackoverflow.com/a/68071527/8706476)，否则 demo 打开该设备会失败：
 
 ```yml
 version: "3.8"
@@ -105,25 +86,24 @@ sudo sysctl net.ipv4.ip_forward=1
 sudo sysctl net.netfilter.nf_log_all_netns=1 # 容器内没法使用 dmesg
 ```
 
-P.S. 有的资料提到 docker 允许[单独为容器指定部分内核参数](https://docs.docker.com/compose/compose-file/compose-file-v3/#sysctls)，这个说法恐怕会造成迷惑。我本地（ubuntu 18.04，docker 24）试了一下发现，在宿主机 IPv4 转发关闭的情况下，容器尽管使用了 `sysctls: [net.ipv4.ip_forward=1]` 也还是不能转发IPv4。而且这跟宿主机的 user 是否为 root 无关，哪怕容器本身是用 sudo 拉起来的也一样。不过，反过来就不一样了，在宿主机打开该开关的情况下，容器使用了 `net.ipv4.ip_forward=0` 雀食能禁止 IPv4 转发，猜测 docker 只能关闭内核参数，而不能主动打开被宿主机关闭的内核参数。
-
+顺便说一下有的资料提到 docker 允许[单独为容器指定部分内核参数](https://docs.docker.com/compose/compose-file/compose-file-v3/#sysctls)，这个说法恐怕会造成迷惑。我本地（ubuntu 18.04，docker 24）试了一下发现，在宿主机 IPv4 转发关闭的情况下，容器尽管使用了 `sysctls: [net.ipv4.ip_forward=1]` 也还是不能转发IPv4。而且这跟宿主机的 user 是否为 root 无关，哪怕容器本身是用 sudo 拉起来的也一样。不过，反过来就不一样了，在宿主机打开该开关的情况下，容器使用了 `net.ipv4.ip_forward=0` 雀食能禁止 IPv4 转发，猜测 docker 只能关闭内核参数，而不能主动打开被宿主机关闭的内核参数。
 
 ### Client
 
 client 的发包和收包过程大致是：
 
-1. netfilter 将所有进程产生的 IPv4 packets 路由到 `tun0` ；
-2. client.py 从 `tun0` 读取 IPv4 packets，加密之后写入 UDP socket；
-3. client.py 从 UDP socket 接收到数据，解密之后写入 `tun0` ；
-4. netfilter 将 reply dispatch 到对应的进程。
+1. netfilter 将所有 IPv4 packets 路由到 `tun0` (1)；
+2. client.py 从 `tun0` 读取 IPv4 packets，加密之后写入 UDP socket (2, 3)；
+3. client.py 从 UDP socket 接收到数据，解密之后写入 `tun0` (14, 15)；
+4. netfilter 将 reply dispatch 到对应的进程 (16)。
 
 ![vpn demo client]({{ site.url }}/assets/2024-01-31-tunvpn-client.svg)
 
-> 在 netfilter 中，同一个 packet 先后遍历了两次 source localhost(1 and 3) 以及两次 destination localhost(14 and 16)。
+> 按照 [iptables 中的三个路径的说法]({{ site.url }}/blog/linux-tuntap/)，发包 packet 先后遍历两次 source localhost(1 and 3) ，收包 packet 遍历两次 destination localhost(14 and 16)。
 
 #### Route all traffics to `tun0` 
 
-首先，client 通过 iproute2 修改默认的 main 路由表配置，将所有 IPv4 packet 都路由到 `tun0` 接口：
+首先，client 修改默认的 main 路由表配置，将所有 IPv4 packet 都路由到 `tun0` 接口：
 
 ```sh
 ip route add 0/1 dev tun0
@@ -144,7 +124,7 @@ ip route add 128/1 dev tun0
 
 #### "Forward" IPv4 packets from `tun0` to  `eth0` 
 
-当 IPv4 packet 被路由到 `tun0` 之后，client 就能从 `tun0` fd 读取到完整的 IPv4 packet，而不仅仅是 payload data。这一点非常重要：对于server来说，保留了 IPv4 目的地址，server 才能将 packet 转发到真正的目的地。client 将 IPv4 packet 作为 UDP 的 payload 原封不动地发送给 server。在实际应用中这部分逻辑可能更复杂，client 可以将 payload 加密，而且传输协议也不限于 UDP。为简单起见，这里的 demo 就是直接发明文。以 ping 为例，下图是最终 client 发送给 server 的 UDP datagram
+当 IPv4 packet 被路由到 `tun0` 之后，client 就能从 `tun0` fd 读取到完整的 IPv4 packet，包括 IPv4 目的地址，而不仅仅是 payload data。这一点非常重要：对于server来说，保留了 IPv4 目的地址，server 才能将 packet 转发到真正的目的地。client 将 IPv4 packet 作为 UDP 的 payload 原封不动地发送给 server。在实际应用中这部分逻辑可能更复杂，client 可以将 payload 加密，而且传输协议也不限于 UDP。为简单起见，这里的 demo 就是直接发明文。以 ping 为例，下图是最终 client 发送给 server 的 UDP datagram
 
 ![UDP datagram]({{ site.url }}/assets/2024-01-31-tunvpn-udp.svg)
 
@@ -211,7 +191,7 @@ ip route add 128/1 via 192.168.96.2
 
 在处理 reply 的时候，server 上的 netfilter MASQUERADE 还原 reply 的目的地址，转发到 `tun0`， -->
 
-IPv4 packets 从 client 的 `tun0` 的进入，从 server 的 `tun0` 出来，其内容在这期间没有经过任何修改，就像进入了一个隧道一样，进去的时候是啥样，出来的时候也是那个鬼样，方向反过来也是一样。不得不佩服协议分层确实是一个精妙的设计！这个 IP 隧道对于所有运行于 IPv4 之上的应用程序来说是透明的，应用程序无需修改or重启即可使用隧道，同时也能保有上层协议的全部能力（e.g., TCP keepalive）。最后来一个 vpn demo 的全景图~
+进程发送的 IPv4 packets 在 client 上从 `tun0` 进入，在 server 上也是从 `tun0` 出来，其内容在这期间没有经过任何修改，就像进入了一个隧道一样，进去之前跟出来出来之后的数据是一致的；方向反过来也是如此。这个设计确实有意思：IP 隧道对于所有运行于 IPv4 之上的应用程序来说是透明的，应用程序无需修改or重启即可使用隧道，同时也能保有上层协议的全部能力（e.g., TCP keepalive）。最后来一个 vpn demo 的全景图~
 
 ![vpn demo client]({{ site.url }}/assets/2024-01-31-tunvpn.svg)
 
