@@ -16,7 +16,6 @@ tags:
   - iproute2
 ---
 
-## Network-emulating using docker-compose
 
 用 docker-compose 组建容器的网络有很多好处：
 1. 首先，这个方法不需要准备多个真机和路由器，只要在单个运行Linux的机器上就能实现；
@@ -26,7 +25,7 @@ tags:
 
 当然缺点也很明显，这个方法只适用于Linux，而且容器跟真机可能还是有差别的。
 
-### Networking
+## Networking
 
 只要容器的 `networks` 标签值包含相同的网络的名称的字符串，docker-compose就会把对应的容器放在同一个网络。知道这一点，就可以在 docker-compose.yml 里编排网络的拓扑结构了。
 
@@ -135,7 +134,7 @@ services:
 # ...
 ```
 
-## Setup container as router
+### Setup container as router
 
 Linux 内建了 IP 转发的功能。为了实现转发 IP packet，宿主机需要启用对应的内核参数：
 
@@ -169,6 +168,10 @@ services:
 # ...
 ```
 
+### Setup DNS
+
+到这里这个名为 router 的容器已经具备转发包的能力了，不过DNS还是没有的。如果要具备DNS的能力，router需要安装类似 dnsmasq 的东西并且设置为 entrypoint，而且各个容器还得改DNS设置。不过这里我没有需要因此就没整了。
+
 ## Setup default route
 
 一般情况下，容器的默认路由是指向docker的网关。为了让容器的traffic能够经过 router，需要分别修改容器的默认路由
@@ -186,9 +189,6 @@ services:
       tail -f /dev/null"
 ```
 
-### DNS
-
-到这里这个名为 router 的容器已经具备转发包的能力了，不过DNS还是没有的。如果要具备DNS的能力，router需要安装类似 dnsmasq 的东西并且设置为 entrypoint，而且各个容器还得改DNS设置。不过这里我没有需要因此就没整了。
 
 ## Setup traffic control
 
@@ -276,7 +276,7 @@ services:
 # ...
 ```
 
-## Mimic "daemon" using sidecar
+## Sidecar
 
 sidecar 是 k8s 里的概念，允许一个容器去访问另一个容器里的内容，一般的用法是让sidecar容器输出另一个容器里的微服务的文件日志。docker-compose里面也有[类似的功能](https://ilhicas.com/2023/01/26/How-to-run-a-sidecar-in-docker-compose.html)，做法是在作为 sidecar 的容器配置中指定 `network_mode: "services:xxxx"`
 
