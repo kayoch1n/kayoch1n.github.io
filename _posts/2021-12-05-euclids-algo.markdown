@@ -5,7 +5,7 @@ catalog: true
 title:  "数论学习笔记 - 欧几里得算法"
 date:   2021-11-27 11:51:38 +0800
 subtitle: "心を燃やせ"
-header-img: "img/sz-transmission-tower-2.jpg"
+header-img: "img/jp-biwako.jpg"
 mathjax: true
 categories: 
   - blog

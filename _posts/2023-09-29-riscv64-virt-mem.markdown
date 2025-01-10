@@ -4,7 +4,7 @@ layout: "post"
 catalog: true
 title: "RISCV64 Virtual Memory"
 date:   2023-09-29 15:40:38 +0800
-header-img: "img/sz-transmission-tower-2.jpg"
+header-img: "img/jp-biwako.jpg"
 mermaid: true
 mathjax: true
 categories:

@@ -2,8 +2,8 @@
 toc: true
 layout: "post"
 catalog: true
-title: "“管中窥豹”"
-subtitle: "从一个 tun ping demo 认识 Linux netfilter 框架"
+title: "Linux iptables 防火墙”"
+subtitle: "一个使用 tun 接口实现 ping 的demo"
 date:   2024-01-09 21:40:38 +0800
 header-img: "img/gz-SCNBC.jpg"
 categories:
@@ -20,7 +20,7 @@ tags:
 
 这篇笔记要从一个 demo 说起。原程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)，可以使用 tun 接口进行ping。因为我对 tun 接口以及 netfilter 的了解几乎是零，所以就有了这篇学习笔记，这篇笔记的主题是 netfilter，tun 接口的相关笔记在[下一篇文章]({{ site.url }}/blog/linux-tuntap)。
 
-## Python example
+## 改写成 Python 例子
 
 用 Python 改写了下这个 example，下文简称 tunping
 
@@ -60,7 +60,7 @@ def main():
 main()
 ```
 
-### How to run it?
+### 执行
 
 这个 demo 不能直接运行。需要先创建 tun 接口以及配置 iptables
 
@@ -132,7 +132,7 @@ netfilter 处理数据包的抽象全景图如下所示。这个流程是一个�
 
 这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES)。
 
-### Track IPv4 packets using iptables
+### 配置 iptables 以跟踪 IP 包
 
 为了学习 Linux 处理packet流程，可以使用 iptables 在所有处理节点配置 LOG ，并且通过查看内核日志来追踪 IPv4 packet 如何在 netfilter 中流动。由于 iptables 涉及的节点比较多，有4个table共13个chain，方便起见使用以下脚本进行批量操作：
 
@@ -225,7 +225,7 @@ reply 的日志：
 
 接下来逐条日志仔细研究下这个数据包走过了 netfilter 的哪些路径。
 
-#### Coming from tun0
+#### IP 包从 tun0 进入
 
 首先是前面三条日志，数据从 NETWORK **进入**到netfilter。从这里可以看出程序写入tun fd的 ICMP msg，被内核视为从从tun0接收的数据包。
 
@@ -251,7 +251,7 @@ reply 的日志：
 > `ping -c1 119.29.29.29 -I eth0`：packet 进入 raw OUTPUT 节点。
 
 
-#### Forwarded to eth0
+#### IP 包被转发到 eth0
 
 ```log
 [  +0.000010] mangle-FORWARD [114514]IN=tun0 OUT=eth0 MAC= SRC=192.168.69.1 DST=119.29.29.29 LEN=41 TOS=0x00 PREC=0x00 TTL=63 ID=1 PROTO=ICMP TYPE=8 CODE=0 ID=0 SEQ=0
@@ -268,7 +268,7 @@ reply 的日志：
 
 可以看出 `tunping` 实际上走的是forwarded packets路径，从一个网卡 IN=tun0 被转发到 OUT=eth0。
 
-#### MASQUERADE
+#### 配置 MASQUERADE 规则
 
 之后 packet 来到 nat POSTROUTING。packet SRC=192.168.69.1，这是 tun0 的 IPv4 地址，跟物理网卡 eth0 172.16.16.15 不是一个子网。主机的网关在收到 reply 的时候，不会认为 DST=192.168.69.1 的 packet 要转发给当前主机；即使 tun0 配置成跟 eth0 同一个子网也不行，因为 tun0 并不是一个真正的物理接口，网关也无从知晓这个地址对应当前主机。所以这个 ICMP msg 是收不到 reply 的。
 
@@ -298,7 +298,7 @@ KeyboardInterrupt
 
 在 outbound 方向，MASQUERADE 起作用的节点是 nat POSTROUTING；在 inbound 方向，MASQUERADE 起作用的节点可能是 nat PREROUTING。
 
-#### Reply from remote
+#### 从远端 server 收包
 
 ```log
 [  +0.004704] raw-PREROUTING [114514]IN=eth0 OUT= MAC=52:54:00:d4:4b:49:fe:ee:f5:ba:3d:ed:08:00 SRC=119.29.29.29 DST=172.16.16.15 LEN=41 TOS=0x08 PREC=0x60 TTL=56 ID=1 PROTO=ICMP TYPE=0 CODE=0 ID=0 SEQ=0
@@ -338,14 +338,14 @@ sudo tcpdump -n -i any 'icmp and (dst 119.29.29.29 or src 119.29.29.29)'
 
 不过我有一点不明白： reply 的目的地址在 mangle PREROUTING 之后变成了 192.168.69.1，但是没出现 nat PREROUTING 的日志。暂时没找到关于 MASQUERADE 在 reply 何时起作用的资料，记录一下问题先。
 
-## Conclusion
+## 结论
 
 1. netfilter 是linux 内核处理packet的框架；用户可以通过 iptables 干预内核处理 IP packet 的过程；
 2. tunping 通过往 tun0 的 fd 写入 ICMP msg，使 ICMP msg 从 tun0 接口进入 netfilter 并且被转发到 eth0 接口，最后发送到目的主机；同时在转发之后修改 packet 的源地址为 eth0 的地址，达到类似NAT的效果收到 reply，最终实现了 ping 的功能。
 
 ![tunping]({{ site.url }}/assets/2024-01-09-tunping.svg)
 
-## Reference
+## 参考
 
 - [netfilter 遍历过程](https://upload.wikimedia.org/wikipedia/commons/3/37/Netfilter-packet-flow.svg)
 - [iptables 遍历过程](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES):

@@ -5,7 +5,7 @@ catalog: true
 title:  "HTTPS 反向代理"
 date:   2022-03-14 12:10:38 +0800
 subtitle: "元気を出さないと、ご飯もおいしくないよ"
-header-img: "img/sz-transmission-tower-2.jpg"
+header-img: "img/jp-biwako.jpg"
 categories: 
   - blog
 tags:

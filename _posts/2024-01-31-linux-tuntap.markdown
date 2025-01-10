@@ -2,8 +2,8 @@
 toc: true
 layout: "post"
 catalog: true
-title: "“暗度陈仓”"
-subtitle: "从一个 VPN demo 认识 Linux TUN 接口"
+title: "暗度陈仓：Linux TUN 接口"
+subtitle: "一个简单的 VPN demo"
 date:   2024-01-31 21:40:38 +0800
 header-img: "img/sz-transmission-tower.jpg"
 categories:
@@ -26,7 +26,7 @@ tags:
 
 简单来说，tun 接口给予了使用者直接写入/读取 netfilter 数据的便利。这篇笔记将从一个用 Python 实现的简单 VPN demo 出发，记录 Linux tun 接口的工作方式。
 
-## Device allocation
+## TUN 设备
 
 [打开 `/dev/net/tun` 并通过关联上一个名字之后](https://docs.kernel.org/networking/tuntap.html#network-device-allocation)，内核就会创建一个虚拟的网络接口，这个接口并无对应的物理网卡。默认情况下，同一时刻只能有一个进程打开 `/dev/net/tun` 并关联上同样的名称，比如说 `tun0`，此时如果另一个进程尝试打开`/dev/net/tun` 并关联`tun0`时，系统就会报告一个错误 EBUSY(device or resource busy)。当进程结束后，`tun0`就会被删除。
 
@@ -40,9 +40,6 @@ ioctl(4, TUNSETPERSIST, 0x1)            = 0
 close(4)                                = 0
 // ...
 ```
-
-
-### See resolved macros
 
 宏 TUNSETPERSIST 和 TUNSETIFF 在 python 中并未定义，得写一段C代码把这些具体的值打出来。顺便提一个找出头文件在文件系统中实际位置的方法，方便查找本地的头文件源代码：
 
@@ -101,7 +98,7 @@ client 的发包和收包过程大致是：
 
 > 按照 [iptables 中的三个路径的说法]({{ site.url }}/blog/linux-tuntap/)，发包 packet 先后遍历两次 source localhost(1 and 3) ，收包 packet 遍历两次 destination localhost(14 and 16)。
 
-#### Route all traffics to `tun0` 
+#### 路由所有流量到 `tun0` 
 
 首先，client 修改默认的 main 路由表配置，将所有 IPv4 packet 都路由到 `tun0` 接口：
 
@@ -122,7 +119,7 @@ ip route add 128/1 dev tun0
 > 
 > 日志：`iptables -I OUTPUT -t raw -d 119.29.29.29 -j LOG`
 
-#### "Forward" IPv4 packets from `tun0` to  `eth0` 
+#### 封装 IPv4 为 UDP
 
 当 IPv4 packet 被路由到 `tun0` 之后，client 就能从 `tun0` fd 读取到完整的 IPv4 packet，包括 IPv4 目的地址，而不仅仅是 payload data。这一点非常重要：对于server来说，保留了 IPv4 目的地址，server 才能将 packet 转发到真正的目的地。client 将 IPv4 packet 作为 UDP 的 payload 原封不动地发送给 server。在实际应用中这部分逻辑可能更复杂，client 可以将 payload 加密，而且传输协议也不限于 UDP。为简单起见，这里的 demo 就是直接发明文。以 ping 为例，下图是最终 client 发送给 server 的 UDP datagram
 
@@ -151,7 +148,7 @@ server 的发包和收包过程大致如下：
 
 > 在 netfilter 中，同一个 packet 先后遍历 destination localhost(5)、两次 forwarded packets(7 and 10) 以及一次 source localhost(12)。
 
-#### MASQUERADE
+#### 设置 iptables MASQUERADE 规则
 
 相比 client，server 不需要设置路由，但是要设置 iptables。server 从 UDP socket 中读取的 IPv4 packet 源地址仍然是 client `tun0` 的 10.8.0.2。为了能正常收到 reply，server 设置了一条针对源地址 10.8.0.2/16 使用 MASQUERADE 的规则：
 
@@ -159,7 +156,9 @@ server 的发包和收包过程大致如下：
 - 在 forward reply 的过程中，reply 的目的地址会从 192.168.96.3 被修改为 10.8.0.2。这可能是 nat PREROUTING 利用 conntrack 实现的。
 - client `tun0` 和 server `tun0` 的 IPv4 地址需要在同一个子网，否则 MASQUERADE 不会起作用，原因见 [上一篇关于 iptables 的笔记]({{ site.url }}/blog/linux-iptables#masquerade)。
 
-### More on iptables
+### 设置 iptables 其他规则
+
+#### 防止默认drop
 
 client 和 server 都会设置以下两条规则：
 
@@ -169,6 +168,8 @@ iptables -I FORWARD 1 -o tun0 -j ACCEPT
 ```
 
 这两条规则都指定了顺序为1，目的是要让 FORWARD chain 确保 VPN 的 traffic 不会被 DROP 掉。虽然 chain 的默认 policy 可能是 ACCEPT，但是如果单纯依赖这一点而不用规则显式 ACCEPT 的话，就有可能出现 VPN traffic 被别的规则 DROP 掉的问题。而且，考虑到将来可能的用途，包括 LOG、修改默认 policy or precedence，显式 ACCEPT 也是一个好的习惯。
+
+#### VPN 网关
 
 最后，client 上还有一条使用了 MASQUERADE 的规则
 
@@ -185,7 +186,7 @@ ip route add 128/1 via 192.168.96.2
 
 > 在第三台主机 192.168.96.3 上设置路由。其中，192.168.96.2 是 client 的 IPv4 地址。
 
-### Conclusion
+### 结论
 
 <!-- 在发包的时候，VPN client 先将所有 traffic 路由到 `tun0`，利用 `tun0` fd 读取 IP packet ，将 IP packet 打包作为 UDP payload 发送到 server；server从 UDP datagram 中拆箱出 IP packet，利用 `tun0` fd 写入 IP packet，再让 netfilter 转发到真正的目的地。
 
@@ -195,7 +196,7 @@ ip route add 128/1 via 192.168.96.2
 
 ![vpn demo client]({{ site.url }}/assets/2024-01-31-tunvpn.svg)
 
-## Reference
+## 参考资料
 
 - [Linux TUN/TAP](https://docs.kernel.org/networking/tuntap.html#network-device-allocation)
 - [A simple VPN (tunnel with tun device) demo and some basic concepts](https://lxd.me/a-simple-vpn-tunnel-with-tun-device-demo-and-some-basic-concepts)

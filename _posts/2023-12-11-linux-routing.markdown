@@ -2,8 +2,8 @@
 toc: true
 layout: "post"
 catalog: true
-title: "从多网卡看 Linux routing"
-subtitle: "食答辩了，大人.jpg"
+title: "Linux routing"
+subtitle: "多网卡配置路由"
 date:   2023-12-10 21:40:38 +0800
 header-img: "img/tag-bg.jpg"
 categories:
@@ -22,7 +22,7 @@ tags:
 
 
 
-## Linux route selection
+## Linux route 选择
 
 给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
 
@@ -67,7 +67,7 @@ UseMTU=true
 RouteMetric=100
 ```
 
-### Networking on Ubuntu/CentOS
+###  Ubuntu/CentOS 网络配置管理
 
 `/{lib,run,etc}/systemd/network` 是 ubuntu 下用于存放网络配置的目录(`man -s 5 systemd.network`，5表示文件格式)。后台服务 systemd-networkd 将会读取这里的文件使配置生效(`man -s 8 systemd-networkd`, 8 表示 root级别的命令)。其中 `/run` 表示“volatile”的运行时目录，`/etc` 表示系统配置目录，`/etc/systemd/network`下的文件会覆盖`/run/systemd/network`的同名文件，更多内容可以参考 `man`。
 
@@ -235,7 +235,7 @@ sudo ip link delete br0 type bridge
 
 提升效果就这么点，我都怀疑到底有没有起作用，还是说这就是腾讯云内网带宽的上限？可以考虑走公网IP测试一下。
 
-## Reference
+## 参考资料
 
 - [路由表](http://linux-ip.net/html/routing-tables.html)
 - [RPDB](http://linux-ip.net/html/routing-rpdb.html)

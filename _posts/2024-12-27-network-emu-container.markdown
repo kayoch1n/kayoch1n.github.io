@@ -3,9 +3,10 @@ toc: true
 layout: "post"
 catalog: true
 title: "用容器模拟组建网络"
+subtitle: "一键自动化"
 date: 2024-12-27 09:00:38 +0800 
 mermaid: true
-header-img: "img/sz-baoan-mangrove"
+header-img: "img/gz-SCNBC-bald-cypress.jpg"
 categories:
   - blog
 tags:
@@ -25,7 +26,7 @@ tags:
 
 当然缺点也很明显，这个方法只适用于Linux，而且容器跟真机可能还是有差别的。
 
-## Networking
+## 组网
 
 只要容器的 `networks` 标签值包含相同的网络的名称的字符串，docker-compose就会把对应的容器放在同一个网络。知道这一点，就可以在 docker-compose.yml 里编排网络的拓扑结构了。
 
@@ -87,7 +88,7 @@ networks:
 4. 两个容器分别通过 `depends_on` 标签声明启动时的依赖关系。如果容器启动的时候需要执行一些命令比如解析router IP，这个标签可以避免因为启动顺序没协调好而造成的报错以至于启动失败的问题；
 5. 由于后续需要修改路由和防火墙，因此需要声明 `cap_add` 标签，添加 `NET_ADMIN` capability。
 
-### Optional IP configuration
+### 可选的IP配置
 
 docker-compose 支持[对网络指定网段或者容器分配IP](https://docs.docker.com/reference/compose-file/services/#ipv4_address-ipv6_address)。这个不是必须的，除非有需求
 
@@ -107,7 +108,7 @@ networks:
 # ...
 ```
 
-### Prevent container from exiting
+### 防止容器退出
 
 容器的本质是被namespace隔离的进程，换言之必须要有一个可以执行的“入口”，也就是 entrypoint。我模拟组网的目的有时可能只是验证一些拓朴结构里的猜想，比如简单ping一下测试通不通。简单起见，网络里的节点很多时候是“空转”的，换言之没有一个固定的执行的进程。
 
@@ -134,7 +135,7 @@ services:
 # ...
 ```
 
-### Setup container as router
+### 设置容器作为路由器
 
 Linux 内建了 IP 转发的功能。为了实现转发 IP packet，宿主机需要启用对应的内核参数：
 
@@ -168,11 +169,11 @@ services:
 # ...
 ```
 
-### Setup DNS
+### 设置DNS服务器
 
 到这里这个名为 router 的容器已经具备转发包的能力了，不过DNS还是没有的。如果要具备DNS的能力，router需要安装类似 dnsmasq 的东西并且设置为 entrypoint，而且各个容器还得改DNS设置。不过这里我没有需要因此就没整了。
 
-## Setup default route
+## 设置默认路由
 
 一般情况下，容器的默认路由是指向docker的网关。为了让容器的traffic能够经过 router，需要分别修改容器的默认路由
 
@@ -190,7 +191,7 @@ services:
 ```
 
 
-## Setup traffic control
+## 设置流量控制
 
 容器毕竟不是真机，不像真实网络会出现丢包延迟，容器之间发包要多快有多快。这个时候 tc 可以派上用场了。tc 是用于操作Linux内核流量管控的工具。包被发往网卡之前会先进入内核的队列，可以借由tc对流量进行分类(class)、给队列(qdisc)设置属性等方式模拟丢包或延迟。tc 内部为每个网卡维护一个树状结构，其节点有两种：
 
@@ -276,7 +277,7 @@ services:
 # ...
 ```
 
-## Sidecar
+## 容器的 Sidecar
 
 sidecar 是 k8s 里的概念，允许一个容器去访问另一个容器里的内容，一般的用法是让sidecar容器输出另一个容器里的微服务的文件日志。docker-compose里面也有[类似的功能](https://ilhicas.com/2023/01/26/How-to-run-a-sidecar-in-docker-compose.html)，做法是在作为 sidecar 的容器配置中指定 `network_mode: "services:xxxx"`
 
@@ -306,7 +307,7 @@ cat: /data/1919810: No such file or directory
 ubuntu@VM-16-15-ubuntu:~/data$
 ```
 
-## Automation
+## 一键自动化
 
 借助 docker-compose 可以实现一键启动、一键关闭指定拓扑结构的网络，这对于一些自动化任务来说是非常方便的。下面这个脚本使用了 docker-compose 进行 TCP 拥塞控制的相关实验 
 

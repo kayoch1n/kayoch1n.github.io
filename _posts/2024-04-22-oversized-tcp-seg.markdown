@@ -3,7 +3,6 @@ toc: true
 layout: "post"
 catalog: true
 title: "关于IP包长度超过MTU这件事"
-subtitle: "IPパケットのサイズがMTUを超えた件"
 date:   2024-04-22 21:40:38 +0800
 header-img: "img/sz-transmission-tower.jpg"
 categories:
@@ -14,14 +13,12 @@ tags:
   - mtu 
 ---
 
-## 缘起
-
-在抓包 tls handshake 的时候
 ```bash
 sudo tcpdump -n -v -i eth0 'tcp port 443 and (tcp[((tcp[12] & 0xf0) >> 2)] = 0x16)'
 ```
 
 > 抓取 _tls handshake_ message。这条filter的解释可以见[这里](https://stackoverflow.com/a/39644735/8706476)
+
 
 
 ```
@@ -34,7 +31,8 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
     172.16.16.15.44834 > 109.244.236.76.443: Flags [P.], cksum 0x07d9 (correct), seq 517:610, ack 3778, win 501, length 93
 ```
 
-发现了一个问题：第二条记录是一个收包，IP包的长度3817字节超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
+
+在抓包 tls handshake 的时候发现了一个问题：第二条记录是一个收包，IP包的长度3817字节超过了MTU。而且 TCP checksum 是错误的。这条记录包括了 server certificate 在内的数据。
 
 ```
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
@@ -52,7 +50,7 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
 
 在这里，3817=20(ip header)+20(tcp header)+3777(tcp payload)，已经超过了MTU。
 
-## `generic-receive-offload`
+## 内核参数 `generic-receive-offload`
 
 查资料发现内核存在[跟网卡offloading有关的参数](https://docs.kernel.org/networking/segmentation-offloads.html)，可以用 `ethtool` 查看是否启用
 
@@ -92,7 +90,7 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 
 
 这个时候 headshake 所在IP包的长度就变成 1456 了，tcp checksum也正常了。但是少掉的 server certificate跑哪里去了呢？答案是server certificate被“拆成”多个tcp segment了，或者准确的说它本来就是用多个segment进行传输的~用wireshark打开，可以看见server hello的最后一个msg中会有一个3 Ressembled TCP segments的提示。
 
-## `tcp-segmentation-offload`
+## 内核参数 `tcp-segmentation-offload`
 
 tso 则可以在**发送** tcp segment 的时候由**网卡**将一个大包拆成多个小包，减少内核的CPU处理时间。
 

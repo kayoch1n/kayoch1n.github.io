@@ -4,7 +4,7 @@ layout: "post"
 catalog: true
 title:  "数论学习笔记 - Group, ring and field"
 date:   2022-06-05 12:40:38 +0800
-header-img: "img/gz-canton-tower-haixinqiao.jpg"
+header-img: "img/jp-osk-harukas.jpg"
 subtitle: "己を信じ、貫け"
 mathjax: true
 categories: 
