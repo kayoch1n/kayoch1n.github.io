@@ -2,7 +2,7 @@
 toc: true
 layout: "post"
 catalog: true
-title: "Linux iptables 防火墙”"
+title: "Linux iptables 防火墙"
 subtitle: "一个使用 tun 接口实现 ping 的demo"
 date:   2024-01-09 21:40:38 +0800
 header-img: "img/gz-SCNBC.jpg"
@@ -18,9 +18,47 @@ tags:
   - tun
 ---
 
-这篇笔记要从一个 demo 说起。原程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)，可以使用 tun 接口进行ping。因为我对 tun 接口以及 netfilter 的了解几乎是零，所以就有了这篇学习笔记，这篇笔记的主题是 netfilter，tun 接口的相关笔记在[下一篇文章]({{ site.url }}/blog/linux-tuntap)。
+这篇笔记要从一个 demo 说起。原程序是 [github上面一个开源的rust网络通信组件的example](https://github.com/smoltcp-rs/smoltcp/blob/main/examples/ping.rs)，可以使用 tun 接口进行ping。这篇笔记的主题是 netfilter，tun 接口的相关笔记在[下一篇文章]({{ site.url }}/blog/linux-tuntap)。
 
-## 改写成 Python 例子
+## Linux netfilter 框架
+
+`iptables` 是一个运行在用户态的工具，被用来操作 Linux 内核的 [网络数据包框架 netfilter](https://en.wikipedia.org/wiki/Netfilter)。netfilter 里面有四个模块，包括 `ip_tables`, `ip6_tables`, `arp_tables`和`ebtables`，对应有 4 个命令工具 `iptables`, `ip6tables`, `arptables` 和 `ebtables`，使用者可以分别使用这四个工具操作 IPv4/IPv6 packets、ARP packets和 Ethernet frames。
+
+netfilter 处理数据包的抽象全景图如下所示。这个流程是一个有向无环图，被分割成若干个用 **table** 和 **chain** 共同标识的节点，入口和出口分别都只有一个。有的资料管这些节点叫做 hooks。Linux 内核中的所有数据包都会进入这个流程，遍历其中的某一条路径，具体视协议而定。
+
+![netfilter](https://i.stack.imgur.com/NHq7t.png)
+
+每一条路径就像一个流水线，每个节点可以包含多个规则(rule)。一个规则包括 TARGET 和可选的 match，当数据包走到某个节点的时候，内核会检查该节点的规则的 match 是否能和数据包匹配上，如果 ok 就会执行对应的 TARGET ，否则遍历下一条规则，如此循环执行。用户可以**添加、修改or删除**节点里的规则。其中，
+
+- match 表示条件，例如 `iptables` 支持的源地址`-s`，输入接口`-o`，协议 `-p`等等；
+- TARGET 表示采取的动作，可能会导致数据包被 drop 掉，可能会修改数据包的某些字段，也可能啥也没发生就遍历下一跳规则等等。例如，iptables 所支持的 TARGET 有 SNAT(源地址NAT)，LOG(写入内核日志)等等。
+
+关于 match 和 TARGET ，更详细的列表可以参考 `man iptables-extensions`。netfilter 的其中一个用途是实现有状态的防火墙。
+
+“table”是固定的，[用户无法创建新的 table](https://askubuntu.com/q/316990/925210)。iptables 总共只有5个table，其中4个分别是上图的`filter`(默认),`raw`,`filter`,`mangle`，外加一个我在Wikipedia和archlinux wiki上面都找不到图的`security`。与其说是“table”，不如说是对处理节点的标签 tag。而 chain 是可以添加or删除，有点类似 CI 流水线的“stage”概念。
+
+### iptables
+
+在 netfilter 中，IP packet 的处理过程如下图所示：
+
+![IPv4 packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
+
+这个流程总共有三条不同的路径，分别对应三种场景:
+
+1. source localhost 
+    - **进程**往接口发送 IPv4 packet
+    - Local Process -> `OUTPUT` -> Routing Decision -> `POSTROUTING` -> NETWORK
+    - [上一篇文章]({{ site.url }}/blog/linux-routing)的多网卡路由配置，其实就是这条路径的 Routing Decision 节点处起作用；
+2. destination localhost: 
+    - **进程**从接口接收到 IPv4 packet
+    - NETWORK -> `PREROUTING` -> Routing Decision -> `INPUT` -> Local Process
+3. forwarded packets: 
+    - 内核从一个接口接收到 IPv4 packet，并发送到另一个接口
+    - NETWORK -> `PREROUTING` -> Routing Decision -> `FORWARD` -> Routing Decision -> `POSTROUTING` -> NETWORK
+
+这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES)。
+
+## 例子：tunping
 
 用 Python 改写了下这个 example，下文简称 tunping
 
@@ -94,43 +132,6 @@ python3 tunping.py -d 119.29.29.29 -s 192.168.69.1
 > 
 > P.S. 发包的源地址(192.168.69.1)和 tun0 的IP地址(192.168.69.100)**不同**，原因见后。
 
-## Linux netfilter
-
-`iptables` 是一个运行在用户态的工具，被用来操作 Linux 内核的 [网络数据包框架 netfilter](https://en.wikipedia.org/wiki/Netfilter)。netfilter 里面有四个模块，包括 `ip_tables`, `ip6_tables`, `arp_tables`和`ebtables`，对应有 4 个命令工具 `iptables`, `ip6tables`, `arptables` 和 `ebtables`，使用者可以分别使用这四个工具操作 IPv4/IPv6 packets、ARP packets和 Ethernet frames。
-
-netfilter 处理数据包的抽象全景图如下所示。这个流程是一个有向无环图，被分割成若干个用 table 和 chain 共同标识的节点，入口和出口分别都只有一个。有的资料管这些节点叫做 hooks。Linux 内核中的所有数据包都会进入这个流程，遍历其中的某一条路径，具体视协议而定。
-
-![netfilter](https://i.stack.imgur.com/NHq7t.png)
-
-每一条路径宛如一个流水线，每个节点可以包含多个规则(rule)。一个规则包括TARGET 和可选的 match，当数据包走到某个节点的时候，内核会检查该节点的规则的match是否能和数据包匹配上，如果ok就会执行对应的 TARGET ，否则遍历下一条规则，如此循环执行。用户可以**添加、修改or删除**节点里的规则。其中，
-
-- match 表示条件，例如 `iptables` 支持的源地址`-s`，输入接口`-o`，协议 `-p`等等；
-- TARGET 表示采取的动作，可能会导致数据包被 drop 掉，可能会修改数据包的某些字段，也可能啥也没发生就遍历下一跳规则等等。例如，iptables 所支持的 TARGET 有 SNAT(源地址NAT)，LOG(写入内核日志)等等。
-
-关于 match 和 TARGET ，更详细的列表可以参考 `man iptables-extensions`。netfilter 的其中一个用途是实现有状态的防火墙。
-
-这个命名方式（“table”和“chain”）容易造成误解。“table”让人联想到DB的table，给人一种table以及table里的内容可以任意添加的错觉；实际上，“table”是固定的，[用户无法创建 table](https://askubuntu.com/q/316990/925210)。以 iptables 为例，iptables 总共只有5个table，其中4个分别是上图的`filter`(默认),`raw`,`filter`,`mangle`，外加一个我在Wikipedia和archlinux wiki上面都找不到图的`security`。与其说是“table”，不如说是对处理节点的标签 tag。chain倒是可以添加or删除，有点类似 CI 流水线的“stage”概念。
-
-### iptables
-
-在 netfilter 中，IP packet 的处理过程如下图所示：
-
-![IPv4 packets 处理过程](https://www.frozentux.net/iptables-tutorial/images/tables_traverse.jpg)
-
-这个流程总共有三条不同的路径，分别对应三种场景:
-
-1. source localhost 
-    - **进程**往接口发送 IPv4 packet
-    - Local Process -> `OUTPUT` -> Routing Decision -> `POSTROUTING` -> NETWORK
-    - [上一篇文章]({{ site.url }}/blog/linux-routing)的多网卡路由配置，其实就是这条路径的 Routing Decision 节点处起作用；
-2. destination localhost: 
-    - **进程**从接口接收到 IPv4 packet
-    - NETWORK -> `PREROUTING` -> Routing Decision -> `INPUT` -> Local Process
-3. forwarded packets: 
-    - 内核从一个接口接收到 IPv4 packet，并发送到另一个接口
-    - NETWORK -> `PREROUTING` -> Routing Decision -> `FORWARD` -> Routing Decision -> `POSTROUTING` -> NETWORK
-
-这篇文章详细讲述了它们将分别以何种顺序[遍历不同的chain和table](https://www.frozentux.net/iptables-tutorial/iptables-tutorial.html#TRAVERSINGOFTABLES)。
 
 ### 配置 iptables 以跟踪 IP 包
 
@@ -337,6 +338,7 @@ sudo tcpdump -n -i any 'icmp and (dst 119.29.29.29 or src 119.29.29.29)'
 ```
 
 不过我有一点不明白： reply 的目的地址在 mangle PREROUTING 之后变成了 192.168.69.1，但是没出现 nat PREROUTING 的日志。暂时没找到关于 MASQUERADE 在 reply 何时起作用的资料，记录一下问题先。
+
 
 ## 结论
 

@@ -19,7 +19,7 @@ tags:
   - capabilities
 ---
 
-`/dev/net/tun` 是个特殊的文件，它是个[字符设备(character special)](https://unix.stackexchange.com/a/60147/325365)(`/dev/urandom` 也是个字符设备)，可按照字节流读取or写入 IP packets(L3)。[上一篇笔记]({{ site.url }}/blog/linux-iptables)提到，通过 fd 写入 tun 接口的数据，会被视为操作系统从 tun 接口**接收**到的 IP packets。与之对应，当 IP packets 离开 netfilter 时，如果 OUT 是一个 tun 接口，进程就能从 tun fd 读取到该数据。Linux 对 socket 和 tun fd 的处理方式是不同的：
+`/dev/net/tun` 是个特殊的文件，它是个[字符设备(character special)](https://unix.stackexchange.com/a/60147/325365)(`/dev/urandom` 也是个字符设备)，可按照字节流读取or写入 IP packets(L3)。[上一篇笔记]({{ site.url }}/blog/linux-iptables#执行)提到，通过 fd 写入 tun 接口的数据，会被视为操作系统从 tun 接口**接收**到的 IP packets。与之对应，当 IP packets 离开 netfilter 时，如果 OUT 是一个 tun 接口，进程就能从 tun fd 读取到该数据。Linux 对 socket 和 tun fd 的处理方式是不同的：
 
 - 写入 socket 的数据，会被装上协议的 header，然后才进入 netfilter；
 - 写入 tun fd 的数据，如果是有效的 IPv4/IPv6 格式，就会直接进入 netfilter。
@@ -30,7 +30,7 @@ tags:
 
 [打开 `/dev/net/tun` 并通过关联上一个名字之后](https://docs.kernel.org/networking/tuntap.html#network-device-allocation)，内核就会创建一个虚拟的网络接口，这个接口并无对应的物理网卡。默认情况下，同一时刻只能有一个进程打开 `/dev/net/tun` 并关联上同样的名称，比如说 `tun0`，此时如果另一个进程尝试打开`/dev/net/tun` 并关联`tun0`时，系统就会报告一个错误 EBUSY(device or resource busy)。当进程结束后，`tun0`就会被删除。
 
-凡事有例外。有一种使用场景是，先用`ip`命令创建、配置并启动 `tun0`，然后在程序中用 API 打开并读写 `tun0`。因为命令本身是一个单独的进程，按照上面的说法进程退出之后 `tun0` 就会被删除，那这种使用场景就无从实现了。实际上 iproute2 用了一个叫做 `TUNSETPERSIST` 的request code，[这个值](https://www.gabriel.urdhr.fr/2021/05/08/tuntap/#persistent)可以使虚拟接口在进程退出之后避免被操作系统删除。可以用 `strace ip tuntap add dev tun0 mode tun`观察一下
+实际上大部分程序，比如 iproute2 的 `ip tuntap add`，在创建 tun 接口的时候，会用一个叫做 `TUNSETPERSIST` 的request code，[这个值](https://www.gabriel.urdhr.fr/2021/05/08/tuntap/#persistent)可以使虚拟接口在进程退出之后避免被操作系统删除。这一点可以用 `strace ip tuntap add dev tun0 mode tun`观察一下
 
 ```c
 // ...
@@ -61,29 +61,18 @@ tun 虚拟接口常被用来实现 VPN。基于[这篇文章](https://lxd.me/a-s
 
 ### 用容器组网
 
-比起直接修改机器的网络设置，用容器组网可以避免一些麻烦，比如配置错了可以直接删掉容器，对宿主机没有影响。
+比起直接修改机器的网络设置，用容器组网可以避免一些麻烦，比如配置错了可以直接删掉容器，对宿主机没有影响。关于组网的内容可以参考[这里]({{ site.url }}/blog/network-emu-container)。总的来说需要注意这三个事情：
 
-不过，执行 iptables 修改 netfilter 需要 root 特权，容器在默认情况下无法使用。根据 `man capabilities` 的描述，传统上 Unix 将进程分成特权进程(euid=0, root/superuser)和非特权进程，通过 euid 和 egid 等方式检查权限；而 Linux 则是将root的特权划分成更小的单元，称为 capability ，可以为进程单独设置一个或多个 capabilities。为了能够修改 netfilter ，需要在 `docker-compose.yml` 中加入名为 `NET_ADMIN` 的 capabilities；此外，还需要[映射 `/dev/net/tun` 设备](https://stackoverflow.com/a/68071527/8706476)，否则 demo 打开该设备会失败：
+1. 给予 NET_ADMIN capability
+2. 映射 TUN 设备
+3. 宿主机打开内核 ipv4 转发
 
-```yml
-version: "3.8"
-services:
-  shizuku:
-    # ... 其他字段
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-```
-
-最后，需要在**宿主机**上面打开IPv4转发。如果你要观察日志的话，还得[允许 netfilter 输出所有 namespace 的日志](https://stackoverflow.com/questions/39632285/how-to-enable-logging-for-iptables-inside-a-docker-container#comment94786207_39681550)：
+此外，如果要观察日志的话，还得[允许 netfilter 输出所有 namespace 的日志](https://stackoverflow.com/questions/39632285/how-to-enable-logging-for-iptables-inside-a-docker-container#comment94786207_39681550)：
 
 ```bash
 sudo sysctl net.ipv4.ip_forward=1
 sudo sysctl net.netfilter.nf_log_all_netns=1 # 容器内没法使用 dmesg
 ```
-
-顺便说一下有的资料提到 docker 允许[单独为容器指定部分内核参数](https://docs.docker.com/compose/compose-file/compose-file-v3/#sysctls)，这个说法恐怕会造成迷惑。我本地（ubuntu 18.04，docker 24）试了一下发现，在宿主机 IPv4 转发关闭的情况下，容器尽管使用了 `sysctls: [net.ipv4.ip_forward=1]` 也还是不能转发IPv4。而且这跟宿主机的 user 是否为 root 无关，哪怕容器本身是用 sudo 拉起来的也一样。不过，反过来就不一样了，在宿主机打开该开关的情况下，容器使用了 `net.ipv4.ip_forward=0` 雀食能禁止 IPv4 转发，猜测 docker 只能关闭内核参数，而不能主动打开被宿主机关闭的内核参数。
 
 ### Client
 

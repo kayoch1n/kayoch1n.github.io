@@ -18,17 +18,13 @@ tags:
 ---
 
 
-用 docker-compose 组建容器的网络有很多好处：
-1. 首先，这个方法不需要准备多个真机和路由器，只要在单个运行Linux的机器上就能实现；
-2. 其次是得益于Linux namespace的隔离特性，变更路由或者修改防火墙等网络设置只会影响到单一容器而不影响宿主机；
-3. 还有就是便于执行自动化任务。在节点上执行命令其实就是在宿主机上执行 `docker exec`；配合 tc 可以实现流量控制、模拟loss和延迟等。
-4. 清理方便。所有对于路由表、防火墙或者队列的修改都会在 `docker-compose down` 之后被撤销。
+用 docker-compose 可以组建一些简单的网络，测试一些简单的功能。这个方法不需要准备多个真机和路由器，只要在单个运行Linux的机器上就能实现；而且得益于Linux namespace的隔离特性，变更路由或者修改防火墙等网络设置只会影响到单一容器而不影响宿主机，所有对于路由表、防火墙或者队列的修改都会在 `docker-compose down` 之后被撤销，加上配合 tc 可以实现流量控制、模拟loss和延迟等，因此在执行一些自动化任务的时候有优势。
 
 当然缺点也很明显，这个方法只适用于Linux，而且容器跟真机可能还是有差别的。
 
 ## 组网
 
-只要容器的 `networks` 标签值包含相同的网络的名称的字符串，docker-compose就会把对应的容器放在同一个网络。知道这一点，就可以在 docker-compose.yml 里编排网络的拓扑结构了。
+只要容器的 `networks` 标签值包含相同的网络的名称的字符串，docker-compose就会把对应的容器放在同一个网络，根据这一点就可以在 docker-compose.yml 里编排网络的拓扑结构了：
 
 ```mermaid
 flowchart LR
@@ -85,10 +81,30 @@ networks:
 1. 两个网络在顶级标签 `networks` 里声明；
 2. 两个容器的 `networks` 分别包含对应的网络的名字；
 3. router 的 `networks` 同时包含了两个网络，符合人设；
-4. 两个容器分别通过 `depends_on` 标签声明启动时的依赖关系。如果容器启动的时候需要执行一些命令比如解析router IP，这个标签可以避免因为启动顺序没协调好而造成的报错以至于启动失败的问题；
-5. 由于后续需要修改路由和防火墙，因此需要声明 `cap_add` 标签，添加 `NET_ADMIN` capability。
+4. 两个容器分别通过 `depends_on` 标签声明启动时的依赖关系。如果容器启动的时候需要执行一些命令比如解析router IP，就可以用这个标签避免因为启动顺序没协调好而造成的报错以至于启动失败的问题；
 
-### 可选的IP配置
+### 分配 NET_ADMIN capability
+
+修改路由和防火墙需要 root 特权，容器在默认情况下无法使用。
+
+传统上 Unix 将进程分成特权进程(euid=0, root/superuser)和非特权进程，通过 euid 和 egid 等方式检查权限；而 Linux 则是将 root 的特权划分成更小的单元，称为 capability ，可以为进程单独设置一个或多个 capabilities。为了修改路由和防火墙，需要在 `docker-compose.yml` 中加入名为 `NET_ADMIN` 的 capabilities。
+
+### （可选）映射 TUN 设备
+
+如果容器需要读写 TUN 设备，需要[将 `/dev/net/tun` 设备映射到容器内](https://stackoverflow.com/a/68071527/8706476)，不然容器打开 TUN 设备会失败
+
+```yml
+version: "3.8"
+services:
+  shizuku:
+    # ... 其他字段
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+```
+
+### （可选）IP配置
 
 docker-compose 支持[对网络指定网段或者容器分配IP](https://docs.docker.com/reference/compose-file/services/#ipv4_address-ipv6_address)。这个不是必须的，除非有需求
 
@@ -110,7 +126,7 @@ networks:
 
 ### 防止容器退出
 
-容器的本质是被namespace隔离的进程，换言之必须要有一个可以执行的“入口”，也就是 entrypoint。我模拟组网的目的有时可能只是验证一些拓朴结构里的猜想，比如简单ping一下测试通不通。简单起见，网络里的节点很多时候是“空转”的，换言之没有一个固定的执行的进程。
+容器的本质是被namespace隔离的进程，换言之必须要有一个可以执行的“入口”，也就是 entrypoint。我模拟组网的目的有时可能只是验证一些拓朴结构里的猜想，比如简单ping一下测试通不通；简单起见，网络里的节点很多时候是“空转”的，换言之没有一个固定的执行的进程。
 
 因此为了不让空转的容器退出，entrypoint 为 bash 的容器可以在 yml 里指定 `tty: true`。
 
@@ -120,11 +136,11 @@ networks:
 services:
   ayumu:
     entrypoint: bash
-    command: ["-c", "tail -f /dev/null"]
+    command: ["-c", "python3 start.py && tail -f /dev/null"]
 # ...
 ```
 
-另外，对于有入口的容器，可能还要增加一段入口挂掉之后重新启动的逻辑。比如 `iperf3` server 模式当 client 测试完成之后就会自动退出，为了防止容器挂掉，用 bash 的 while 重新拉起来
+另外，对于有入口的容器，可能还要增加一段入口挂掉之后重新启动的逻辑。比如 `iperf3` 的 server 端在 client 测试完成之后就会自动退出，为了防止容器挂掉，得用 bash 的 while 重新拉起来
 
 ```yaml
 services:
@@ -143,7 +159,9 @@ Linux 内建了 IP 转发的功能。为了实现转发 IP packet，宿主机需
 sysctl -w net.ipv4.ip_forward=1
 ```
 
-这还没完。由于两个容器分别和 router 的两个网卡分别处在同一个子网，当这个名为 router 的容器发现[收包的源地址跟下一跳是同一个网段](https://serverfault.com/a/402047)的时候，这个不成熟的router就会发送一个 ICMP redirect。用 sidecar tcpdump 可以看到
+docker 允许[单独为容器指定部分内核参数](https://docs.docker.com/compose/compose-file/compose-file-v3/#sysctls)，不过也不完全对。本地（ubuntu 18.04，docker 24）试了一下发现，在宿主机 IPv4 转发关闭的情况下，容器尽管使用了 `sysctls: [net.ipv4.ip_forward=1]` 也还是不能转发IPv4。这跟当前登录用户是否为 root 无关，哪怕容器本身是用 sudo 拉起来的也一样。不过，反过来就不一样了，在宿主机打开该开关的情况下，容器使用了 `net.ipv4.ip_forward=0` 雀食能禁止 IPv4 转发，猜测 docker 只能关闭内核参数，而不能主动打开被宿主机关闭的内核参数。
+
+这还没完，这里会有个小问题。由于两个容器分别和 router 的两个网卡分别处在同一个子网，当这个名为 router 的容器发现[收包的源地址跟下一跳是同一个网段](https://serverfault.com/a/402047)的时候，这个不成熟的router就会发送一个 ICMP redirect。用 sidecar tcpdump 可以看到
 
 ```
 19:57:15.188446 IP 192.168.176.3.55040 > 113.108.81.189.443: Flags [S], seq 596096153, win 64240, options [mss 1460,sackOK,TS val 4125452867 ecr 0,nop,wscale 7], length 0
@@ -175,7 +193,7 @@ services:
 
 ## 设置默认路由
 
-一般情况下，容器的默认路由是指向docker的网关。为了让容器的traffic能够经过 router，需要分别修改容器的默认路由
+一般情况下，容器的默认路由是指向docker的网关。为了让容器的traffic能够经过 router，需要分别在容器启动之前修改其默认路由
 
 ```yaml
 services:
@@ -279,7 +297,7 @@ services:
 
 ## 容器的 Sidecar
 
-sidecar 是 k8s 里的概念，允许一个容器去访问另一个容器里的内容，一般的用法是让sidecar容器输出另一个容器里的微服务的文件日志。docker-compose里面也有[类似的功能](https://ilhicas.com/2023/01/26/How-to-run-a-sidecar-in-docker-compose.html)，做法是在作为 sidecar 的容器配置中指定 `network_mode: "services:xxxx"`
+sidecar 是 k8s 里的概念，允许一个容器去访问另一个容器里的内容，一般的用法是让sidecar容器输出另一个容器里的微服务的日志。docker-compose里面也有[类似的功能](https://ilhicas.com/2023/01/26/How-to-run-a-sidecar-in-docker-compose.html)，做法是在作为 sidecar 的容器配置中指定 `network_mode: "services:xxxx"`
 
 ```yaml
 services:

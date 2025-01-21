@@ -2,9 +2,8 @@
 toc: true
 layout: "post"
 catalog: true
-title:  "HTTPS 反向代理"
+title:  "HTTPS nginx 反向代理"
 date:   2022-03-14 12:10:38 +0800
-subtitle: "元気を出さないと、ご飯もおいしくないよ"
 header-img: "img/jp-biwako.jpg"
 categories: 
   - blog
@@ -16,11 +15,7 @@ tags:
   - openssl
 ---
 
-现在的牛马不用框架的话估计搞不出来一个能用的后台web服务吧（心虚）；但是既然有轮子可以用那用也无妨。流行的框架给予了码农极大的便利能够集中精力编写业务逻辑，HTTPS什么的当然是有内建支持的啦，毕竟你已经是一个成熟的框架了，需要学会自己上HTTPS（bushi）。
-
-无奈最近出于测试需要用docker搞了一个服务，但是没有挂载目录，也没有外接DB，数据什么的直接就在容器里，一重启就gg。为了自测HTTPS场景而且也不想要重新部署，决定不动原来的服务，用nginx搞一下HTTPS反向代理。
-
-作为例子，本文使用了腾讯云CVM（ubuntu）作为服务器，SSL证书同样来自腾讯云。实现目标如下：
+这里使用了腾讯云CVM ubuntu 作为服务器，SSL证书同样来自腾讯云。实现目标如下：
 
 - 在80端口启动一个没有HTTPS的httpd作为后台服务，但是不让外部访问80（可以通过腾讯云安全组限制）；
 - 在443端口启动nginx反向代理，将外部请求导流到本地80端口的httpd。
@@ -33,9 +28,9 @@ tags:
 
 如果没有其他网关或者代理，浏览器和nginx、nginx和httpd之间将会各自建立一个TCP连接；其中浏览器和nginx的HTTPS在TLS隧道上进行。
 
-## HTTPS 建立会话
+## HTTPS 握手过程
 
-简单描述一下建立HTTPS会话(TLS1.2)的过程，IBM有[一篇文章详细描述了这个过程](https://www.ibm.com/docs/en/sdk-java-technology/7.1?topic=handshake-tls-12-protocol)，同时也可以用wireshark抓包来对比观察这个过程。
+简单描述一下建立 TLS1.2 HTTPS 会话的过程，IBM有[一篇文章详细描述了这个过程](https://www.ibm.com/docs/en/sdk-java-technology/7.1?topic=handshake-tls-12-protocol)，同时也可以用wireshark抓包来对比观察这个过程。
 
 ```
 Client |-------client hello----->| Server
@@ -57,32 +52,22 @@ Client |-------client hello----->| Server
 3. 浏览器发送用于产生对成加密密钥的信息。
 4. 交换密钥信息完成后，TLS隧道建立完成。浏览器和服务器在这个隧道上进行HTTP会话。
 
-在这之后，wireshark只能看到加密之后的、看似杂乱无章TCP数据，无法看到任何有意义的明文。有意思的是，chrome控制台和fiddler可以抓到解密之后的明文，不过这两个的原理不同：fiddler会在本地启动一个代理，要求PC信任fiddler的证书；在建立HTTPS之前还会有一个 HTTP CONNECT 到代理，所有经由浏览器发出的请求都会先经过fiddler的代理，然后由fiddler进行解密展示。也就是说，浏览器和fiddler、fiddler和服务器之间各自有一个HTTPS回话：
-
-```
-浏览器 <--HTTPS 会话1--> fiddler <--HTTPS 会话2--> 服务器
-```
+TLS1.2至少需要2-RTT，而 TLS1.3 由于强制使用 DH 算法仅仅 1-RTT 就能完成握手。
 
 ## 搭建反向代理
 
-从上面描述的过程来看HTTPS少不了证书。证书是有对应的存储到硬盘的文件的，其文件有两种存储方式：文本和二进制。
+### 证书
+
+HTTPS少不了证书，证书文件有两种存储方式：文本和二进制。
 
 文本存储用的是[PEM格式(Privacy Enhanced Mail)](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail)，这种格式用base64编码内容，可以用一般的文本编辑器打开查看，以 `-----BEGIN XXX-----`换行开头、以`-----END XXX-----`，XXX在这里是 `CERTIFICATE`。按理说PEM不止用来存储证书，也可以单独存储公钥和私钥。`ssh-keygen`命令默认生成的密钥对就是用的PEM格式。PEM格式可以用 `*.crt` 和 `*.pem`作为拓展名。
 
 二进制存储用的是ASN.1 格式，无法直接用文本编辑器打开，这种文件扩展名一般是 `*.der`。从 chrome 的小锁头导出来的证书就是用的这个格式。
 
-### 证书
-
 搭建反向代理之前首先得有一个有效的证书，为了说明效果、先不要用自己签的；我用的是腾讯云上面免费签1年的。一般来说需要三个文件：证书(.crt)、私钥(.key)和 root_bundle.crt(也不知道中文该叫啥)。
 
-先把上面三个文件通过scp命令传输到ubuntu上的用户目录并且解压。
 
-```shell
-scp *.zip ubuntu@xxx.xxx.xxx.xxx:~/
-# 输入密码就可以
-```
-
-#### 自签证书
+### 自签证书
 
 有时候基于开发测试原因、我们需要弄一个自己签发的证书，比如需要给IP签发证书，但是腾讯云的免费套餐并不支持～ 关于如何生成自签证书的详细步骤，可以参考台湾网友写的[这篇文章](https://blog.miniasp.com/post/2019/02/25/Creating-Self-signed-Certificate-using-OpenSSL)，我这里简单记录一下操作步骤。
 
@@ -119,7 +104,7 @@ openssl req -x509 -new -nodes -sha256 -utf8 -days 3650 -newkey rsa:2048 -keyout 
 
 除非将该证书导入到OS、正常的浏览器都不会信任证书～所以如果要出现小锁头还得手动导入一下。
 
-### httpd 模拟后台
+### httpd 服务器
 
 然后用一个httpd模拟无加密的后台服务。安装httpd，在ubuntu上其实是叫apache2。
 
@@ -129,50 +114,6 @@ sudo apt-get install apache2 -y
 ```
 
 ubuntu httpd 的配置文件在 /etc/apache2/apache2.conf 。
-
-#### 单独使用HTTPS的httpd
-
-在说明如何配置nginx之前，先来看下不使用nginx的https反代、怎么单独使用httpd的https功能。默认情况下SSL模块是没有开启的，可以 ls mods-enabled 看到下面没有ssl.conf
-。实际上SSL模块的配置文件在 mods-available 下面。在ubuntu上对httpd启用/关闭功能需要通过 `a2enmod/a2ensite`、`a2dismod/a2dissite`来执行。
-
-```shell
-sudo a2enmod ssl # 启用SSL模块。之后 ls mods-enabled 就可以看到新增的 ssl.conf
-# 然后需要启用 https site
-sudo a2ensite default-ssl
-# 编辑 default-ssl.conf
-vim sites-enabled/default-ssl.conf 
-```
-
-编辑default-ssl.conf的以下内容
-
-```apache
-#   SSL Engine Switch:
-#   Enable/Disable SSL for this virtual host.
-SSLEngine on # 确保这个要打开
-
-#   A self-signed (snakeoil) certificate can be created by installing
-#   the ssl-cert package. See
-#   /usr/share/doc/apache2/README.Debian.gz for more info.
-#   If both key and certificate are stored in the same file, only the
-#   SSLCertificateFile directive is needed.
-SSLCertificateFile      PATH_TO_YOUR_CERT # 证书文件的路径
-SSLCertificateKeyFile   PATH_TO_YOUR_KEY # 证书文件私钥的路径
-
-#   Server Certificate Chain:
-#   Point SSLCertificateChainFile at a file containing the
-#   concatenation of PEM encoded CA certificates which form the
-#   certificate chain for the server certificate. Alternatively
-#   the referenced file can be the same as SSLCertificateFile
-#   when the CA certificates are directly appended to the server
-#   certificate for convinience.
-SSLCertificateChainFile PATH_TO_YOUR_CERT_CHAIN # bundle.crt的路径
-```
-
-保存之后重启下httpd，然后通过浏览器访问https就可以看到小锁头了。
-
-```shell
-sudo systemctl restart apache2
-```
 
 ### 配置 nginx HTTPS
 
@@ -294,3 +235,47 @@ proxy_pass http://my-flask-service
 - 让容器[使用宿主机的网络](https://stackoverflow.com/a/48547074/8706476)。docker run的时候给一个参数 `--net=host`，nginx.conf 直接使用 localhost，也不需要加端口映射（亲测好用）；
 - 对于mac/win的docker，或者是[20.01以后版本的docker](https://github.com/moby/moby/pull/40007#issue-499875390)，可以使用域名`http://host.docker.internal`访问宿主机（没试过）。20.01版本以前的linux docker没有这个功能
 
+
+## httpd单独启用HTTPS
+
+其实 httpd 可以 启用https功能，而不需要 nginx。默认情况下SSL模块是没有开启的，可以 ls mods-enabled 看到下面没有ssl.conf
+。实际上SSL模块的配置文件在 mods-available 下面。在ubuntu上对httpd启用/关闭功能需要通过 `a2enmod/a2ensite`、`a2dismod/a2dissite`来执行。
+
+```shell
+sudo a2enmod ssl # 启用SSL模块。之后 ls mods-enabled 就可以看到新增的 ssl.conf
+# 然后需要启用 https site
+sudo a2ensite default-ssl
+# 编辑 default-ssl.conf
+vim sites-enabled/default-ssl.conf 
+```
+
+编辑default-ssl.conf的以下内容
+
+```apache
+#   SSL Engine Switch:
+#   Enable/Disable SSL for this virtual host.
+SSLEngine on # 确保这个要打开
+
+#   A self-signed (snakeoil) certificate can be created by installing
+#   the ssl-cert package. See
+#   /usr/share/doc/apache2/README.Debian.gz for more info.
+#   If both key and certificate are stored in the same file, only the
+#   SSLCertificateFile directive is needed.
+SSLCertificateFile      PATH_TO_YOUR_CERT # 证书文件的路径
+SSLCertificateKeyFile   PATH_TO_YOUR_KEY # 证书文件私钥的路径
+
+#   Server Certificate Chain:
+#   Point SSLCertificateChainFile at a file containing the
+#   concatenation of PEM encoded CA certificates which form the
+#   certificate chain for the server certificate. Alternatively
+#   the referenced file can be the same as SSLCertificateFile
+#   when the CA certificates are directly appended to the server
+#   certificate for convinience.
+SSLCertificateChainFile PATH_TO_YOUR_CERT_CHAIN # bundle.crt的路径
+```
+
+保存之后重启下httpd，然后通过浏览器访问https就可以看到小锁头了。
+
+```shell
+sudo systemctl restart apache2
+```

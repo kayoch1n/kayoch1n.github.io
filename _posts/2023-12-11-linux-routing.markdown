@@ -24,7 +24,7 @@ tags:
 
 ## Linux route 选择
 
-给主机绑定多个物理网卡之后，需要正确配置路由表和RPDB才能让主机通过多网卡发包。在配置之前需要了解linux系统在将一个packet发往网卡的时候是如何选择路由的。所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
+linux 在将一个packet发往网卡的时候是如何选择路由的。所谓路由route，就是一条让系统知道应该将packet发到哪个网卡的记录。[路由的选择过程](http://linux-ip.net/html/routing-selection.html)涉及三个数据结构：
 
 1. 路由缓存 (route cache)；
 2. RPDB(routing policy database) 存储 `src, dst, tos, fwmark, iif` 和路由表的关系。有的资料把这个叫做路由策略；
